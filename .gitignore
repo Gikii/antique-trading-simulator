@@ -1,0 +1,45 @@
+# This .gitignore file should be placed at the root of your Unity project directory
+# Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
+
+.utmp/
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+*.log
+
+# Blender
+*.blend1
+*.blend1.meta
+
+# MemoryCaptures / Recordings
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Rider / Visual Studio
+/[Aa]ssets/Plugins/Editor/JetBrains*
+*.DotSettings.user
+.vs/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Gradle
+.gradle/
+
+# OS generated
+.DS_Store
+Thumbs.db
