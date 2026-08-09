@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41a53d3725ac21544a2eb4a0a49f1d9d, type: 3}
   m_Name: Antique_SilverCoin
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
-  Id: 
-  DisplayName: 
-  Category: 
-  BasePrice: 0
+  Id: coin_001
+  DisplayName: Silver coin
+  Category: Coins
+  BasePrice: 150
   Description: 
