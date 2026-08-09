@@ -3,33 +3,48 @@ using System;
 namespace AntiqueTradingSimulator.Market
 {
     /// <summary>
-    /// Represents a single antique on the market — static data (never changes)
-    /// and dynamic data (updated by the economy engine).
+    /// Runtime instance of an antique on the market. Holds only dynamic data
+    /// (price, supply, demand) plus a reference to its static definition by Id —
+    /// never a direct object reference, so this class stays cleanly serializable
+    /// for future save/load.
     /// </summary>
     [Serializable]
     public class Antique
     {
-        // --- Static data ---
-        public string Id;
-        public string Name;
-        public string Category;
-        public float BasePrice;
+        public string DefinitionId;
 
         // --- Dynamic data ---
         public float CurrentPrice;
         public float Supply;
         public float Demand;
 
-        public Antique(string id, string name, string category, float basePrice, float initialSupply, float initialDemand)
+        [NonSerialized]
+        private AntiqueDefinition _definitionCache;
+
+        public Antique(string definitionId, float initialSupply, float initialDemand)
         {
-            Id = id;
-            Name = name;
-            Category = category;
-            BasePrice = basePrice;
-            CurrentPrice = basePrice;
+            DefinitionId = definitionId;
             Supply = initialSupply;
             Demand = initialDemand;
+
+            var def = Definition;
+            CurrentPrice = def != null ? def.BasePrice : 0f;
         }
+
+        public AntiqueDefinition Definition
+        {
+            get
+            {
+                if (_definitionCache == null)
+                    _definitionCache = AntiqueDatabase.GetById(DefinitionId);
+                return _definitionCache;
+            }
+        }
+
+        public string Id => DefinitionId;
+        public string Name => Definition != null ? Definition.DisplayName : "Unknown";
+        public string Category => Definition != null ? Definition.Category : "Unknown";
+        public float BasePrice => Definition != null ? Definition.BasePrice : 0f;
 
         public override string ToString()
         {
