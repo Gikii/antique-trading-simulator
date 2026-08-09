@@ -1,58 +1,43 @@
 ﻿using UnityEngine;
-using AntiqueTradingSimulator.Market;
+using AntiqueTradingSimulator.Economy;
 
 namespace AntiqueTradingSimulator.Core
 {
     /// <summary>
-    /// TEMPORARY debug UI (IMGUI) for manually testing the economy prototype.
-    /// Shows current day and market state, with buttons to advance time and trigger trades.
-    /// Remove or replace with proper UI once the game has a real UI system.
+    /// TEMPORARY debug UI (IMGUI) for testing the economy simulation.
+    /// Reads market state from EconomyManager and lets you advance time,
+    /// pause/resume the clock, or trigger trades on any antique on the market.
     /// </summary>
     [RequireComponent(typeof(TimeManager))]
+    [RequireComponent(typeof(EconomyManager))]
     public class EconomyDebugUI : MonoBehaviour
     {
-        [SerializeField] private string testAntiqueId = "vase_001";
-        [SerializeField] private int fontSize = 24;
-        [SerializeField] private int panelWidth = 500;
-        [SerializeField] private int panelHeight = 420;
+        [SerializeField] private int fontSize = 20;
+        [SerializeField] private int panelWidth = 600;
+        [SerializeField] private int panelHeight = 750;
 
-        private Market.Market _market;
-        private Antique _testAntique;
         private TimeManager _timeManager;
+        private EconomyManager _economyManager;
 
         private GUIStyle _labelStyle;
         private GUIStyle _buttonStyle;
         private GUIStyle _boxStyle;
 
+        private Vector2 _scrollPos;
+
         void Start()
         {
             _timeManager = GetComponent<TimeManager>();
-
-            _market = new Market.Market();
-            _testAntique = new Antique(testAntiqueId, initialSupply: 10f, initialDemand: 5f);
-            _market.AddAntique(_testAntique);
+            _economyManager = GetComponent<EconomyManager>();
         }
 
         private void SetupStyles()
         {
             if (_labelStyle != null) return;
 
-            _labelStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = fontSize,
-                padding = new RectOffset(10, 10, 6, 6)
-            };
-
-            _buttonStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = fontSize,
-                padding = new RectOffset(10, 10, 12, 12)
-            };
-
-            _boxStyle = new GUIStyle(GUI.skin.box)
-            {
-                fontSize = fontSize
-            };
+            _labelStyle = new GUIStyle(GUI.skin.label) { fontSize = fontSize, padding = new RectOffset(6, 6, 4, 4) };
+            _buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = fontSize, padding = new RectOffset(8, 8, 8, 8) };
+            _boxStyle = new GUIStyle(GUI.skin.box) { fontSize = fontSize };
         }
 
         void OnGUI()
@@ -62,37 +47,50 @@ namespace AntiqueTradingSimulator.Core
             GUILayout.BeginArea(new Rect(20, 20, panelWidth, panelHeight), _boxStyle);
 
             GUILayout.Label($"Day: {_timeManager.CurrentDay}", _labelStyle);
+            GUILayout.Label($"Next day in: {_timeManager.TimeUntilNextDay:F1}s", _labelStyle);
+            GUILayout.Label($"Status: {(_timeManager.IsRunning ? "Running" : "Paused")}", _labelStyle);
 
-            if (_testAntique != null)
+            GUILayout.BeginHorizontal();
+
+            if (GUILayout.Button(_timeManager.IsRunning ? "Stop" : "Start", _buttonStyle))
             {
-                GUILayout.Space(10);
-                GUILayout.Label(_testAntique.Name, _labelStyle);
-                GUILayout.Label($"Price: {_testAntique.CurrentPrice:F2}", _labelStyle);
-                GUILayout.Label($"Supply: {_testAntique.Supply:F1}", _labelStyle);
-                GUILayout.Label($"Demand: {_testAntique.Demand:F1}", _labelStyle);
+                _timeManager.ToggleRunning();
             }
-
-            GUILayout.Space(20);
 
             if (GUILayout.Button("Advance Day", _buttonStyle))
             {
                 _timeManager.ForceAdvanceDay();
             }
 
-            GUILayout.Space(10);
+            GUILayout.EndHorizontal();
 
-            if (GUILayout.Button("Buy", _buttonStyle))
+            GUILayout.Space(15);
+
+            _scrollPos = GUILayout.BeginScrollView(_scrollPos);
+
+            foreach (var antique in _economyManager.Market.Antiques)
             {
-                _market.Buy(_testAntique.Id);
+                GUILayout.BeginVertical(_boxStyle);
+
+                GUILayout.Label(antique.Name, _labelStyle);
+                GUILayout.Label($"Price: {antique.CurrentPrice:F2} | Supply: {antique.Supply:F1} | Demand: {antique.Demand:F1}", _labelStyle);
+
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Buy", _buttonStyle))
+                {
+                    _economyManager.Market.Buy(antique.Id);
+                }
+                if (GUILayout.Button("Sell", _buttonStyle))
+                {
+                    _economyManager.Market.Sell(antique.Id);
+                }
+                GUILayout.EndHorizontal();
+
+                GUILayout.EndVertical();
+                GUILayout.Space(8);
             }
 
-            GUILayout.Space(10);
-
-            if (GUILayout.Button("Sell", _buttonStyle))
-            {
-                _market.Sell(_testAntique.Id);
-            }
-
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
         }
     }
