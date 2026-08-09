@@ -4,34 +4,44 @@ using AntiqueTradingSimulator.Market;
 namespace AntiqueTradingSimulator.Core
 {
     /// <summary>
-    /// TEMPORARY script for manually testing the economy engine.
+    /// TEMPORARY script for manually testing the economy engine over time.
+    /// Remove once the real EconomyManager exists.
     /// </summary>
+    [RequireComponent(typeof(TimeManager))]
     public class EconomyPrototypeTest : MonoBehaviour
     {
+        [SerializeField] private string testAntiqueId = "vase_001";
+
         private Market.Market _market;
+        private Antique _testAntique;
+        private TimeManager _timeManager;
 
         void Start()
         {
+            _timeManager = GetComponent<TimeManager>();
+            _timeManager.OnDayChanged += HandleDayChanged;
+
             _market = new Market.Market();
+            _testAntique = new Antique(testAntiqueId, initialSupply: 10f, initialDemand: 5f);
+            _market.AddAntique(_testAntique);
 
-            var vase = new Antique("vase_001", "Chinese vase", "Porcelain", basePrice: 500f, initialSupply: 10f, initialDemand: 5f);
-            _market.AddAntique(vase);
+            Debug.Log($"Day 1 start: {_testAntique}");
+        }
 
-            Debug.Log($"Start: {vase}");
+        private void HandleDayChanged(int newDay)
+        {
+            if (newDay % 2 == 0)
+                _market.Buy(_testAntique.Id);
+            else
+                _market.Sell(_testAntique.Id);
 
-            // Simulate several consecutive purchases — price should rise
-            for (int i = 0; i < 5; i++)
-            {
-                _market.Buy("vase_001");
-                Debug.Log($"After purchase {i + 1}: {vase}");
-            }
+            Debug.Log($"Day {newDay}: {_testAntique}");
+        }
 
-            // Simulate selling — price should start dropping
-            for (int i = 0; i < 3; i++)
-            {
-                _market.Sell("vase_001");
-                Debug.Log($"After sale {i + 1}: {vase}");
-            }
+        void OnDestroy()
+        {
+            if (_timeManager != null)
+                _timeManager.OnDayChanged -= HandleDayChanged;
         }
     }
 }
