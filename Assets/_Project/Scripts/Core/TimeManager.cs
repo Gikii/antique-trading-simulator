@@ -11,13 +11,17 @@ namespace AntiqueTradingSimulator.Core
     public class TimeManager : MonoBehaviour
     {
         [SerializeField] private float secondsPerDay = 10f;
+        [SerializeField] private float[] speedSteps = { 1f, 2f, 4f };
 
         public int CurrentDay { get; private set; } = 1;
         public bool IsRunning { get; private set; } = true;
+        public float SpeedMultiplier { get; private set; } = 1f;
 
         public event Action<int> OnDayChanged;
+        public event Action<float> OnSpeedChanged;
 
         private float _timer;
+        private int _speedIndex = 0;
 
         public float SecondsPerDay => secondsPerDay;
         public float TimeUntilNextDay => Mathf.Max(0f, secondsPerDay - _timer);
@@ -27,7 +31,7 @@ namespace AntiqueTradingSimulator.Core
         {
             if (!IsRunning) return;
 
-            _timer += Time.deltaTime;
+            _timer += Time.deltaTime * SpeedMultiplier;
 
             if (_timer >= secondsPerDay)
             {
@@ -64,5 +68,13 @@ namespace AntiqueTradingSimulator.Core
         {
             IsRunning = !IsRunning;
         }
+
+        public void CycleSpeed()
+        {
+            _speedIndex = (_speedIndex + 1) % speedSteps.Length;
+            SpeedMultiplier = speedSteps[_speedIndex];
+            OnSpeedChanged?.Invoke(SpeedMultiplier);
+        }
+
     }
 }

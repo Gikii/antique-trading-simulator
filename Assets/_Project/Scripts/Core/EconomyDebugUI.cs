@@ -49,6 +49,7 @@ namespace AntiqueTradingSimulator.Core
             GUILayout.Label($"Day: {_timeManager.CurrentDay}", _labelStyle);
             GUILayout.Label($"Next day in: {_timeManager.TimeUntilNextDay:F1}s", _labelStyle);
             GUILayout.Label($"Status: {(_timeManager.IsRunning ? "Running" : "Paused")}", _labelStyle);
+            GUILayout.Label($"Speed: {_timeManager.SpeedMultiplier:0.##}x", _labelStyle);
 
             GUILayout.BeginHorizontal();
 
@@ -61,6 +62,12 @@ namespace AntiqueTradingSimulator.Core
             {
                 _timeManager.ForceAdvanceDay();
             }
+
+            if (GUILayout.Button($"Speed ({_timeManager.SpeedMultiplier:0.##}x)", _buttonStyle))
+            {
+                _timeManager.CycleSpeed();
+            }
+
 
             GUILayout.EndHorizontal();
 
