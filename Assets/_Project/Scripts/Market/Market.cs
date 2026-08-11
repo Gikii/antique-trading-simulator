@@ -15,6 +15,7 @@ namespace AntiqueTradingSimulator.Market
 
         public void AddAntique(Antique antique)
         {
+            RecalculatePrice(antique);
             _antiques.Add(antique);
         }
 
