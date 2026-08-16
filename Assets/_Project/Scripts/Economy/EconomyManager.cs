@@ -13,7 +13,7 @@ namespace AntiqueTradingSimulator.Economy
     [RequireComponent(typeof(Core.TimeManager))]
     public class EconomyManager : MonoBehaviour
     {
-        [SerializeField] private float defaultInitialSupply = 10f;
+        [SerializeField] private float defaultInitialSupply = 5f;
         [SerializeField] private float defaultInitialDemand = 5f;
 
         public Market.Market Market { get; private set; }
