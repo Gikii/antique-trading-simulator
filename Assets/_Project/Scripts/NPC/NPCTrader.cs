@@ -87,13 +87,15 @@ namespace AntiqueTradingSimulator.NPC
             float cost = antique.CurrentPrice * tradeAmount;
             if (cost > Cash) return;
 
-            economyManager.Market.Buy(antique.Id, tradeAmount);
-            Cash -= cost;
+            if (economyManager.Market.Buy(antique.Id, tradeAmount))
+            {
+                Cash -= cost;
 
-            _inventory.TryGetValue(antique.Id, out float owned);
-            _inventory[antique.Id] = owned + tradeAmount;
+                _inventory.TryGetValue(antique.Id, out float owned);
+                _inventory[antique.Id] = owned + tradeAmount;
 
-            Debug.Log($"{npcName} bought {tradeAmount:F1} x {antique.Name} at {antique.CurrentPrice:F2} (cash: {Cash:F2})");
+                Debug.Log($"{npcName} bought {tradeAmount:F1} x {antique.Name} at {antique.CurrentPrice:F2} (cash: {Cash:F2})");
+            }
         }
 
         private void TrySell(Antique antique)

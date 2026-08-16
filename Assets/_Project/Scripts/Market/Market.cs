@@ -27,19 +27,25 @@ namespace AntiqueTradingSimulator.Market
         /// <summary>
         /// Player/NPC buys one unit of the antique — supply decreases, demand rises slightly (buying pressure).
         /// </summary>
-        public void Buy(string id, float amount = 1f)
+        public bool Buy(string id, float amount = 1f)
         {
             var antique = GetById(id);
+            
             if (antique == null)
             {
                 Debug.LogWarning($"Market: antique with ID {id} not found");
-                return;
+                return false;
+            }
+            else if(antique.Supply < amount)
+            {
+                return false;
             }
 
             antique.Supply = Mathf.Max(0f, antique.Supply - amount);
             antique.Demand += amount * 0.1f; // buying pressure slightly increases demand
 
             RecalculatePrice(antique);
+            return true;
         }
 
         /// <summary>
