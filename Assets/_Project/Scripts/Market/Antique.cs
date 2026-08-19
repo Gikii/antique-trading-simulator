@@ -55,14 +55,17 @@ namespace AntiqueTradingSimulator.Market
             }
         }
 
-        public string Id => DefinitionId;
+        // Unique identity of THIS specific physical item — used by Market.GetById/Buy
+        // and TraderInventory's holdings dictionary. Never the same as another
+        // Antique instance, even if they share a DefinitionId.
+        public string Id => ListingId;
         public string Name => Definition != null ? Definition.DisplayName : "Unknown";
         public string Category => Definition != null ? Definition.Category : "Unknown";
         public float BasePrice => Definition != null ? Definition.BasePrice : 0f;
 
         public override string ToString()
         {
-            return $"{Name} [{Category}] — Price: {CurrentPrice:F2}, Supply: {Quality:F1}, Demand: {State:F1}";
+            return $"{Name} [{Category}] — Price: {CurrentPrice:F2}, Quality: {Quality:F1}, State: {State:F1}";
         }
     }
 }
