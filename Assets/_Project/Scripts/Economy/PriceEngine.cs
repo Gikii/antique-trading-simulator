@@ -3,7 +3,8 @@ using UnityEngine;
 namespace AntiqueTradingSimulator.Economy
 {
     /// <summary>
-    /// Solely responsible for calculating an antique's price based on supply and demand.
+    /// Solely responsible for calculating an antique listing's price based on its
+    /// own Quality/State modifiers plus the supply and demand of its type.
     /// No other module should set the price directly.
     /// </summary>
     public static class PriceEngine
@@ -16,15 +17,22 @@ namespace AntiqueTradingSimulator.Economy
         private const float MaxPriceMultiplier = 5f;
         private const float MinPriceMultiplier = 0.1f;
 
-        public static float CalculatePrice(Market.Antique antique)
+        public static float CalculatePrice(Market.Antique listing, Market.AntiqueMarketState typeState)
         {
-            float safeSupply = Mathf.Max(antique.Supply, MinSupply);
-            float ratio = antique.Demand / safeSupply;
+            float supplyDemandMultiplier = 1f;
 
-            float multiplier = Mathf.Pow(ratio, SensitivityFactor);
-            multiplier = Mathf.Clamp(multiplier, MinPriceMultiplier, MaxPriceMultiplier);
+            if (typeState != null)
+            {
+                float safeSupply = Mathf.Max(typeState.Supply, MinSupply);
+                float ratio = typeState.Demand / safeSupply;
 
-            return antique.BasePrice * multiplier;
+                supplyDemandMultiplier = Mathf.Pow(ratio, SensitivityFactor);
+                supplyDemandMultiplier = Mathf.Clamp(supplyDemandMultiplier, MinPriceMultiplier, MaxPriceMultiplier);
+            }
+
+            // BasePrice modified by this specific item's quality and physical state,
+            // then scaled by how the type as a whole is trading.
+            return listing.BasePrice * listing.Quality * listing.State * supplyDemandMultiplier;
         }
     }
 }
