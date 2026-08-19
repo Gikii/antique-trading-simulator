@@ -30,7 +30,7 @@ namespace AntiqueTradingSimulator.Economy
         }
 
 
-        public bool Buy(Market.Market market, string antiqueId, float amount)
+        public bool Buy(Market.Market market, string antiqueId, float amount=1f)
         {
             var antique = market.GetById(antiqueId);
             if (antique == null) return false;
@@ -49,7 +49,7 @@ namespace AntiqueTradingSimulator.Economy
             return true;
         }
 
-        public bool Sell(Market.Market market, string antiqueId, float amount)
+        public bool Sell(Market.Market market, string antiqueId, float amount=1f)
         {
             _holdings.TryGetValue(antiqueId, out float owned);
             if (owned < amount) return false;

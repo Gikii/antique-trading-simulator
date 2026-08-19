@@ -25,13 +25,16 @@ namespace AntiqueTradingSimulator.NPC
         [SerializeField] private float buyBelowPriceRatio = 0.9f;
         [SerializeField] private float sellAbovePriceRatio = 1.1f;
 
-        public float Cash { get; private set; }
+        //public float Cash { get; private set; }
 
-        private readonly Dictionary<string, float> _inventory = new Dictionary<string, float>();
+        //private readonly Dictionary<string, float> _inventory = new Dictionary<string, float>();
+
+        private TraderInventory inventory;
 
         void Awake()
         {
-            Cash = startingCash;
+
+            inventory = new TraderInventory(startingCash);
 
             if (economyManager == null) economyManager = FindFirstObjectByType<EconomyManager>();
             if (timeManager == null) timeManager = FindFirstObjectByType<TimeManager>();
@@ -62,12 +65,13 @@ namespace AntiqueTradingSimulator.NPC
 
                 if (priceRatio <= buyBelowPriceRatio)
                 {
-                    TryBuy(antique);
+                    if(inventory.Buy(economyManager.Market, antique.Id))
+                        Debug.Log($"{npcName} bought {tradeAmount:F1} x {antique.Name} at {antique.CurrentPrice:F2} (cash: {inventory.Cash:F2})");
                 }
             }
             if (Random.value <= sellChance)
             {
-                var ownedIds = new List<string>(_inventory.Keys);
+                var ownedIds = new List<string>(inventory.Holdings.Keys);
                 string randomId = ownedIds[Random.Range(0, ownedIds.Count)];
                 var antique = economyManager.Market.GetById(randomId);
 
@@ -76,12 +80,14 @@ namespace AntiqueTradingSimulator.NPC
                     float priceRatio = antique.BasePrice > 0f ? antique.CurrentPrice / antique.BasePrice : 1f;
                     if (priceRatio >= sellAbovePriceRatio)
                     {
-                        TrySell(antique);
+                        if(inventory.Sell(economyManager.Market, randomId))
+                            Debug.Log($"{npcName} sold {tradeAmount:F1} x {antique.Name} at {antique.CurrentPrice:F2} (cash: {inventory.Cash:F2})");
+
                     }
                 }
             }
         }
-
+        /*
         private void TryBuy(Antique antique)
         {
             float cost = antique.CurrentPrice * tradeAmount;
@@ -108,6 +114,6 @@ namespace AntiqueTradingSimulator.NPC
             _inventory[antique.Id] = owned - tradeAmount;
 
             Debug.Log($"{npcName} sold {tradeAmount:F1} x {antique.Name} at {antique.CurrentPrice:F2} (cash: {Cash:F2})");
-        }
+        }*/
     }
 }
