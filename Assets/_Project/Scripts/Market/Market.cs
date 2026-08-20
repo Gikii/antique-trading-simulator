@@ -5,70 +5,153 @@ using AntiqueTradingSimulator.Economy;
 namespace AntiqueTradingSimulator.Market
 {
     /// <summary>
-    /// Holds the list of antiques available on the market and handles basic transactions.
+    /// Holds the type-level market state (supply/demand per AntiqueDefinition) and the
+    /// list of individual AntiqueListing instances currently available to buy, and
+    /// handles basic transactions.
     /// </summary>
     public class Market
     {
-        private readonly List<Antique> _antiques = new List<Antique>();
+        private readonly List<Antique> _listings = new List<Antique>();
+        private readonly Dictionary<string, AntiqueMarketState> _typeStates = new Dictionary<string, AntiqueMarketState>();
 
-        public IReadOnlyList<Antique> Antiques => _antiques;
+        public IReadOnlyList<Antique> Listings => _listings;
+        public IReadOnlyDictionary<string, AntiqueMarketState> TypeStates => _typeStates;
 
-        public void AddAntique(Antique antique)
+        /// <summary>
+        /// Registers an AntiqueDefinition with the market so it has Supply/Demand tracked
+        /// and can start appearing as listings. Must be called once per definition before
+        /// GenerateListing can produce listings of that type.
+        /// </summary>
+        public void RegisterType(string definitionId, float initialSupply, float initialDemand)
         {
-            RecalculatePrice(antique);
-            _antiques.Add(antique);
+            if (_typeStates.ContainsKey(definitionId))
+                return;
+
+            _typeStates[definitionId] = new AntiqueMarketState(definitionId, initialSupply, initialDemand);
         }
 
-        public Antique GetById(string id)
+        public AntiqueMarketState GetTypeState(string definitionId)
         {
-            return _antiques.Find(a => a.Id == id);
+            _typeStates.TryGetValue(definitionId, out var state);
+            return state;
         }
 
         /// <summary>
-        /// Player/NPC buys one unit of the antique — supply decreases, demand rises slightly (buying pressure).
+        /// Rolls a new individual listing into existence: picks a definition at random,
+        /// weighted by that definition's current Supply (higher supply = more likely to
+        /// appear), then rolls random Quality/State for the new item and adds it to the
+        /// market. Returns null if there are no registered types with positive supply.
         /// </summary>
-        public bool Buy(string id, float amount = 1f)
+        public Antique GenerateListing()
         {
-            var antique = GetById(id);
-            
-            if (antique == null)
+            string definitionId = PickWeightedDefinitionId();
+            if (definitionId == null)
+                return null;
+
+            float quality = Random.Range(Antique.MinQuality, Antique.MaxQuality);
+            float state = Random.Range(Antique.MinState, Antique.MaxState);
+
+            var listing = new Antique(definitionId, quality, state);
+            AddListing(listing);
+            return listing;
+        }
+
+        private string PickWeightedDefinitionId()
+        {
+            float totalWeight = 0f;
+            foreach (var typeState in _typeStates.Values)
+                totalWeight += Mathf.Max(0f, typeState.Supply);
+
+            if (totalWeight <= 0f)
+                return null;
+
+            float roll = Random.value * totalWeight;
+            float cumulative = 0f;
+
+            foreach (var typeState in _typeStates.Values)
             {
-                Debug.LogWarning($"Market: antique with ID {id} not found");
-                return false;
+                cumulative += Mathf.Max(0f, typeState.Supply);
+                if (roll <= cumulative)
+                    return typeState.DefinitionId;
             }
-            else if(antique.Supply < amount)
+
+            return null;
+        }
+
+        public void AddListing(Antique listing)
+        {
+            RecalculatePrice(listing);
+            _listings.Add(listing);
+        }
+
+        public Antique GetById(string listingId)
+        {
+            return _listings.Find(l => l.Id == listingId);
+        }
+
+        public List<Antique> GetListingsByDefinition(string definitionId)
+        {
+            return _listings.FindAll(l => l.DefinitionId == definitionId);
+        }
+
+        /// <summary>
+        /// Player/NPC buys a specific listing off the market — it's removed from the
+        /// available listings, and its type's supply dips/demand rises slightly (buying pressure).
+        /// </summary>
+        public bool Buy(string listingId)
+        {
+            var listing = GetById(listingId);
+
+            if (listing == null)
             {
+                Debug.LogWarning($"Market: listing with ID {listingId} not found");
                 return false;
             }
 
-            antique.Supply = Mathf.Max(0f, antique.Supply - amount);
-            antique.Demand += amount * 0.1f; // buying pressure slightly increases demand
+            _listings.Remove(listing);
 
-            RecalculatePrice(antique);
+            var typeState = GetTypeState(listing.DefinitionId);
+            if (typeState != null)
+            {
+                typeState.Supply = Mathf.Max(0f, typeState.Supply - 1f);
+                typeState.Demand += 0.1f;
+            }
+
             return true;
         }
 
         /// <summary>
-        /// Player/NPC sells one unit of the antique — supply increases, demand drops slightly.
+        /// Puts a specific, already-existing antique listing (with its own quality/state)
+        /// back onto the market for sale — its type's supply rises/demand dips slightly.
         /// </summary>
-        public void Sell(string id, float amount = 1f)
+        public void Sell(Antique listing)
         {
-            var antique = GetById(id);
-            if (antique == null)
+            if (listing == null)
             {
-                Debug.LogWarning($"Market: antique with ID {id} not found");
+                Debug.LogWarning("Market: attempted to sell a null listing");
                 return;
             }
 
-            antique.Supply += amount;
-            antique.Demand = Mathf.Max(0f, antique.Demand - amount * 0.1f);
+            var typeState = GetTypeState(listing.DefinitionId);
+            if (typeState != null)
+            {
+                typeState.Supply += 1f;
+                typeState.Demand = Mathf.Max(0f, typeState.Demand - 0.1f);
+            }
 
-            RecalculatePrice(antique);
+            AddListing(listing);
         }
 
-        private void RecalculatePrice(Antique antique)
+        public void RecalculatePrice(Antique listing)
         {
-            antique.CurrentPrice = PriceEngine.CalculatePrice(antique);
+            var typeState = GetTypeState(listing.DefinitionId);
+            listing.CurrentPrice = PriceEngine.CalculatePrice(listing, typeState);
+        }
+
+        public void RecalculateAllPrices()
+        {
+            foreach (var listing in _listings)
+                RecalculatePrice(listing);
         }
     }
 }

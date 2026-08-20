@@ -10,10 +10,10 @@ namespace AntiqueTradingSimulator.Core
     [RequireComponent(typeof(TimeManager))]
     public class EconomyPrototypeTest : MonoBehaviour
     {
-        [SerializeField] private string testAntiqueId = "vase_001";
+        [SerializeField] private string testDefinitionId = "vase_001";
 
         private Market.Market _market;
-        private Antique _testAntique;
+        private Antique _testListing;
         private TimeManager _timeManager;
 
         void Start()
@@ -22,20 +22,26 @@ namespace AntiqueTradingSimulator.Core
             _timeManager.OnDayChanged += HandleDayChanged;
 
             _market = new Market.Market();
-            _testAntique = new Antique(testAntiqueId, initialSupply: 10f, initialDemand: 5f);
-            _market.AddAntique(_testAntique);
+            _market.RegisterType(testDefinitionId, initialSupply: 10f, initialDemand: 5f);
 
-            Debug.Log($"Day 1 start: {_testAntique}");
+            _testListing = new Antique(testDefinitionId, quality: 1f, state: 1f);
+            _market.AddListing(_testListing);
+
+            Debug.Log($"Day 1 start: {_testListing}");
         }
 
         private void HandleDayChanged(int newDay)
         {
             if (newDay % 2 == 0)
-                _market.Buy(_testAntique.Id);
+            {
+                _market.Buy(_testListing.Id);
+            }
             else
-                _market.Sell(_testAntique.Id);
+            {
+                _market.Sell(_testListing);
+            }
 
-            Debug.Log($"Day {newDay}: {_testAntique}");
+            Debug.Log($"Day {newDay}: {_testListing}");
         }
 
         void OnDestroy()

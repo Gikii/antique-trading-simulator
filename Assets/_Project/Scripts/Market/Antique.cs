@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace AntiqueTradingSimulator.Market
 {
@@ -11,24 +12,37 @@ namespace AntiqueTradingSimulator.Market
     [Serializable]
     public class Antique
     {
+        public string ListingId;
         public string DefinitionId;
+
+        // Quality modifier
+        public const float MinQuality = 0.8f;
+        public const float MaxQuality = 1.2f;
+
+        // Physica condition modifier
+        public const float MinState = 0.5f;
+        public const float MaxState = 1f;
+
 
         // --- Dynamic data ---
         public float CurrentPrice;
-        public float Supply;
-        public float Demand;
+
+        public float Quality;
+        public float State;
+
 
         [NonSerialized]
         private AntiqueDefinition _definitionCache;
 
-        public Antique(string definitionId, float initialSupply, float initialDemand)
+        public Antique(string definitionId, float quality, float state)
         {
+            ListingId = Guid.NewGuid().ToString("N");
             DefinitionId = definitionId;
-            Supply = initialSupply;
-            Demand = initialDemand;
+            Quality = Mathf.Clamp(quality, MinQuality, MaxQuality);
+            State = Mathf.Clamp(state, MinState, MaxState);
 
             var def = Definition;
-            CurrentPrice = def != null ? def.BasePrice : 0f;
+            CurrentPrice = def != null ? def.BasePrice * Quality * State : 0f;
         }
 
         public AntiqueDefinition Definition
@@ -41,14 +55,17 @@ namespace AntiqueTradingSimulator.Market
             }
         }
 
-        public string Id => DefinitionId;
+        // Unique identity of THIS specific physical item — used by Market.GetById/Buy
+        // and TraderInventory's holdings dictionary. Never the same as another
+        // Antique instance, even if they share a DefinitionId.
+        public string Id => ListingId;
         public string Name => Definition != null ? Definition.DisplayName : "Unknown";
         public string Category => Definition != null ? Definition.Category : "Unknown";
         public float BasePrice => Definition != null ? Definition.BasePrice : 0f;
 
         public override string ToString()
         {
-            return $"{Name} [{Category}] — Price: {CurrentPrice:F2}, Supply: {Supply:F1}, Demand: {Demand:F1}";
+            return $"{Name} [{Category}] — Price: {CurrentPrice:F2}, Quality: {Quality:F1}, State: {State:F1}";
         }
     }
 }

@@ -68,6 +68,10 @@ namespace AntiqueTradingSimulator.Core
                 _timeManager.CycleSpeed();
             }
 
+            if (GUILayout.Button("Spawn Listing", _buttonStyle))
+            {
+                _economyManager.Market.GenerateListing();
+            }
 
             GUILayout.EndHorizontal();
 
@@ -75,26 +79,26 @@ namespace AntiqueTradingSimulator.Core
 
             _scrollPos = GUILayout.BeginScrollView(_scrollPos);
 
-            foreach (var antique in _economyManager.Market.Antiques)
+            foreach (var listing in _economyManager.Market.Listings)
             {
                 GUILayout.BeginVertical(_boxStyle);
 
-                GUILayout.Label(antique.Name, _labelStyle);
-                GUILayout.Label($"Price: {antique.CurrentPrice:F2} | Supply: {antique.Supply:F1} | Demand: {antique.Demand:F1}", _labelStyle);
+                GUILayout.Label(listing.Name, _labelStyle);
+                GUILayout.Label($"Price: {listing.CurrentPrice:F2} | Quality: {listing.Quality:F2} | State: {listing.State:F2}", _labelStyle);
+
+                var typeState = _economyManager.Market.GetTypeState(listing.DefinitionId);
+                if (typeState != null)
+                    GUILayout.Label($"Type Supply: {typeState.Supply:F1} | Type Demand: {typeState.Demand:F1}", _labelStyle);
 
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Buy", _buttonStyle))
                 {
-                    _economyManager.Market.Buy(antique.Id);
-                }
-                if (GUILayout.Button("Sell", _buttonStyle))
-                {
-                    _economyManager.Market.Sell(antique.Id);
+                    _economyManager.Market.Buy(listing.Id);
                 }
                 GUILayout.EndHorizontal();
 
                 GUILayout.EndVertical();
-                GUILayout.Space(8);
+                GUILayout.Space(30);
             }
 
             GUILayout.EndScrollView();
