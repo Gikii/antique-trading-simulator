@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using AntiqueTradingSimulator.Economy;
 
-namespace AntiqueTradingSimulator.Trading
+namespace AntiqueTradingSimulator.Agents
 {
     /// <summary>
     /// Common base for anything that owns a TraderInventory and trades on the Market —
@@ -21,6 +21,9 @@ namespace AntiqueTradingSimulator.Trading
         protected virtual void Awake()
         {
             Inventory = new TraderInventory(startingCash);
+
+            if (string.IsNullOrWhiteSpace(traderName) || traderName == "Trader")
+                traderName = gameObject.name;
 
             if (economyManager == null)
                 economyManager = FindFirstObjectByType<EconomyManager>();
