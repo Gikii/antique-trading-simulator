@@ -1,4 +1,4 @@
-﻿namespace AntiqueTradingSimulator.Trading
+﻿namespace AntiqueTradingSimulator.Agents
 {
     /// <summary>
     /// The player's trading agent. Makes no decisions on its own — UI code

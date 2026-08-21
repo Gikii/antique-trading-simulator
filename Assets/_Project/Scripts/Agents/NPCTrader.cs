@@ -3,7 +3,7 @@ using UnityEngine;
 using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Market;
 
-namespace AntiqueTradingSimulator.Trading
+namespace AntiqueTradingSimulator.Agents
 {
     /// <summary>
     /// Minimal autonomous trader. Once per day it picks one random listing from the market
