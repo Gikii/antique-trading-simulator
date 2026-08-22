@@ -153,5 +153,16 @@ namespace AntiqueTradingSimulator.Market
             foreach (var listing in _listings)
                 RecalculatePrice(listing);
         }
+
+        public void RecordDailyPrices(int day)
+        {
+            foreach (var typeState in _typeStates.Values)
+            {
+                var definition = AntiqueDatabase.GetById(typeState.DefinitionId);
+                float basePrice = definition != null ? definition.BasePrice : 0f;
+                float referencePrice = PriceEngine.CalculateReferencePrice(basePrice, typeState);
+                typeState.RecordPrice(day, referencePrice);
+            }
+        }
     }
 }

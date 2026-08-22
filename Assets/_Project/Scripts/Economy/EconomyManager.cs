@@ -62,6 +62,8 @@ namespace AntiqueTradingSimulator.Economy
 
         private void HandleDayChanged(int newDay)
         {
+            Market.RecordDailyPrices(newDay);
+
             for (int i = 0; i < newListingsPerDay; i++)
             {
                 var listing = Market.GenerateListing();
