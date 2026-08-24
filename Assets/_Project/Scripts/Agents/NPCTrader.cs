@@ -62,9 +62,13 @@ namespace AntiqueTradingSimulator.Agents
                 if (owned.Count > 0)
                 {
                     var listing = owned[Random.Range(0, owned.Count)];
-                    // Price check intentionally skipped for now — NPC sells regardless
-                    // of price. Kept as-is per team decision; revisit later if needed.
-                    SellListing(listing.Id);
+                    float priceRatio = listing.BasePrice > 0f ? listing.CurrentPrice / listing.BasePrice : 1f;
+                    //if (priceRatio >= sellAbovePriceRatio)
+                    if(true)
+                    {
+                        SellListing(listing.Id);
+                    }
+
                 }
             }
         }
