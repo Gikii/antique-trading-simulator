@@ -31,37 +31,15 @@ namespace AntiqueTradingSimulator.Agents
 
         public bool BuyListing(string listingId)
         {
-            if (!HasMarket()) return false;
-
-            bool success = Inventory.Buy(economyManager.Market, listingId);
-            LogResult("buy", listingId, success);
-            return success;
+            var market = economyManager != null ? economyManager.Market : null;
+            return TraderHelper.BuyListing(Inventory, market, listingId, traderName);
         }
 
         public bool SellListing(string listingId)
         {
-            if (!HasMarket()) return false;
-
-            bool success = Inventory.Sell(economyManager.Market, listingId);
-            LogResult("sell", listingId, success);
-            return success;
+            var market = economyManager != null ? economyManager.Market : null;
+            return TraderHelper.SellListing(Inventory, market, listingId, traderName);
         }
 
-        private bool HasMarket()
-        {
-            if (economyManager != null && economyManager.Market != null)
-                return true;
-
-            Debug.LogWarning($"{traderName}: no Market available yet.");
-            return false;
-        }
-
-        private void LogResult(string action, string listingId, bool success)
-        {
-            if (success)
-                Debug.Log($"{traderName} {action} succeeded — listing {listingId}. Cash: {Inventory.Cash:F2}");
-            else
-                Debug.Log($"{traderName} {action} failed — listing {listingId}.");
-        }
     }
 }
