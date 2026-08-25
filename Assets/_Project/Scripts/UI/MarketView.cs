@@ -145,7 +145,7 @@ namespace AntiqueTradingSimulator.UI
             {
                 var rowObj = Instantiate(listingRowPrefab, listingsContainer);
                 var rowUI = rowObj.GetComponent<MarketListingUI>();
-                rowUI.Setup(listing, this);
+                rowUI.Setup(listing, this, timeManager != null ? timeManager.CurrentDay : 0);
                 _rowsByListingId[listing.Id] = rowUI;
             }
 

@@ -42,7 +42,7 @@ namespace AntiqueTradingSimulator.Agents
         {
             if (!HasMarket()) return false;
 
-            bool success = Inventory.Sell(economyManager.Market, listingId);
+            bool success = Inventory.Sell(economyManager.Market, listingId, economyManager.TimeManager.CurrentDay);
             LogResult("sell", listingId, success);
             return success;
         }

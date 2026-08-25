@@ -1188,9 +1188,7 @@ MonoBehaviour:
   descriptionText: {fileID: 6486664246025692290}
   priceText: {fileID: 3811230643692335894}
   showDetailsButton: {fileID: 8462938905875523690}
-  background: {fileID: 5775810128166241376}
-  newListingColor: {r: 1, g: 0.92, b: 0.55, a: 1}
-  highlightDuration: 5
+  newBadge: {fileID: 8923251590807234165}
 --- !u!1 &7385240164461577261
 GameObject:
   m_ObjectHideFlags: 0

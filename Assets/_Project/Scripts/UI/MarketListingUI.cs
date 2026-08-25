@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using AntiqueTradingSimulator.Market;
@@ -19,30 +18,23 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text priceText;
         [SerializeField] private Button showDetailsButton;
 
-        [Header("New listing highlight")]
-        [SerializeField] private Image background;
-        [SerializeField] private Color newListingColor = new Color(1f, 0.92f, 0.55f);
-        [SerializeField] private float highlightDuration = 5f;
+        [Header("New listing badge")]
+        [SerializeField] private GameObject newBadge;
 
         private Antique _listing;
         private MarketView _marketView;
-        private Color _normalColor;
-        private Coroutine _highlightRoutine;
 
-        void Awake()
-        {
-            if (background != null)
-                _normalColor = background.color;
-        }
-
-        public void Setup(Antique listing, MarketView marketView)
+       public void Setup(Antique listing, MarketView marketView, int currentDay)
         {
             _listing = listing;
             _marketView = marketView;
 
             nameText.text = listing.Name;
             descriptionText.text = $"{listing.Category} — condition {listing.State:P0}";
-            priceText.text = $"{listing.CurrentPrice:F2} zł";
+            priceText.text = $"{listing.CurrentPrice:F2} $";
+
+            if (newBadge != null)
+                newBadge.SetActive(listing.MarketListedOnDay == currentDay);
 
             showDetailsButton.onClick.RemoveAllListeners();
             showDetailsButton.onClick.AddListener(() => _marketView.ShowDetails(_listing));
@@ -52,21 +44,6 @@ namespace AntiqueTradingSimulator.UI
         {
             _listing = listing;
             priceText.text = $"{listing.CurrentPrice:F2} zł";
-        }
-
-        public void PlayNewListingHighlight()
-        {
-            if (background == null) return;
-            if (_highlightRoutine != null) StopCoroutine(_highlightRoutine);
-            _highlightRoutine = StartCoroutine(HighlightRoutine());
-        }
-
-        private IEnumerator HighlightRoutine()
-        {
-            background.color = newListingColor;
-            yield return new WaitForSeconds(highlightDuration);
-            background.color = _normalColor;
-            _highlightRoutine = null;
         }
     }
 }
