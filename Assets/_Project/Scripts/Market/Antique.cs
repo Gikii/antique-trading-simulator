@@ -15,6 +15,12 @@ namespace AntiqueTradingSimulator.Market
         public string ListingId;
         public string DefinitionId;
 
+        // Day this specific item was placed on the REGULAR MARKET (Market._listings).
+        // -1 = never listed on the regular market yet (e.g. exists only as part of an
+        // auction pool). Set exclusively by Market.AddListing — not by the constructor,
+        // since an Antique can exist without being a market listing.
+        public int MarketListedOnDay = -1;
+
         // Quality modifier
         public const float MinQuality = 0.8f;
         public const float MaxQuality = 1.2f;

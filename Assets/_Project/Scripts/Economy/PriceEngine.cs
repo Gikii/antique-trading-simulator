@@ -19,20 +19,28 @@ namespace AntiqueTradingSimulator.Economy
 
         public static float CalculatePrice(Market.Antique listing, Market.AntiqueMarketState typeState)
         {
-            float supplyDemandMultiplier = 1f;
+            float multiplier = CalculateSupplyDemandMultiplier(typeState);
+            return listing.BasePrice * listing.Quality * listing.State * multiplier;
+        }
 
-            if (typeState != null)
-            {
-                float safeSupply = Mathf.Max(typeState.Supply, MinSupply);
-                float ratio = typeState.Demand / safeSupply;
+        /// <summary>
+        /// Price for a "reference" item of this type (quality/state = 1), used for
+        /// the type-level price history shown in charts — independent of any one
+        /// listing's specific wear, since individual listings come and go.
+        /// </summary>
+        public static float CalculateReferencePrice(float basePrice, Market.AntiqueMarketState typeState)
+        {
+            return basePrice * CalculateSupplyDemandMultiplier(typeState);
+        }
 
-                supplyDemandMultiplier = Mathf.Pow(ratio, SensitivityFactor);
-                supplyDemandMultiplier = Mathf.Clamp(supplyDemandMultiplier, MinPriceMultiplier, MaxPriceMultiplier);
-            }
+        private static float CalculateSupplyDemandMultiplier(Market.AntiqueMarketState typeState)
+        {
+            if (typeState == null) return 1f;
 
-            // BasePrice modified by this specific item's quality and physical state,
-            // then scaled by how the type as a whole is trading.
-            return listing.BasePrice * listing.Quality * listing.State * supplyDemandMultiplier;
+            float safeSupply = Mathf.Max(typeState.Supply, MinSupply);
+            float ratio = typeState.Demand / safeSupply;
+            float multiplier = Mathf.Pow(ratio, SensitivityFactor);
+            return Mathf.Clamp(multiplier, MinPriceMultiplier, MaxPriceMultiplier);
         }
     }
 }

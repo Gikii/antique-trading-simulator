@@ -1,6 +1,8 @@
-using System.Collections.Generic;
-using UnityEngine;
+using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Market;
+using System.Collections.Generic;
+using System.Reflection;
+using UnityEngine;
 
 namespace AntiqueTradingSimulator.Economy
 {
@@ -24,6 +26,7 @@ namespace AntiqueTradingSimulator.Economy
         public Market.Market Market { get; private set; }
 
         private Core.TimeManager _timeManager;
+        public Core.TimeManager TimeManager => _timeManager;
 
         void Awake()
         {
@@ -54,7 +57,7 @@ namespace AntiqueTradingSimulator.Economy
 
             for (int i = 0; i < initialListingCount; i++)
             {
-                Market.GenerateListing();
+                Market.GenerateListing(_timeManager.CurrentDay);
             }
 
             Debug.Log($"EconomyManager: market initialized with {Market.Listings.Count} listings across {allDefinitions.Count} antique types.");
@@ -62,9 +65,11 @@ namespace AntiqueTradingSimulator.Economy
 
         private void HandleDayChanged(int newDay)
         {
+            Market.RecordDailyPrices(newDay);
+
             for (int i = 0; i < newListingsPerDay; i++)
             {
-                var listing = Market.GenerateListing();
+                var listing = Market.GenerateListing(newDay);
                 if (listing != null)
                     Debug.Log($"EconomyManager: new listing appeared — {listing}");
             }

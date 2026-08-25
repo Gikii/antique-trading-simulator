@@ -67,13 +67,12 @@ namespace AntiqueTradingSimulator.Economy
             return true;
         }
 
-        public bool Sell(Market.Market market, string listingId)
+        public bool Sell(Market.Market market, string listingId, int currentDay)
         {
             if (!_holdings.TryGetValue(listingId, out var listing)) return false;
 
             _holdings.Remove(listingId);
-            market.Sell(listing);
-
+            market.Sell(listing, currentDay);
             Cash += listing.CurrentPrice;
 
             OnCashChanged?.Invoke(Cash);

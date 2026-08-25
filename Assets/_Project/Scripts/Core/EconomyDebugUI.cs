@@ -70,7 +70,7 @@ namespace AntiqueTradingSimulator.Core
 
             if (GUILayout.Button("Spawn Listing", _buttonStyle))
             {
-                _economyManager.Market.GenerateListing();
+                _economyManager.Market.GenerateListing(_timeManager.CurrentDay);
             }
 
             GUILayout.EndHorizontal();

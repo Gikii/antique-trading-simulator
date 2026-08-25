@@ -42,7 +42,7 @@ namespace AntiqueTradingSimulator.Market
         /// appear), then rolls random Quality/State for the new item and adds it to the
         /// market. Returns null if there are no registered types with positive supply.
         /// </summary>
-        public Antique GenerateListing()
+        public Antique GenerateListing(int currentDay)
         {
             string definitionId = PickWeightedDefinitionId();
             if (definitionId == null)
@@ -52,7 +52,7 @@ namespace AntiqueTradingSimulator.Market
             float state = Random.Range(Antique.MinState, Antique.MaxState);
 
             var listing = new Antique(definitionId, quality, state);
-            AddListing(listing);
+            AddListing(listing, currentDay);
             return listing;
         }
 
@@ -78,8 +78,9 @@ namespace AntiqueTradingSimulator.Market
             return null;
         }
 
-        public void AddListing(Antique listing)
+        public void AddListing(Antique listing, int currentDay)
         {
+            listing.MarketListedOnDay = currentDay;
             RecalculatePrice(listing);
             _listings.Add(listing);
         }
@@ -124,7 +125,7 @@ namespace AntiqueTradingSimulator.Market
         /// Puts a specific, already-existing antique listing (with its own quality/state)
         /// back onto the market for sale — its type's supply rises/demand dips slightly.
         /// </summary>
-        public void Sell(Antique listing)
+        public void Sell(Antique listing, int currentDay)
         {
             if (listing == null)
             {
@@ -139,7 +140,7 @@ namespace AntiqueTradingSimulator.Market
                 typeState.Demand = Mathf.Max(0f, typeState.Demand - 0.1f);
             }
 
-            AddListing(listing);
+            AddListing(listing, currentDay); 
         }
 
         public void RecalculatePrice(Antique listing)
@@ -152,6 +153,17 @@ namespace AntiqueTradingSimulator.Market
         {
             foreach (var listing in _listings)
                 RecalculatePrice(listing);
+        }
+
+        public void RecordDailyPrices(int day)
+        {
+            foreach (var typeState in _typeStates.Values)
+            {
+                var definition = AntiqueDatabase.GetById(typeState.DefinitionId);
+                float basePrice = definition != null ? definition.BasePrice : 0f;
+                float referencePrice = PriceEngine.CalculateReferencePrice(basePrice, typeState);
+                typeState.RecordPrice(day, referencePrice);
+            }
         }
     }
 }

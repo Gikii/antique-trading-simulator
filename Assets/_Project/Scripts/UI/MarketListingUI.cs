@@ -1,92 +1,49 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using AntiqueTradingSimulator.Market;
-using AntiqueTradingSimulator.Agents;
 
 namespace AntiqueTradingSimulator.UI
 {
     /// <summary>
-    /// UI representation of a single market listing. Displays its name/category/price
-    /// and wires the Buy button to the player's TraderAgent. Also handles a brief
-    /// highlight animation when it's first created, to draw attention to new offers.
+    /// A single antique card in the market grid. Shows an image placeholder, name,
+    /// a short description and price. Buying happens in the detail panel now —
+    /// this card only opens it via "Show details".
     /// </summary>
     public class MarketListingUI : MonoBehaviour
     {
-        [SerializeField] private Image background;
+        [SerializeField] private Image icon;
         [SerializeField] private TMP_Text nameText;
-        [SerializeField] private TMP_Text categoryText;
+        [SerializeField] private TMP_Text descriptionText;
         [SerializeField] private TMP_Text priceText;
-        [SerializeField] private Button buyButton;
+        [SerializeField] private Button showDetailsButton;
 
-        [Header("New listing highlight")]
-        [SerializeField] private Color newListingColor = new Color(1f, 0.92f, 0.55f);
-        [SerializeField] private float highlightDuration = 5f;
+        [Header("New listing badge")]
+        [SerializeField] private GameObject newBadge;
 
-        private string _listingId;
-        private PlayerTrader _playerTrader;
-        private MarketUI _marketUI;
-        private Color _normalColor;
-        private Coroutine _highlightRoutine;
+        private Antique _listing;
+        private MarketView _marketView;
 
-        void Awake()
+       public void Setup(Antique listing, MarketView marketView, int currentDay)
         {
-            if (background != null)
-                _normalColor = background.color;
-        }
-
-        public void Setup(Antique listing, PlayerTrader playerTrader, MarketUI marketUI)
-        {
-            _listingId = listing.Id;
-            _playerTrader = playerTrader;
-            _marketUI = marketUI;
+            _listing = listing;
+            _marketView = marketView;
 
             nameText.text = listing.Name;
-            categoryText.text = listing.Category;
-            priceText.text = $"{listing.CurrentPrice:F2} zł";
+            descriptionText.text = $"{listing.Category} — condition {listing.State:P0}";
+            priceText.text = $"{listing.CurrentPrice:F2} $";
 
-            buyButton.onClick.RemoveAllListeners();
-            buyButton.onClick.AddListener(OnBuyClicked);
+            if (newBadge != null)
+                newBadge.SetActive(listing.MarketListedOnDay == currentDay);
+
+            showDetailsButton.onClick.RemoveAllListeners();
+            showDetailsButton.onClick.AddListener(() => _marketView.ShowDetails(_listing));
         }
 
-        /// <summary>
-        /// Refreshes just the displayed price, without re-running Setup or restarting
-        /// any highlight animation — used for listings that already existed before this refresh.
-        /// </summary>
         public void UpdatePrice(Antique listing)
         {
+            _listing = listing;
             priceText.text = $"{listing.CurrentPrice:F2} zł";
-        }
-
-        /// <summary>
-        /// Briefly changes the row's background color to draw attention to it,
-        /// then fades back to normal after highlightDuration seconds.
-        /// </summary>
-        public void PlayNewListingHighlight()
-        {
-            if (background == null) return;
-
-            if (_highlightRoutine != null)
-                StopCoroutine(_highlightRoutine);
-
-            _highlightRoutine = StartCoroutine(HighlightRoutine());
-        }
-
-        private IEnumerator HighlightRoutine()
-        {
-            background.color = newListingColor;
-            yield return new WaitForSeconds(highlightDuration);
-            background.color = _normalColor;
-            _highlightRoutine = null;
-        }
-
-        private void OnBuyClicked()
-        {
-            bool success = _playerTrader.BuyListing(_listingId);
-
-            if (success)
-                _marketUI.RefreshListings();
         }
     }
 }
