@@ -35,6 +35,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button nextPageButton;
         private const int ItemsPerPage = 8;
 
+        [SerializeField] private AntiqueDetailsUI antiqueDetailsUI;
+
         private string _categoryFilter; // null = all
         private MarketSortMode _sortMode = MarketSortMode.NameAsc;
         private int _currentPage;
@@ -101,7 +103,8 @@ namespace AntiqueTradingSimulator.UI
         // Stub for now — implemented in the detail panel phase.
         public void ShowDetails(Antique listing)
         {
-            Debug.Log($"Show details for {listing.Name} (Id: {listing.Id})");
+            if (antiqueDetailsUI != null)
+                antiqueDetailsUI.Show(listing);
         }
 
         private List<Antique> GetFilteredSortedListings()
