@@ -1,6 +1,7 @@
+using AntiqueTradingSimulator.Economy;
 using System.Collections.Generic;
 using UnityEngine;
-using AntiqueTradingSimulator.Economy;
+using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Market
 {
@@ -94,6 +95,24 @@ namespace AntiqueTradingSimulator.Market
         {
             return _listings.FindAll(l => l.DefinitionId == definitionId);
         }
+
+        public List<Antique> GetByType(AntiqueType type)
+        {
+            return _listings.FindAll(l => l.Type == type);
+        }
+
+        public List<Antique> GetByTimePeriod(TimePeriod period)
+        {
+            return _listings.FindAll(l => l.TimePeriod == period);
+        }
+
+        public List<Antique> GetByCountry(Country country)
+        {
+            return _listings.FindAll(l => l.Country == country);
+        }
+
+
+
 
         /// <summary>
         /// Player/NPC buys a specific listing off the market — it's removed from the
