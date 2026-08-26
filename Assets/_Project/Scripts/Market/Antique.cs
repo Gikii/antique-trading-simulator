@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Market
 {
@@ -61,12 +62,13 @@ namespace AntiqueTradingSimulator.Market
             }
         }
 
-        // Unique identity of THIS specific physical item — used by Market.GetById/Buy
-        // and TraderInventory's holdings dictionary. Never the same as another
-        // Antique instance, even if they share a DefinitionId.
         public string Id => ListingId;
         public string Name => Definition != null ? Definition.DisplayName : "Unknown";
-        public string Category => Definition != null ? Definition.Category : "Unknown";
+        public string Category => Definition != null ? Definition.Type.ToDisplayString() : "Unknown";
+        public AntiqueType Type => Definition != null ? Definition.Type : AntiqueType.Other;
+        public TimePeriod TimePeriod => Definition != null ? Definition.TimePeriod : TimePeriod.Unknown;
+        public Country Country => Definition != null ? Definition.Country : Country.Other;
+
         public float BasePrice => Definition != null ? Definition.BasePrice : 0f;
 
         public override string ToString()

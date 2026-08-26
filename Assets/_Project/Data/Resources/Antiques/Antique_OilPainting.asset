@@ -15,5 +15,8 @@ MonoBehaviour:
   Id: painting_001
   DisplayName: Oil painting
   Category: Paintings
+  Type: 4
+  TimePeriod: 3
+  CountryOfOrigin: 2
   BasePrice: 1200
   Description: 

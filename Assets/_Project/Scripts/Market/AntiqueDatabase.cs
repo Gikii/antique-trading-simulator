@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Market
 {
@@ -46,6 +48,44 @@ namespace AntiqueTradingSimulator.Market
             EnsureLoaded();
             return new List<AntiqueDefinition>(_definitionsById.Values);
         }
+
+        public static List<AntiqueDefinition> GetByType(AntiqueType type)
+        {
+            EnsureLoaded();
+            return _definitionsById.Values.Where(def => def.Type == type).ToList();
+        }
+
+        public static List<AntiqueDefinition> GetByTimePeriod(TimePeriod period)
+        {
+            EnsureLoaded();
+            return _definitionsById.Values.Where(def => def.TimePeriod == period).ToList();
+        }
+
+        public static List<AntiqueDefinition> GetByCountry(Country country)
+        {
+            EnsureLoaded();
+            return _definitionsById.Values.Where(def => def.Country == country).ToList();
+        }
+
+        public static List<AntiqueType> GetAvailableTypes()
+        {
+            EnsureLoaded();
+            return _definitionsById.Values.Select(def => def.Type).Distinct().OrderBy(t => t.ToString()).ToList();
+        }
+
+        public static List<TimePeriod> GetAvailableTimePeriods()
+        {
+            EnsureLoaded();
+            return _definitionsById.Values.Select(def => def.TimePeriod).Distinct().OrderBy(p => (int)p).ToList();
+        }
+
+        public static List<Country> GetAvailableCountries()
+        {
+            EnsureLoaded();
+            return _definitionsById.Values.Select(def => def.Country).Distinct().OrderBy(c => c.ToString()).ToList();
+        }
+
+
 
         /// <summary>
         /// Clears the cache. Useful for editor tooling or tests that need a fresh reload.

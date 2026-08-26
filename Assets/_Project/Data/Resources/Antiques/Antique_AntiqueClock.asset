@@ -15,5 +15,8 @@ MonoBehaviour:
   Id: clock_001
   DisplayName: Antique clock
   Category: Furniture
+  Type: 3
+  TimePeriod: 7
+  CountryOfOrigin: 1
   BasePrice: 500
   Description: 
