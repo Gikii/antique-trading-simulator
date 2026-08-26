@@ -12,7 +12,6 @@ namespace AntiqueTradingSimulator.Market
     {
         public string Id;
         public string DisplayName;
-        public string Category;
 
         public AntiqueType Type = AntiqueType.Other;
         public TimePeriod TimePeriod = TimePeriod.Unknown;
