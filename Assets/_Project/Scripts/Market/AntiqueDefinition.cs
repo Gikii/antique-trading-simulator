@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Market
 {
@@ -11,7 +12,11 @@ namespace AntiqueTradingSimulator.Market
     {
         public string Id;
         public string DisplayName;
-        public string Category;
+
+        public AntiqueType Type = AntiqueType.Other;
+        public TimePeriod TimePeriod = TimePeriod.Unknown;
+        public Country Country = Country.Other;
+
         public float BasePrice;
 
         [TextArea]
