@@ -47,6 +47,7 @@ namespace AntiqueTradingSimulator.Events
                 if (typeState == null) continue;
 
                 typeState.Demand = Mathf.Max(0f, typeState.Demand + DemandChange);
+                RecalculatePricesForDefinition(market, definitionId);
             }
         }
 
@@ -60,7 +61,9 @@ namespace AntiqueTradingSimulator.Events
                 if (typeState == null) continue;
 
                 typeState.Demand = Mathf.Max(0f, typeState.Demand - DemandChange);
+                RecalculatePricesForDefinition(market, definitionId);
             }
+
         }
 
         public override EventEffect Clone()
@@ -86,6 +89,12 @@ namespace AntiqueTradingSimulator.Events
             };
 
             return matches.Select(def => def.Id).ToList();
+        }
+
+        private static void RecalculatePricesForDefinition(Market.Market market, string definitionId)
+        {
+            foreach (var listing in market.GetListingsByDefinition(definitionId))
+                market.RecalculatePrice(listing);
         }
 
     }

@@ -20,5 +20,4 @@ namespace AntiqueTradingSimulator.Events
         [SerializeReference]
         public List<EventEffect> Effects = new List<EventEffect>();
     }
-
 }

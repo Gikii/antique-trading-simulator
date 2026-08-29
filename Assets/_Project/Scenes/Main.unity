@@ -2185,6 +2185,7 @@ GameObject:
   - component: {fileID: 398503185}
   - component: {fileID: 398503184}
   - component: {fileID: 398503183}
+  - component: {fileID: 398503186}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -2240,6 +2241,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &398503186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 398503182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7284b60020dcff449b63e870a914c89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventManager
+  economyManager: {fileID: 398503183}
+  timeManager: {fileID: 0}
 --- !u!1 &448081523
 GameObject:
   m_ObjectHideFlags: 0

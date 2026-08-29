@@ -7,7 +7,8 @@ namespace AntiqueTradingSimulator.Events
 {
     public class EventManager : MonoBehaviour
     {
-        private EconomyManager _economyManager;
+        [SerializeField] private EconomyManager economyManager;
+        [SerializeField] private Core.TimeManager timeManager;
 
         private readonly List<ActiveEvent> _activeEvents = new List<ActiveEvent>();
         public IReadOnlyList<ActiveEvent> ActiveEvents => _activeEvents;
@@ -17,17 +18,23 @@ namespace AntiqueTradingSimulator.Events
 
         void Awake()
         {
-            _economyManager = GetComponent<EconomyManager>();
+            if (economyManager == null) economyManager = FindFirstObjectByType<EconomyManager>();
+            if (timeManager == null) timeManager = FindFirstObjectByType<Core.TimeManager>();
+
         }
 
         void OnEnable()
         {
-            _economyManager.TimeManager.OnDayChanged += HandleDayChanged;
+            if (timeManager != null)
+                timeManager.OnDayChanged += HandleDayChanged;
+
         }
 
         void OnDisable()
         {
-            _economyManager.TimeManager.OnDayChanged -= HandleDayChanged;
+            if (timeManager != null)
+                timeManager.OnDayChanged -= HandleDayChanged;
+
         }
         private void HandleDayChanged(int newDay)
         {
@@ -42,7 +49,7 @@ namespace AntiqueTradingSimulator.Events
                 var active = _activeEvents[i];
                 if (!active.HasExpired(day)) continue;
 
-                active.End(_economyManager.Market, day);
+                active.End(economyManager.Market, day);
                 _activeEvents.RemoveAt(i);
 
                 Debug.Log($"EventManager: event ended — {active}");
@@ -58,7 +65,7 @@ namespace AntiqueTradingSimulator.Events
             EventDefinition definition = pool[UnityEngine.Random.Range(0, pool.Count)];
 
             var active = new ActiveEvent(definition, day);
-            active.Begin(_economyManager.Market, day);
+            active.Begin(economyManager.Market, day);
 
             _activeEvents.Add(active);
 
