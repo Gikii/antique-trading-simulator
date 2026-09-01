@@ -4,7 +4,7 @@ using UnityEngine;
 namespace AntiqueTradingSimulator.Agents
 {
     /// <summary>
-    /// Shared but/sell methods for trader classes
+    /// Shared buy/sell methods for trader classes
     /// </summary>
     public class TraderHelper
     {
