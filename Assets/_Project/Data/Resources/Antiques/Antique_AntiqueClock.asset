@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: clock_001
   DisplayName: Antique clock
-  Category: Furniture
   Type: 3
   TimePeriod: 7
-  CountryOfOrigin: 1
+  Country: 0
   BasePrice: 500
   Description: 
