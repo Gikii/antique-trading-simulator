@@ -1,82 +1,174 @@
-using AntiqueTradingSimulator.Core;
-using AntiqueTradingSimulator.Economy;
-using AntiqueTradingSimulator.Market;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using AntiqueTradingSimulator.Economy;
+using AntiqueTradingSimulator.Market;
+using AntiqueTradingSimulator.News;
+using AntiqueTradingSimulator.Events;
 
 namespace AntiqueTradingSimulator.Agents
 {
     /// <summary>
-    /// Minimal autonomous trader. Once per day it picks one random listing from the market
-    /// and one random listing from its own inventory, and if the price looks favourable,
-    /// buys/sells through the shared TraderAgent plumbing.
+    /// Runtime instance of an NPC trader — mirrors the Antique/AntiqueDefinition split.
+    /// Holds only what's dynamic (cash, holdings, pending reactions) plus a string
+    /// ProfileId, never a direct ScriptableObject reference, so instances stay
+    /// serializable for save/load. Plain C# on purpose: NPCs have no scene presence.
     /// </summary>
     [Serializable]
-    public class NPCTrader
+    public class NPCTrader : IInformationReceiver
     {
-        public string Id { get; private set; }
-        public string TraderName { get; private set; }
-        public TraderInventory Inventory { get; private set; }
-        public EconomyManager economyManager;
+        public string Id { get; }
+        public string ProfileId { get; }
+        public string TraderName { get; }
+        public TraderInventory Inventory { get; }
 
-        [Header("Behaviour")]
-        [Range(0f, 1f)] public float BuyChance = 1f;
-        [Range(0f, 1f)] public float SellChance = 1f;
-        public float BuyBelowPriceRatio = 0.9f;
-        public float SellAbovePriceRatio = 1.1f;
+        private readonly EconomyManager _economyManager;
+        private NpcBehaviorProfile _profileCache;
+        public NpcBehaviorProfile Profile => _profileCache ??= NpcProfileDatabase.GetById(ProfileId);
 
-        public NPCTrader(string traderName, float startingCash, EconomyManager economyManager)
+        public InfoAccessLevel AccessLevel => Profile != null ? Profile.AccessLevel : InfoAccessLevel.LocalPress;
+
+        private struct PendingReaction { public NewsItem News; public int TriggerDay; }
+        private struct Acquisition { public float PurchasePrice; public int Day; }
+
+        private readonly List<PendingReaction> _pendingReactions = new();
+        private readonly Dictionary<string, Acquisition> _acquisitions = new();
+
+        public NPCTrader(string traderName, string profileId, float startingCash, EconomyManager economyManager)
         {
             Id = Guid.NewGuid().ToString("N");
             TraderName = traderName;
+            ProfileId = profileId;
             Inventory = new TraderInventory(startingCash);
-            this.economyManager = economyManager;
+            _economyManager = economyManager;
         }
 
-
-        public void DecideTrade(Market.Market market)
+        public void ReceiveNews(NewsItem news)
         {
-            if (market == null) return;
+            var profile = Profile;
+            if (profile == null) return;
 
-            if (UnityEngine.Random.value <= SellChance)
+            float trust = news.Type switch
             {
-                var owned = new List<Antique>(Inventory.Holdings.Values);
-                if (owned.Count > 0)
-                {
-                    var listing = owned[UnityEngine.Random.Range(0, owned.Count)];
-                    float priceRatio = listing.BasePrice > 0f ? listing.CurrentPrice / listing.BasePrice : 1f;
-                    //if (priceRatio >= SellAbovePriceRatio)
-                    if (true)
-                    {
-                        SellListing(market, listing.Id);
-                    }
+                NewsType.Official => 1f,
+                NewsType.Leak => profile.LeakTrust,
+                NewsType.Rumor => profile.RumorTrust,
+                NewsType.Fake => profile.RumorTrust * 0.5f,
+                _ => 0f
+            };
 
-                }
-            }
+            float actionChance = trust * news.Credibility * (0.5f + profile.RiskTolerance);
+            if (UnityEngine.Random.value > actionChance) return;
 
-            if (UnityEngine.Random.value <= BuyChance)
+            int delay = UnityEngine.Random.Range(profile.MinReactionDelayDays, profile.MaxReactionDelayDays + 1);
+            _pendingReactions.Add(new PendingReaction
             {
-                var listings = market.Listings;
-                if (listings.Count > 0)
-                {
-                    var listing = listings[UnityEngine.Random.Range(0, listings.Count)];
-                    float priceRatio = listing.BasePrice > 0f ? listing.CurrentPrice / listing.BasePrice : 1f;
+                News = news,
+                TriggerDay = _economyManager.TimeManager.CurrentDay + delay
+            });
+        }
 
-                    if (priceRatio <= BuyBelowPriceRatio)
-                        BuyListing(market, listing.Id);
-                }
+        public void EvaluateDay(int currentDay)
+        {
+            var profile = Profile;
+            if (profile == null) return;
+
+            float budget = Inventory.Cash * profile.DailyBudgetFraction;
+            budget = ProcessPendingReactions(currentDay, budget, profile);
+            ConsiderSellingHoldings(currentDay, profile);
+            ConsiderBuyingFromMarket(budget, profile);
+        }
+
+        private float ProcessPendingReactions(int currentDay, float budget, NpcBehaviorProfile profile)
+        {
+            for (int i = _pendingReactions.Count - 1; i >= 0; i--)
+            {
+                var pending = _pendingReactions[i];
+                if (pending.TriggerDay > currentDay) continue;
+
+                budget = TryActOnNews(pending.News, budget, currentDay, profile);
+                _pendingReactions.RemoveAt(i);
+            }
+            return budget;
+        }
+
+        private float TryActOnNews(NewsItem news, float budget, int currentDay, NpcBehaviorProfile profile)
+        {
+            if (news.AffectedAntiqueTypeId == null) return budget;
+
+            foreach (var listing in _economyManager.Market.GetListingsByDefinition(news.AffectedAntiqueTypeId))
+            {
+                if (budget <= 0f) break;
+                if (!IsAcceptablePrice(listing, profile) || listing.CurrentPrice > budget) continue;
+
+                if (TryBuy(listing, currentDay)) budget -= listing.CurrentPrice;
+            }
+            return budget;
+        }
+
+        private void ConsiderBuyingFromMarket(float budget, NpcBehaviorProfile profile)
+        {
+            if (budget <= 0f) return;
+            int currentDay = _economyManager.TimeManager.CurrentDay;
+
+            foreach (var listing in _economyManager.Market.Listings)
+            {
+                if (budget <= 0f) break;
+                if (!IsInterestedIn(listing.Definition, profile)) continue;
+                if (!IsAcceptablePrice(listing, profile) || listing.CurrentPrice > budget) continue;
+
+                if (TryBuy(listing, currentDay)) budget -= listing.CurrentPrice;
             }
         }
-        public bool BuyListing(Market.Market market, string listingId)
+
+        private void ConsiderSellingHoldings(int currentDay, NpcBehaviorProfile profile)
         {
-            return TraderHelper.BuyListing(Inventory, market, listingId, TraderName);
+            var listingIds = new List<string>(_acquisitions.Keys);
+            foreach (var listingId in listingIds)
+            {
+                var listing = Inventory.GetHolding(listingId);
+                if (listing == null) { _acquisitions.Remove(listingId); continue; }
+
+                var acquisition = _acquisitions[listingId];
+                if (currentDay - acquisition.Day < profile.MinHoldingDaysBeforeSell) continue;
+
+                var typeState = _economyManager.Market.GetTypeState(listing.DefinitionId);
+                float estimatedValue = PriceEngine.CalculatePrice(listing, typeState);
+                if (estimatedValue < acquisition.PurchasePrice * profile.ProfitTargetMultiplier) continue;
+
+                if (SellListing(listing.Id)) _acquisitions.Remove(listingId);
+            }
         }
 
-        public bool SellListing(Market.Market market, string listingId)
+        private bool TryBuy(Antique listing, int currentDay)
         {
-            return TraderHelper.SellListing(Inventory, market, listingId, TraderName, economyManager.TimeManager.CurrentDay);
+            float price = listing.CurrentPrice;
+            if (!BuyListing(listing.Id)) return false;
+
+            _acquisitions[listing.Id] = new Acquisition { PurchasePrice = price, Day = currentDay };
+            return true;
         }
 
+        public bool BuyListing(string listingId) =>
+            TraderHelper.BuyListing(Inventory, _economyManager.Market, listingId, TraderName);
+
+        public bool SellListing(string listingId) =>
+            TraderHelper.SellListing(Inventory, _economyManager.Market, listingId, TraderName, _economyManager.TimeManager.CurrentDay);
+
+        private bool IsAcceptablePrice(Antique listing, NpcBehaviorProfile profile)
+        {
+            var typeState = _economyManager.Market.GetTypeState(listing.DefinitionId);
+            float referencePrice = PriceEngine.CalculateReferencePrice(listing.BasePrice, typeState);
+            return listing.CurrentPrice <= referencePrice * profile.MaxPriceMultiplierWillingToPay;
+        }
+
+        private bool IsInterestedIn(AntiqueDefinition def, NpcBehaviorProfile profile)
+        {
+            if (def == null) return false;
+            bool typeOk = profile.PreferredTypes.Count == 0 || profile.PreferredTypes.Contains(def.Type);
+            bool countryOk = profile.PreferredCountries.Count == 0 || profile.PreferredCountries.Contains(def.Country);
+            bool periodOk = profile.PreferredPeriods.Count == 0 || profile.PreferredPeriods.Contains(def.TimePeriod);
+            return typeOk && countryOk && periodOk;
+        }
     }
 }

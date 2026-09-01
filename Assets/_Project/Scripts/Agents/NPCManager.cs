@@ -2,23 +2,29 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using AntiqueTradingSimulator.Economy;
+using AntiqueTradingSimulator.News;
 
 namespace AntiqueTradingSimulator.Agents
 {
+    /// <summary>
+    /// Owns the population of NPCTrader instances: spawns them from configured profile
+    /// Ids, registers each with NewsManager so it can receive information, and drives
+    /// their daily decision loop off TimeManager.OnDayChanged.
+    /// </summary>
     public class NPCManager : MonoBehaviour
     {
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private Core.TimeManager timeManager;
+        [SerializeField] private NewsManager newsManager;
 
-        [Header("Initial NPC population")]
-        [SerializeField] private int initialNpcCount = 3;
+        [Header("Initial NPC population — one entry per NPC, referencing an NpcBehaviorProfile.Id")]
+        [SerializeField] private List<string> initialProfileIds = new();
         [SerializeField] private float defaultStartingCash = 2000f;
 
-        private readonly List<NPCTrader> _npcs = new List<NPCTrader>();
-        private readonly Dictionary<string, NPCTrader> _npcsById = new Dictionary<string, NPCTrader>();
+        private readonly List<NPCTrader> _npcs = new();
+        private readonly Dictionary<string, NPCTrader> _npcsById = new();
 
         public IReadOnlyList<NPCTrader> NPCs => _npcs;
-
         public event Action<NPCTrader> OnNPCAdded;
         public event Action<NPCTrader> OnNPCRemoved;
 
@@ -26,44 +32,29 @@ namespace AntiqueTradingSimulator.Agents
         {
             if (economyManager == null) economyManager = FindFirstObjectByType<EconomyManager>();
             if (timeManager == null) timeManager = FindFirstObjectByType<Core.TimeManager>();
+            if (newsManager == null) newsManager = FindFirstObjectByType<NewsManager>();
 
             SpawnInitialNPCs();
         }
 
-        void OnEnable()
-        {
-            if (timeManager != null)
-                timeManager.OnDayChanged += HandleDayChanged;
-        }
-
-        void OnDisable()
-        {
-            if (timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
-        }
+        void OnEnable() { if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged; }
+        void OnDisable() { if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged; }
 
         private void SpawnInitialNPCs()
         {
-            for (int i = 0; i < initialNpcCount; i++)
-            {
-                string name = $"Trader {i + 1}";
-
-                SpawnNPC(name, defaultStartingCash);
-            }
+            for (int i = 0; i < initialProfileIds.Count; i++)
+                SpawnNPC($"Trader {i + 1}", initialProfileIds[i], defaultStartingCash);
         }
 
         private void HandleDayChanged(int newDay)
         {
-            if (economyManager == null || economyManager.Market == null) return;
-
             foreach (var npc in _npcs)
-                npc.DecideTrade(economyManager.Market);
+                npc.EvaluateDay(newDay);
         }
 
-
-        public NPCTrader SpawnNPC(string traderName, float? startingCash = null)
+        public NPCTrader SpawnNPC(string traderName, string profileId, float? startingCash = null)
         {
-            var npc = new NPCTrader(traderName, startingCash ?? defaultStartingCash, economyManager);
+            var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager);
             RegisterNPC(npc);
             return npc;
         }
@@ -74,6 +65,7 @@ namespace AntiqueTradingSimulator.Agents
 
             _npcsById.Remove(npcId);
             _npcs.Remove(npc);
+            newsManager?.UnregisterReceiver(npc);
             OnNPCRemoved?.Invoke(npc);
             return true;
         }
@@ -88,6 +80,7 @@ namespace AntiqueTradingSimulator.Agents
         {
             _npcs.Add(npc);
             _npcsById[npc.Id] = npc;
+            newsManager?.RegisterReceiver(npc);
             OnNPCAdded?.Invoke(npc);
         }
     }
