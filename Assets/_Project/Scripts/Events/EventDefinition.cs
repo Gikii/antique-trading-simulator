@@ -15,6 +15,11 @@ namespace AntiqueTradingSimulator.Events
 
         [Tooltip("How many days this event's effects stay active once triggered.")]
         public int DurationDays = 5;
+        [Tooltip("Minimum number of days from 'now' this event can be scheduled to trigger.")]
+        public int MinLeadDays = 1;
+        [Tooltip("Maximum number of days from 'now' this event can be scheduled to trigger.")]
+        public int MaxLeadDays = 5;
+
         public bool canLeak = true;
 
         [Tooltip("What this event does while active. Configure each effect's fields directly here.")]

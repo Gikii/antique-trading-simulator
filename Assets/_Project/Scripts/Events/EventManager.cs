@@ -12,9 +12,14 @@ namespace AntiqueTradingSimulator.Events
 
         private readonly List<ActiveEvent> _activeEvents = new List<ActiveEvent>();
         public IReadOnlyList<ActiveEvent> ActiveEvents => _activeEvents;
+        private readonly Dictionary<int, EventDefinition> _scheduledByDay = new Dictionary<int, EventDefinition>();
+        public IReadOnlyDictionary<int, EventDefinition> ScheduledEvents => _scheduledByDay;
+        [SerializeField] private int maxScheduleAttempts = 20;
+
 
         public event Action<ActiveEvent> OnEventTriggered;
         public event Action<ActiveEvent> OnEventEnded;
+        public event Action<EventDefinition, int> OnEventScheduled;
 
         void Awake()
         {
@@ -26,7 +31,10 @@ namespace AntiqueTradingSimulator.Events
         void OnEnable()
         {
             if (timeManager != null)
+            {
                 timeManager.OnDayChanged += HandleDayChanged;
+                ScheduleNextRandomEvent(timeManager.CurrentDay);
+            }
 
         }
 
@@ -39,7 +47,8 @@ namespace AntiqueTradingSimulator.Events
         private void HandleDayChanged(int newDay)
         {
             ExpireFinishedEvents(newDay);
-            TriggerRandomEvent(newDay);
+            TriggerScheduledEvent(newDay);
+            ScheduleNextRandomEvent(newDay);
         }
 
         private void ExpireFinishedEvents(int day)
@@ -57,12 +66,10 @@ namespace AntiqueTradingSimulator.Events
             }
         }
 
-        private void TriggerRandomEvent(int day)
+        private void TriggerScheduledEvent(int day)
         {
-            List<EventDefinition> pool = EventDatabase.GetAll();
-            if (pool.Count == 0) return;
-
-            EventDefinition definition = pool[UnityEngine.Random.Range(0, pool.Count)];
+            if (!_scheduledByDay.TryGetValue(day, out EventDefinition definition)) return;
+            _scheduledByDay.Remove(day);
 
             var active = new ActiveEvent(definition, day);
             active.Begin(economyManager.Market, day);
@@ -71,6 +78,56 @@ namespace AntiqueTradingSimulator.Events
 
             Debug.Log($"EventManager: event triggered — {active}");
             OnEventTriggered?.Invoke(active);
+        }
+
+
+        public bool ScheduleEvent(EventDefinition definition, int triggerDay)
+        {
+            if (definition == null)
+            {
+                Debug.LogWarning("EventManager: tried to schedule a null EventDefinition.");
+                return false;
+            }
+
+            if (_scheduledByDay.ContainsKey(triggerDay))
+            {
+                Debug.LogWarning($"EventManager: day {triggerDay} already has an event scheduled — '{definition.DisplayName}' was not scheduled.");
+                return false;
+            }
+
+            _scheduledByDay.Add(triggerDay, definition);
+
+            Debug.Log($"EventManager: event scheduled — {definition.DisplayName} (Day {triggerDay})");
+            OnEventScheduled?.Invoke(definition, triggerDay);
+            return true;
+        }
+
+        private void ScheduleNextRandomEvent(int afterDay)
+        {
+            List<EventDefinition> pool = EventDatabase.GetAll();
+            if (pool.Count == 0) return;
+
+            for (int attempt = 0; attempt < maxScheduleAttempts; attempt++)
+            {
+                EventDefinition definition = pool[UnityEngine.Random.Range(0, pool.Count)];
+
+                int minLead = Mathf.Max(1, definition.MinLeadDays);
+                int maxLead = Mathf.Max(minLead, definition.MaxLeadDays);
+                int candidateDay = afterDay + UnityEngine.Random.Range(minLead, maxLead + 1);
+
+                if (_scheduledByDay.ContainsKey(candidateDay)) continue;
+
+                ScheduleEvent(definition, candidateDay);
+                return;
+            }
+
+            Debug.LogWarning("EventManager: could not find a free day to schedule the next random event.");
+        }
+
+
+        public bool CancelScheduledEvent(int triggerDay)
+        {
+            return _scheduledByDay.Remove(triggerDay);
         }
 
     }
