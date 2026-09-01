@@ -15,6 +15,7 @@ namespace AntiqueTradingSimulator.Events
 
         [Tooltip("How many days this event's effects stay active once triggered.")]
         public int DurationDays = 5;
+        public bool canLeak = true;
 
         [Tooltip("What this event does while active. Configure each effect's fields directly here.")]
         [SerializeReference]

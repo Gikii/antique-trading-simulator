@@ -10,24 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
-  m_Name: NewEvent
+  m_Name: ChangeClockSupply
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
-  Id: 1
-  DisplayName: 1
+  Id: 
+  DisplayName: 
   Description: 
   DurationDays: 5
   canLeak: 1
   Effects:
-  - rid: 5782432427038736453
+  - rid: 5782432427038736451
   references:
     version: 2
     RefIds:
-    - rid: 5782432427038736453
-      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+    - rid: 5782432427038736451
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
         AntiqueType: 1
         Country: 0
         TimePeriod: 0
-        tempDemandChange: 1
-        permDemandChange: 0
+        tempSupplyChange: 1
+        permSupplyChange: 0

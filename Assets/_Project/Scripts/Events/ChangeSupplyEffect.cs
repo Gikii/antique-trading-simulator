@@ -7,8 +7,7 @@ using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Events
 {
-    [Serializable]
-    public class ChangeDemandEffect : EventEffect
+    public class ChangeSupplyEffect : EventEffect
     {
         public enum TargetScope
         {
@@ -29,10 +28,10 @@ namespace AntiqueTradingSimulator.Events
         [Tooltip("Used when Scope = TimePeriod.")]
         public TimePeriod TimePeriod = TimePeriod.Unknown;
 
-        [Tooltip("Temporarily added to Demand for every matching antique type. Use a negative value to lower demand.")]
-        public float tempDemandChange = 1f;
-        [Tooltip("Permamently added to Demand for every matching antique type.")]
-        public float permDemandChange = 0f;
+        [Tooltip("Temporarily added Supply for every matching antique type. Use a negative value to lower demand.")]
+        public float tempSupplyChange = 1f;
+        [Tooltip("Permamently added Supply for every matching antique type. Use a negative value to lower demand.")]
+        public float permSupplyChange = 0f;
 
         // Runtime-only: which definitions this specific instance actually touched,
         // resolved once at Apply time so Revert undoes exactly the same set even if
@@ -48,7 +47,7 @@ namespace AntiqueTradingSimulator.Events
                 var typeState = market.GetTypeState(definitionId);
                 if (typeState == null) continue;
 
-                typeState.Demand = Mathf.Max(0f, typeState.Demand + tempDemandChange + permDemandChange);
+                typeState.Demand = Mathf.Max(0f, typeState.Supply + tempSupplyChange + permSupplyChange);
                 RecalculatePricesForDefinition(market, definitionId);
             }
         }
@@ -62,7 +61,7 @@ namespace AntiqueTradingSimulator.Events
                 var typeState = market.GetTypeState(definitionId);
                 if (typeState == null) continue;
 
-                typeState.Demand = Mathf.Max(0f, typeState.Demand - tempDemandChange);
+                typeState.Demand = Mathf.Max(0f, typeState.Supply - tempSupplyChange);
                 RecalculatePricesForDefinition(market, definitionId);
             }
 
@@ -70,14 +69,14 @@ namespace AntiqueTradingSimulator.Events
 
         public override EventEffect Clone()
         {
-            return new ChangeDemandEffect
+            return new ChangeSupplyEffect
             {
                 Scope = Scope,
                 AntiqueType = AntiqueType,
                 Country = Country,
                 TimePeriod = TimePeriod,
-                tempDemandChange = tempDemandChange,
-                permDemandChange = permDemandChange
+                tempSupplyChange = tempSupplyChange,
+                permSupplyChange = permSupplyChange
             };
         }
 
