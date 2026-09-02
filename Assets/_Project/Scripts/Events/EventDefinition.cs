@@ -20,7 +20,16 @@ namespace AntiqueTradingSimulator.Events
         [Tooltip("Maximum number of days from 'now' this event can be scheduled to trigger.")]
         public int MaxLeadDays = 5;
 
-        public bool canLeak = true;
+        [Header("News generation")]
+        public bool GeneratesOfficialNews = true;
+        [Range(0f, 1f)] public float OfficialCredibility = 1f;
+
+        public bool CanSpawnAsRumorOnly = false;
+        [Range(0f, 1f)] public float RumorCredibility = 0.5f;
+
+        public bool CanLeakEarly = false;
+        [Range(0, 5)] public int LeakDaysBefore = 0;
+        [Range(0f, 1f)] public float LeakCredibility = 0.9f;
 
         [Tooltip("What this event does while active. Configure each effect's fields directly here.")]
         [SerializeReference]
