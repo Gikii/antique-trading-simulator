@@ -13,25 +13,27 @@ namespace AntiqueTradingSimulator.Events
         [TextArea]
         public string Description;
 
-        [Tooltip("How many days this event's effects stay active once triggered.")]
+        [Tooltip("How many days this event's temporary effects stay active once triggered.")]
         public int DurationDays = 5;
-        [Tooltip("Minimum number of days from 'now' this event can be scheduled to trigger.")]
+        [Tooltip("Minimum number of days from 'today' this event can be scheduled to trigger.")]
         public int MinLeadDays = 1;
-        [Tooltip("Maximum number of days from 'now' this event can be scheduled to trigger.")]
+        [Tooltip("Maximum number of days from 'today' this event can be scheduled to trigger.")]
         public int MaxLeadDays = 5;
 
         [Header("News generation")]
-        public bool GeneratesOfficialNews = true;
+        public bool CanBeFakeNews = true;
+
+        public bool CreateOfficialNews = true;
         [Range(0f, 1f)] public float OfficialCredibility = 1f;
 
-        public bool CanSpawnAsRumorOnly = false;
+        public bool CreateRumour = false;
         [Range(0f, 1f)] public float RumorCredibility = 0.5f;
 
-        public bool CanLeakEarly = false;
+        public bool CreateLeak = false;
         [Range(0, 5)] public int LeakDaysBefore = 0;
         [Range(0f, 1f)] public float LeakCredibility = 0.9f;
 
-        [Tooltip("What this event does while active. Configure each effect's fields directly here.")]
+        [Tooltip("Effects of the event.")]
         [SerializeReference]
         public List<EventEffect> Effects = new List<EventEffect>();
     }

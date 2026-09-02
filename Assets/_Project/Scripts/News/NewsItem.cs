@@ -9,22 +9,19 @@ namespace AntiqueTradingSimulator.News
     /// </summary>
     public class NewsItem
     {
-        public GameEvent SourceEvent { get; }      // null for fully fabricated fake news
+        public EventDefinition SourceEvent { get; }
         public NewsType Type { get; }
         public float Credibility { get; }           // 0..1, how trustworthy it LOOKS
-        public bool IsActuallyTrue { get; }          // ground truth, hidden from agents
         public int DayPublished { get; }
         public InfoAccessLevel RequiredAccessLevel { get; }
         public string AffectedAntiqueTypeId { get; } // null = whole category
 
-        public NewsItem(GameEvent sourceEvent, NewsType type, float credibility,
-            bool isActuallyTrue, int dayPublished, InfoAccessLevel requiredAccessLevel,
+        public NewsItem(EventDefinition sourceEvent, NewsType type, float credibility, int dayPublished, InfoAccessLevel requiredAccessLevel,
             string affectedAntiqueTypeId = null)
         {
             SourceEvent = sourceEvent;
             Type = type;
             Credibility = credibility;
-            IsActuallyTrue = isActuallyTrue;
             DayPublished = dayPublished;
             RequiredAccessLevel = requiredAccessLevel;
             AffectedAntiqueTypeId = affectedAntiqueTypeId;

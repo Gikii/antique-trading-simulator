@@ -27,21 +27,20 @@ namespace AntiqueTradingSimulator.News
 
         public void UnregisterReceiver(IInformationReceiver receiver) => _codeReceivers.Remove(receiver);
 
-        public void PublishFromEvent(GameEvent gameEvent, int currentDay)
+        public void PublishFromEvent(EventDefinition gameEvent, int currentDay)
         {
-            var def = gameEvent.Definition;
 
-            if (def.GeneratesOfficialNews)
-                Publish(new NewsItem(gameEvent, NewsType.Official, def.OfficialCredibility, true,
-                    currentDay, InfoAccessLevel.LocalPress, gameEvent.SpecificAntiqueTypeId));
+            if (gameEvent.CreateOfficialNews)
+                Publish(new NewsItem(gameEvent, NewsType.Official, 1f,
+                    currentDay, InfoAccessLevel.LocalPress, "TODO"));
 
-            if (def.CanSpawnAsRumorOnly)
-                Publish(new NewsItem(gameEvent, NewsType.Rumor, def.RumorCredibility, true,
-                    currentDay, InfoAccessLevel.IndustrySources, gameEvent.SpecificAntiqueTypeId));
+            if (gameEvent.CreateRumour)
+                Publish(new NewsItem(gameEvent, NewsType.Rumor, 0.1f,
+                    currentDay, InfoAccessLevel.IndustrySources, "TODO"));
 
-            if (def.CanLeakEarly)
-                Publish(new NewsItem(gameEvent, NewsType.Leak, def.LeakCredibility, true,
-                    currentDay, InfoAccessLevel.InformantNetwork, gameEvent.SpecificAntiqueTypeId));
+            if (gameEvent.CreateRumour)
+                Publish(new NewsItem(gameEvent, NewsType.Leak, 0.3f,
+                    currentDay, InfoAccessLevel.InformantNetwork, "TODO"));
         }
 
         public void PublishManual(NewsItem item) => Publish(item);

@@ -10,13 +10,6 @@ namespace AntiqueTradingSimulator.Events
     [Serializable]
     public class ChangeDemandEffect : EventEffect
     {
-        public enum TargetScope
-        {
-            AntiqueType,
-            Country,
-            TimePeriod
-        }
-
         [Tooltip("Which category this effect targets. Only the matching field below is used.")]
         public TargetScope Scope = TargetScope.AntiqueType;
 
