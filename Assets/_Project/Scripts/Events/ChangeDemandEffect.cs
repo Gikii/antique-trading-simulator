@@ -28,16 +28,11 @@ namespace AntiqueTradingSimulator.Events
         [Tooltip("Permamently added to Demand for every matching antique type.")]
         public float permDemandChange = 0f;
 
-        // Runtime-only: which definitions this specific instance actually touched,
-        // resolved once at Apply time so Revert undoes exactly the same set even if
-        // the database changes in between (it won't at runtime, but this is cheap and safe).
-        [NonSerialized] private List<string> _affectedDefinitionIds;
-
         public override void Apply(Market.Market market, int currentDay)
         {
-            _affectedDefinitionIds = ResolveTargetDefinitionIds();
+            var affectedDefinitionIds = ResolveTargetDefinitionIds();
 
-            foreach (var definitionId in _affectedDefinitionIds)
+            foreach (var definitionId in affectedDefinitionIds)
             {
                 var typeState = market.GetTypeState(definitionId);
                 if (typeState == null) continue;
@@ -49,9 +44,9 @@ namespace AntiqueTradingSimulator.Events
 
         public override void Revert(Market.Market market, int currentDay)
         {
-            if (_affectedDefinitionIds == null) return;
+            var affectedDefinitionIds = ResolveTargetDefinitionIds();
 
-            foreach (var definitionId in _affectedDefinitionIds)
+            foreach (var definitionId in affectedDefinitionIds)
             {
                 var typeState = market.GetTypeState(definitionId);
                 if (typeState == null) continue;
@@ -64,8 +59,7 @@ namespace AntiqueTradingSimulator.Events
 
         public override NewsEventData CreateNewsData()
         {
-            return new NewsEventData(Scope, AntiqueType, Country, TimePeriod, (permDemandChange + tempDemandChange > 0) ? true : false); 
-            throw new NotImplementedException();
+            return new NewsEventData(Scope, AntiqueType, Country, TimePeriod, (permDemandChange + tempDemandChange > 0) ? true : false);
         }
 
         public override EventEffect Clone()

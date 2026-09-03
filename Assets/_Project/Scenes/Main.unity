@@ -2759,6 +2759,7 @@ GameObject:
   - component: {fileID: 398503184}
   - component: {fileID: 398503183}
   - component: {fileID: 398503186}
+  - component: {fileID: 398503187}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -2828,6 +2829,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventManager
   economyManager: {fileID: 398503183}
   timeManager: {fileID: 0}
+  maxScheduleAttempts: 20
+--- !u!114 &398503187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 398503182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e24c2289e8083fa44b93067d3ec4ed3e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Agents.NPCManager
+  economyManager: {fileID: 0}
+  timeManager: {fileID: 0}
+  newsManager: {fileID: 0}
+  initialProfileIds:
+  - 
+  - 
+  defaultStartingCash: 2000
 --- !u!1 &448081523
 GameObject:
   m_ObjectHideFlags: 0
@@ -4045,58 +4066,6 @@ MonoBehaviour:
   m_FlexibleWidth: 0
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
---- !u!1 &592050911
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 592050913}
-  - component: {fileID: 592050912}
-  m_Layer: 0
-  m_Name: NPC_2
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &592050912
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 592050911}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 176131a737f928d4ebaf0dceded672d4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Trading.NPCTrader
-  traderName: Trader
-  economyManager: {fileID: 0}
-  startingCash: 8000
-  timeManager: {fileID: 0}
-  buyChance: 1
-  sellChance: 1
-  buyBelowPriceRatio: 1.1
-  sellAbovePriceRatio: 1.1
---- !u!4 &592050913
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 592050911}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &627129762
 GameObject:
   m_ObjectHideFlags: 0
@@ -7812,6 +7781,7 @@ MonoBehaviour:
   traderName: Trader
   economyManager: {fileID: 0}
   startingCash: 1000
+  accessLevel: 1
 --- !u!4 &1223275183
 Transform:
   m_ObjectHideFlags: 0
@@ -14494,63 +14464,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2087976800}
   m_CullTransparentMesh: 1
---- !u!1001 &3255261824392831962
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3352576377546577290, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6905112734257745527, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
-      propertyPath: m_Name
-      value: NPC_1
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 8a75ed80f93cf864e8cb67066725edb9, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -14558,7 +14471,5 @@ SceneRoots:
   - {fileID: 1781709197}
   - {fileID: 398503185}
   - {fileID: 1223275183}
-  - {fileID: 3255261824392831962}
-  - {fileID: 592050913}
   - {fileID: 347374037}
   - {fileID: 1478986231}

@@ -17,8 +17,126 @@ namespace AntiqueTradingSimulator.News
         [SerializeField] private List<MonoBehaviour> inspectorReceivers = new(); // np. PlayerTrader
         private readonly List<IInformationReceiver> _codeReceivers = new();      // np. NPCTrader from NPCManager
 
+        [SerializeField] private EventManager eventManager;
+        [SerializeField] private Core.TimeManager timeManager;
+
         private readonly List<NewsItem> _publishedNews = new();
         public IReadOnlyList<NewsItem> PublishedNews => _publishedNews;
+
+        private readonly List<PendingLeak> _pendingLeaks = new();
+
+        private struct PendingLeak
+        {
+            public int PublishDay;
+            public EventDefinition Definition;
+        }
+
+
+
+        private void Awake()
+        {
+            if (eventManager == null) eventManager = FindFirstObjectByType<EventManager>();
+            if (timeManager == null) timeManager = FindFirstObjectByType<Core.TimeManager>();
+
+            if (eventManager != null)
+            {
+                eventManager.OnEventScheduled += HandleEventScheduled;
+                eventManager.OnEventTriggered += HandleEventTriggered;
+            }
+            else
+            {
+                Debug.LogWarning("NewsManager: no EventManager found — events will not generate news.");
+            }
+
+        }
+
+        void OnEnable()
+        {
+            if (timeManager != null)
+                timeManager.OnDayChanged += HandleDayChanged;
+        }
+
+        void OnDisable()
+        {
+            if (timeManager != null)
+                timeManager.OnDayChanged -= HandleDayChanged;
+        }
+
+        void OnDestroy()
+        {
+            if (eventManager != null)
+            {
+                eventManager.OnEventScheduled -= HandleEventScheduled;
+                eventManager.OnEventTriggered -= HandleEventTriggered;
+            }
+        }
+
+        private void HandleEventScheduled(EventDefinition definition, int triggerDay)
+        {
+            if (!definition.CreateLeak) return;
+
+            int today = timeManager != null ? timeManager.CurrentDay : triggerDay;
+            int publishDay = Mathf.Max(triggerDay - Mathf.Max(0, definition.LeakDaysBefore), today);
+
+            if (publishDay <= today)
+            {
+                PublishLeak(definition, today);
+            }
+            else
+            {
+                _pendingLeaks.Add(new PendingLeak { PublishDay = publishDay, Definition = definition });
+                Debug.Log($"NewsManager: leak queued for '{definition.DisplayName}' [{definition.name}] — publishing Day {publishDay} (event triggers Day {triggerDay}).");
+            }
+        }
+
+        private void HandleEventTriggered(ActiveEvent active)
+        {
+            EventDefinition definition = active.Definition;
+            List<NewsEventData> newsData = BuildNewsData(definition);
+
+            if (definition.CreateOfficialNews)
+            {
+                Publish(new NewsItem(newsData, NewsType.Official, definition.OfficialCredibility,
+                    active.StartDay, InfoAccessLevel.LocalPress));
+                Debug.Log("Published official news on event " + definition.name);
+            }
+
+            if (definition.CreateRumour)
+            {
+                Publish(new NewsItem(newsData, NewsType.Rumor, definition.RumorCredibility,
+                    active.StartDay, InfoAccessLevel.IndustrySources));
+                Debug.Log("Published rumor on event " + definition.name);
+            }
+        }
+
+        private void HandleDayChanged(int newDay)
+        {
+            for (int i = _pendingLeaks.Count - 1; i >= 0; i--)
+            {
+                if (_pendingLeaks[i].PublishDay > newDay) continue;
+
+                PublishLeak(_pendingLeaks[i].Definition, newDay);
+                _pendingLeaks.RemoveAt(i);
+            }
+        }
+
+        private void PublishLeak(EventDefinition definition, int day)
+        {
+            List<NewsEventData> newsData = BuildNewsData(definition);
+            Publish(new NewsItem(newsData, NewsType.Leak, definition.LeakCredibility,
+                day, InfoAccessLevel.InformantNetwork));
+            Debug.Log("Published leak on event " + definition.name);
+        }
+
+        private static List<NewsEventData> BuildNewsData(EventDefinition definition)
+        {
+            var newsData = new List<NewsEventData>();
+            foreach (EventEffect eventEffect in definition.Effects)
+                newsData.Add(eventEffect.CreateNewsData());
+            return newsData;
+        }
+
+
 
         public void RegisterReceiver(IInformationReceiver receiver)
         {
@@ -47,6 +165,8 @@ namespace AntiqueTradingSimulator.News
             if (gameEvent.CreateLeak)
                 Publish(new NewsItem(newsData, NewsType.Leak, 0.3f,
                     currentDay, InfoAccessLevel.InformantNetwork));
+
+            Debug.Log("Published news about " + gameEvent.name);
         }
 
         public void PublishManual(NewsItem item) => Publish(item);

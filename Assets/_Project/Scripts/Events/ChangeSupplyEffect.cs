@@ -27,35 +27,30 @@ namespace AntiqueTradingSimulator.Events
         [Tooltip("Permamently added Supply for every matching antique type. Use a negative value to lower demand.")]
         public float permSupplyChange = 0f;
 
-        // Runtime-only: which definitions this specific instance actually touched,
-        // resolved once at Apply time so Revert undoes exactly the same set even if
-        // the database changes in between (it won't at runtime, but this is cheap and safe).
-        [NonSerialized] private List<string> _affectedDefinitionIds;
-
         public override void Apply(Market.Market market, int currentDay)
         {
-            _affectedDefinitionIds = ResolveTargetDefinitionIds();
+            var affectedDefinitionIds = ResolveTargetDefinitionIds();
 
-            foreach (var definitionId in _affectedDefinitionIds)
+            foreach (var definitionId in affectedDefinitionIds)
             {
                 var typeState = market.GetTypeState(definitionId);
                 if (typeState == null) continue;
 
-                typeState.Demand = Mathf.Max(0f, typeState.Supply + tempSupplyChange + permSupplyChange);
+                typeState.Supply = Mathf.Max(0f, typeState.Supply + tempSupplyChange + permSupplyChange);
                 RecalculatePricesForDefinition(market, definitionId);
             }
         }
 
         public override void Revert(Market.Market market, int currentDay)
         {
-            if (_affectedDefinitionIds == null) return;
+            var affectedDefinitionIds = ResolveTargetDefinitionIds();
 
-            foreach (var definitionId in _affectedDefinitionIds)
+            foreach (var definitionId in affectedDefinitionIds)
             {
                 var typeState = market.GetTypeState(definitionId);
                 if (typeState == null) continue;
 
-                typeState.Demand = Mathf.Max(0f, typeState.Supply - tempSupplyChange);
+                typeState.Supply = Mathf.Max(0f, typeState.Supply - tempSupplyChange);
                 RecalculatePricesForDefinition(market, definitionId);
             }
 
@@ -64,7 +59,6 @@ namespace AntiqueTradingSimulator.Events
         public override NewsEventData CreateNewsData()
         {
             return new NewsEventData(Scope, AntiqueType, Country, TimePeriod, (permSupplyChange + tempSupplyChange < 0) ? true : false);
-            throw new NotImplementedException();
         }
 
         public override EventEffect Clone()

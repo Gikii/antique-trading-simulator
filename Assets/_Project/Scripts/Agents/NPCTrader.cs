@@ -153,6 +153,8 @@ namespace AntiqueTradingSimulator.Agents
 
                 if (TryBuy(listing, currentDay)) budget -= listing.CurrentPrice;
             }
+
+            Debug.Log(TraderName + " considered buying from market");
         }
 
         private void ConsiderSellingHoldings(int currentDay, NpcBehaviorProfile profile)
@@ -172,6 +174,8 @@ namespace AntiqueTradingSimulator.Agents
 
                 if (SellListing(listing.Id)) _acquisitions.Remove(listingId);
             }
+
+            Debug.Log(TraderName + " considered selling holdings");
         }
 
         private bool TryBuy(Antique listing, int currentDay)

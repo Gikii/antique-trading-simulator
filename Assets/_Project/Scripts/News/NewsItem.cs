@@ -22,6 +22,7 @@ namespace AntiqueTradingSimulator.News
             Type = type;
             Credibility = credibility;
             DayPublished = dayPublished;
+            RequiredAccessLevel = requiredAccessLevel;
         }
     }
 }
