@@ -29,18 +29,24 @@ namespace AntiqueTradingSimulator.News
 
         public void PublishFromEvent(EventDefinition gameEvent, int currentDay)
         {
+            List<NewsEventData> newsData = new List<NewsEventData>();
+
+            foreach (EventEffect eventEffect in gameEvent.Effects)
+            {
+                newsData.Add(eventEffect.CreateNewsData());
+            }
 
             if (gameEvent.CreateOfficialNews)
-                Publish(new NewsItem(gameEvent, NewsType.Official, 1f,
-                    currentDay, InfoAccessLevel.LocalPress, "TODO"));
+                Publish(new NewsItem(newsData, NewsType.Official, 1f,
+                    currentDay, InfoAccessLevel.LocalPress));
 
             if (gameEvent.CreateRumour)
-                Publish(new NewsItem(gameEvent, NewsType.Rumor, 0.1f,
-                    currentDay, InfoAccessLevel.IndustrySources, "TODO"));
+                Publish(new NewsItem(newsData, NewsType.Rumor, 0.1f,
+                    currentDay, InfoAccessLevel.IndustrySources));
 
-            if (gameEvent.CreateRumour)
-                Publish(new NewsItem(gameEvent, NewsType.Leak, 0.3f,
-                    currentDay, InfoAccessLevel.InformantNetwork, "TODO"));
+            if (gameEvent.CreateLeak)
+                Publish(new NewsItem(newsData, NewsType.Leak, 0.3f,
+                    currentDay, InfoAccessLevel.InformantNetwork));
         }
 
         public void PublishManual(NewsItem item) => Publish(item);

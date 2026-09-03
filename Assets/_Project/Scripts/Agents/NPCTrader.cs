@@ -1,10 +1,14 @@
-using System;
-using System.Collections.Generic;
-using UnityEngine;
 using AntiqueTradingSimulator.Economy;
+using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Market;
 using AntiqueTradingSimulator.News;
-using AntiqueTradingSimulator.Events;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using UnityEngine;
+using static AntiqueTradingSimulator.Events.EventEffect;
+using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Agents
 {
@@ -94,15 +98,45 @@ namespace AntiqueTradingSimulator.Agents
 
         private float TryActOnNews(NewsItem news, float budget, int currentDay, NpcBehaviorProfile profile)
         {
-            if (news.AffectedAntiqueTypeId == null) return budget;
-
-            foreach (var listing in _economyManager.Market.GetListingsByDefinition(news.AffectedAntiqueTypeId))
+            foreach (var eventEffect in news.NewsData)
             {
-                if (budget <= 0f) break;
-                if (!IsAcceptablePrice(listing, profile) || listing.CurrentPrice > budget) continue;
+                if (eventEffect.targetScope != EventEffect.TargetScope.Other)
+                {
+                    if (eventEffect.affectsPriceUp) {
+                        var listings = eventEffect.targetScope switch
+                        {
+                            TargetScope.AntiqueType => _economyManager.Market.GetByType(eventEffect.AntiqueType),
+                            TargetScope.Country => _economyManager.Market.GetByCountry(eventEffect.Country),
+                            TargetScope.TimePeriod => _economyManager.Market.GetByTimePeriod(eventEffect.TimePeriod),
+                            _ => new List<Antique>()
+                        };
 
-                if (TryBuy(listing, currentDay)) budget -= listing.CurrentPrice;
+                        foreach (var listing in listings)
+                        {
+                            if (budget <= 0f) break;
+                            if (!IsAcceptablePrice(listing, profile) || listing.CurrentPrice > budget) continue;
+
+                            if (TryBuy(listing, currentDay)) budget -= listing.CurrentPrice;
+                        }
+                    }
+                    else
+                    {
+                        var holdings = eventEffect.targetScope switch
+                        {
+                            TargetScope.AntiqueType => Inventory.Holdings.Values.Where(h => h.Definition.Type == eventEffect.AntiqueType).ToList(),
+                            TargetScope.Country => Inventory.Holdings.Values.Where(h => h.Definition.Country == eventEffect.Country).ToList(),
+                            TargetScope.TimePeriod => Inventory.Holdings.Values.Where(h => h.Definition.TimePeriod == eventEffect.TimePeriod).ToList()
+
+                        };
+                        foreach (var holding in holdings) {
+                            var typeState = _economyManager.Market.GetTypeState(holding.DefinitionId);
+                            float sellPrice = PriceEngine.CalculatePrice(holding, typeState);
+                            if (SellListing(holding.ListingId)) budget += sellPrice;
+                        }
+                    }
+                }
             }
+
             return budget;
         }
 

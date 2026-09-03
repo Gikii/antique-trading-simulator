@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Market;
+using AntiqueTradingSimulator.News;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,6 +60,12 @@ namespace AntiqueTradingSimulator.Events
                 RecalculatePricesForDefinition(market, definitionId);
             }
 
+        }
+
+        public override NewsEventData CreateNewsData()
+        {
+            return new NewsEventData(Scope, AntiqueType, Country, TimePeriod, (permDemandChange + tempDemandChange > 0) ? true : false); 
+            throw new NotImplementedException();
         }
 
         public override EventEffect Clone()
