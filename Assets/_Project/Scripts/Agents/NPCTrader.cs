@@ -69,11 +69,24 @@ namespace AntiqueTradingSimulator.Agents
                 NewsType.Fake => profile.RumorTrust * 0.5f,
                 _ => 0f
             };
-
+            
             float actionChance = trust * news.Credibility * (0.5f + profile.RiskTolerance);
-            if (UnityEngine.Random.value > actionChance) return;
+
+            Debug.Log($"Trader {TraderName} received {news.Type} news on Day {news.DayPublished} ({news.NewsData.Count} effects, trust {trust:F2}, credibility {news.Credibility:F2}, action chance {actionChance:F2})");
+
+            if (UnityEngine.Random.value > actionChance)
+            {
+                Debug.Log($"Trader {TraderName} dismissed the {news.Type} news from Day {news.DayPublished} based on actionChance");
+                return;
+            }
 
             int delay = UnityEngine.Random.Range(profile.MinReactionDelayDays, profile.MaxReactionDelayDays + 1);
+            int reactionDay = _economyManager.TimeManager.CurrentDay + delay;
+            if (news.EventTriggerDay <= reactionDay)
+            {
+                Debug.Log($"Trader {TraderName} dismissed the {news.Type} news from Day {news.DayPublished} because the day it would react ({reactionDay}) is later than the day the event starts({news.EventTriggerDay})");
+                return;
+            }
             _pendingReactions.Add(new PendingReaction
             {
                 News = news,
