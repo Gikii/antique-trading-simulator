@@ -18,10 +18,6 @@ namespace AntiqueTradingSimulator.Events
             EndDay = startDay + Mathf.Max(1, definition.DurationDays);
         }
 
-        /// <summary>
-        /// Clones and applies every effect on the definition. Called once, right after
-        /// construction, by EventManager.
-        /// </summary>
         public void Begin(Market.Market market, int currentDay)
         {
             foreach (var effect in Definition.Effects)
@@ -32,10 +28,6 @@ namespace AntiqueTradingSimulator.Events
             }
         }
 
-        /// <summary>
-        /// Reverts every effect instance this event applied. Called once, when the
-        /// event's duration expires.
-        /// </summary>
         public void End(Market.Market market, int currentDay)
         {
             foreach (var instance in _effectInstances)

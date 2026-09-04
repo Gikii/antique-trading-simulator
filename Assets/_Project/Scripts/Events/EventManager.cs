@@ -76,7 +76,7 @@ namespace AntiqueTradingSimulator.Events
 
             _activeEvents.Add(active);
 
-            Debug.Log($"EventManager: event triggered — {active}");
+            Debug.Log($"EventManager: event triggered — {active.Definition.name}");
             OnEventTriggered?.Invoke(active);
         }
 
@@ -91,13 +91,13 @@ namespace AntiqueTradingSimulator.Events
 
             if (_scheduledByDay.ContainsKey(triggerDay))
             {
-                Debug.LogWarning($"EventManager: day {triggerDay} already has an event scheduled — '{definition.DisplayName}' was not scheduled.");
+                Debug.LogWarning($"EventManager: day {triggerDay} already has an event scheduled. '{definition.name}' was not scheduled.");
                 return false;
             }
 
             _scheduledByDay.Add(triggerDay, definition);
 
-            Debug.Log($"EventManager: event scheduled — {definition.DisplayName} (Day {triggerDay})");
+            Debug.Log($"EventManager: event scheduled — {definition.name} (Day {triggerDay})");
             OnEventScheduled?.Invoke(definition, triggerDay);
             return true;
         }
@@ -111,7 +111,7 @@ namespace AntiqueTradingSimulator.Events
             {
                 EventDefinition definition = pool[UnityEngine.Random.Range(0, pool.Count)];
 
-                int minLead = Mathf.Max(1, definition.MinLeadDays);
+                int minLead = Mathf.Max(0, definition.MinLeadDays);
                 int maxLead = Mathf.Max(minLead, definition.MaxLeadDays);
                 int candidateDay = afterDay + UnityEngine.Random.Range(minLead, maxLead + 1);
 

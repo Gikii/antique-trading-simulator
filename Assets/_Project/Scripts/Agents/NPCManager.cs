@@ -56,6 +56,7 @@ namespace AntiqueTradingSimulator.Agents
         {
             var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager);
             RegisterNPC(npc);
+            Debug.Log("Created NPC Trader " + traderName);
             return npc;
         }
 

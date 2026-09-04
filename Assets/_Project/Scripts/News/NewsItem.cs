@@ -1,4 +1,5 @@
 ﻿using AntiqueTradingSimulator.Events;
+using System.Collections.Generic;
 
 namespace AntiqueTradingSimulator.News
 {
@@ -9,25 +10,19 @@ namespace AntiqueTradingSimulator.News
     /// </summary>
     public class NewsItem
     {
-        public GameEvent SourceEvent { get; }      // null for fully fabricated fake news
+        public List<NewsEventData> NewsData;
         public NewsType Type { get; }
         public float Credibility { get; }           // 0..1, how trustworthy it LOOKS
-        public bool IsActuallyTrue { get; }          // ground truth, hidden from agents
         public int DayPublished { get; }
         public InfoAccessLevel RequiredAccessLevel { get; }
-        public string AffectedAntiqueTypeId { get; } // null = whole category
 
-        public NewsItem(GameEvent sourceEvent, NewsType type, float credibility,
-            bool isActuallyTrue, int dayPublished, InfoAccessLevel requiredAccessLevel,
-            string affectedAntiqueTypeId = null)
+        public NewsItem(List<NewsEventData> newsData, NewsType type, float credibility, int dayPublished, InfoAccessLevel requiredAccessLevel)
         {
-            SourceEvent = sourceEvent;
+            NewsData = newsData;
             Type = type;
             Credibility = credibility;
-            IsActuallyTrue = isActuallyTrue;
             DayPublished = dayPublished;
             RequiredAccessLevel = requiredAccessLevel;
-            AffectedAntiqueTypeId = affectedAntiqueTypeId;
         }
     }
 }
