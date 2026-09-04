@@ -14,15 +14,17 @@ namespace AntiqueTradingSimulator.News
         public NewsType Type { get; }
         public float Credibility { get; }           // 0..1, how trustworthy it LOOKS
         public int DayPublished { get; }
+        public int EventTriggerDay { get; }
         public InfoAccessLevel RequiredAccessLevel { get; }
 
-        public NewsItem(List<NewsEventData> newsData, NewsType type, float credibility, int dayPublished, InfoAccessLevel requiredAccessLevel)
+        public NewsItem(List<NewsEventData> newsData, NewsType type, float credibility, int dayPublished, InfoAccessLevel requiredAccessLevel, int eventTriggerDay)
         {
             NewsData = newsData;
             Type = type;
             Credibility = credibility;
             DayPublished = dayPublished;
             RequiredAccessLevel = requiredAccessLevel;
+            EventTriggerDay = eventTriggerDay;
         }
     }
 }

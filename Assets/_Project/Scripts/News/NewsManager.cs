@@ -30,6 +30,7 @@ namespace AntiqueTradingSimulator.News
         {
             public int PublishDay;
             public EventDefinition Definition;
+            public int EventTriggerDay;
             public NewsType Type;
         }
 
@@ -93,11 +94,11 @@ namespace AntiqueTradingSimulator.News
 
                 if (publishDay <= today)
                 {
-                    PublishNews(definition, type, today);
+                    PublishNews(definition, type, today, triggerDay);
                 }
                 else
                 {
-                    _pendingNews.Add(new PendingNews { PublishDay = publishDay, Definition = definition, Type = type });
+                    _pendingNews.Add(new PendingNews { PublishDay = publishDay, Definition = definition, Type = type, EventTriggerDay = triggerDay });
                     Debug.Log($"NewsManager: {type} queued for '{definition.DisplayName}' [{definition.name}]. publishing day: {publishDay} event trigger day: {triggerDay}.");
                 }
             }
@@ -110,12 +111,12 @@ namespace AntiqueTradingSimulator.News
             {
                 if (_pendingNews[i].PublishDay > newDay) continue;
 
-                PublishNews(_pendingNews[i].Definition, _pendingNews[i].Type, newDay);
+                PublishNews(_pendingNews[i].Definition, _pendingNews[i].Type, newDay, _pendingNews[i].EventTriggerDay);
                 _pendingNews.RemoveAt(i);
             }
         }
 
-        private void PublishNews(EventDefinition definition, NewsType type, int day)
+        private void PublishNews(EventDefinition definition, NewsType type, int day, int eventTriggerDay)
         {
             string label = type switch
             {
@@ -144,7 +145,7 @@ namespace AntiqueTradingSimulator.News
                 _ => InfoAccessLevel.LocalPress
             };
 
-            Publish(new NewsItem(newsData, type, credibility, day, accessLevel));
+            Publish(new NewsItem(newsData, type, credibility, day, accessLevel, eventTriggerDay));
         }
 
 
@@ -154,7 +155,7 @@ namespace AntiqueTradingSimulator.News
 
             if (type == NewsType.Rumor && effects.Count > 1)
             {
-                int revealCount = UnityEngine.Random.Range(1, effects.Count); // 1 .. Count-1 inclusive
+                int revealCount = UnityEngine.Random.Range(1, effects.Count);
                 var revealedIndices = Enumerable.Range(0, effects.Count)
                     .OrderBy(_ => UnityEngine.Random.value)
                     .Take(revealCount)
@@ -178,30 +179,6 @@ namespace AntiqueTradingSimulator.News
         }
 
         public void UnregisterReceiver(IInformationReceiver receiver) => _codeReceivers.Remove(receiver);
-
-        public void PublishFromEvent(EventDefinition gameEvent, int currentDay)
-        {
-            List<NewsEventData> newsData = new List<NewsEventData>();
-
-            foreach (EventEffect eventEffect in gameEvent.Effects)
-            {
-                newsData.Add(eventEffect.CreateNewsData());
-            }
-
-            if (gameEvent.CreateOfficialNews)
-                Publish(new NewsItem(newsData, NewsType.Official, 1f,
-                    currentDay, InfoAccessLevel.LocalPress));
-
-            if (gameEvent.CreateRumour)
-                Publish(new NewsItem(newsData, NewsType.Rumor, 0.1f,
-                    currentDay, InfoAccessLevel.IndustrySources));
-
-            if (gameEvent.CreateLeak)
-                Publish(new NewsItem(newsData, NewsType.Leak, 0.3f,
-                    currentDay, InfoAccessLevel.InformantNetwork));
-
-            Debug.Log("Published news about " + gameEvent.name);
-        }
 
         public void PublishManual(NewsItem item) => Publish(item);
 
