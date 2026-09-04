@@ -111,7 +111,7 @@ namespace AntiqueTradingSimulator.Events
             {
                 EventDefinition definition = pool[UnityEngine.Random.Range(0, pool.Count)];
 
-                int minLead = Mathf.Max(1, definition.MinLeadDays);
+                int minLead = Mathf.Max(0, definition.MinLeadDays);
                 int maxLead = Mathf.Max(minLead, definition.MaxLeadDays);
                 int candidateDay = afterDay + UnityEngine.Random.Range(minLead, maxLead + 1);
 

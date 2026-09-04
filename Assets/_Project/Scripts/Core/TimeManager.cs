@@ -43,6 +43,7 @@ namespace AntiqueTradingSimulator.Core
         {
             _timer = 0f;
             CurrentDay++;
+            Debug.Log("Day " + CurrentDay);
             OnDayChanged?.Invoke(CurrentDay);
         }
 
