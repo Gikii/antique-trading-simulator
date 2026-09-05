@@ -18,7 +18,8 @@ namespace AntiqueTradingSimulator.Agents
     {
         [Header("Identity")]
         [FormerlySerializedAs("Id")]
-        [ReadOnly, SerializeField] private string id = Guid.NewGuid().ToString("N");
+        [ReadOnly ,SerializeField] private string id = Guid.NewGuid().ToString("N");
+        public string Id => id;
         public string ProfileName;
 
         [Header("Information access")]

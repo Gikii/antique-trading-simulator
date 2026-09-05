@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
   m_Name: NewEvent 1
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
-  id: x
+  id: 73b91f00ddf94ca588fea27105ce247e
   DisplayName: 
   Description: 
   DurationDays: 5
