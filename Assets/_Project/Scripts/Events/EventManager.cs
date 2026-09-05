@@ -1,6 +1,7 @@
 using AntiqueTradingSimulator.Economy;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Events
@@ -12,8 +13,9 @@ namespace AntiqueTradingSimulator.Events
 
         private readonly List<ActiveEvent> _activeEvents = new List<ActiveEvent>();
         public IReadOnlyList<ActiveEvent> ActiveEvents => _activeEvents;
-        private readonly Dictionary<int, EventDefinition> _scheduledByDay = new Dictionary<int, EventDefinition>();
-        public IReadOnlyDictionary<int, EventDefinition> ScheduledEvents => _scheduledByDay;
+        private readonly List<ScheduledEvent> _scheduledEvents = new List<ScheduledEvent>();
+        public IReadOnlyList<ScheduledEvent> ScheduledEvents => _scheduledEvents;
+
         [SerializeField] private int maxScheduleAttempts = 20;
 
 
@@ -68,9 +70,17 @@ namespace AntiqueTradingSimulator.Events
 
         private void TriggerScheduledEvent(int day)
         {
-            if (!_scheduledByDay.TryGetValue(day, out EventDefinition definition)) return;
-            _scheduledByDay.Remove(day);
+            int index = _scheduledEvents.FindIndex(s => s.TriggerDay == day);
+            if (index < 0) return;
+            var scheduled = _scheduledEvents[index];
+            _scheduledEvents.RemoveAt(index);
 
+            var definition = scheduled.Definition;
+            if (definition == null)
+            {
+                Debug.Log($"EventManager: Failed to scheduled trigger event for day {day}. No EventDefinition with Id {scheduled.EventDefinitionId}");
+                return;
+            }
             var active = new ActiveEvent(definition, day);
             active.Begin(economyManager.Market, day);
 
@@ -89,13 +99,13 @@ namespace AntiqueTradingSimulator.Events
                 return false;
             }
 
-            if (_scheduledByDay.ContainsKey(triggerDay))
+            if (_scheduledEvents.Any(s => s.TriggerDay == triggerDay))
             {
                 Debug.LogWarning($"EventManager: day {triggerDay} already has an event scheduled. '{definition.name}' was not scheduled.");
                 return false;
             }
 
-            _scheduledByDay.Add(triggerDay, definition);
+            _scheduledEvents.Add(new ScheduledEvent(triggerDay, definition));
 
             Debug.Log($"EventManager: event scheduled — {definition.name} (Day {triggerDay})");
             OnEventScheduled?.Invoke(definition, triggerDay);
@@ -115,7 +125,7 @@ namespace AntiqueTradingSimulator.Events
                 int maxLead = Mathf.Max(minLead, definition.MaxLeadDays);
                 int candidateDay = afterDay + UnityEngine.Random.Range(minLead, maxLead + 1);
 
-                if (_scheduledByDay.ContainsKey(candidateDay)) continue;
+                if (_scheduledEvents.Any(s => s.TriggerDay == candidateDay)) continue;
 
                 ScheduleEvent(definition, candidateDay);
                 return;
@@ -127,7 +137,12 @@ namespace AntiqueTradingSimulator.Events
 
         public bool CancelScheduledEvent(int triggerDay)
         {
-            return _scheduledByDay.Remove(triggerDay);
+            int index = _scheduledEvents.FindIndex(s => s.TriggerDay == triggerDay);
+            if (index < 0) return false;
+
+            _scheduledEvents.RemoveAt(index);
+            return true;
+
         }
 
     }
