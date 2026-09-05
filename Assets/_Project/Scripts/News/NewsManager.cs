@@ -31,17 +31,17 @@ namespace AntiqueTradingSimulator.News
         {
             var def = gameEvent.Definition;
 
-            if (def.GeneratesOfficialNews)
-                Publish(new NewsItem(gameEvent, NewsType.Official, def.OfficialCredibility, true,
-                    currentDay, InfoAccessLevel.LocalPress, gameEvent.SpecificAntiqueTypeId));
+            //    if (def.GeneratesOfficialNews)
+            //        Publish(new NewsItem(gameEvent, NewsType.Official, def.OfficialCredibility, true,
+            //            currentDay, InfoAccessLevel.LocalPress, gameEvent.SpecificAntiqueTypeId));
 
-            if (def.CanSpawnAsRumorOnly)
-                Publish(new NewsItem(gameEvent, NewsType.Rumor, def.RumorCredibility, true,
-                    currentDay, InfoAccessLevel.IndustrySources, gameEvent.SpecificAntiqueTypeId));
+            //    if (def.CanSpawnAsRumorOnly)
+            //        Publish(new NewsItem(gameEvent, NewsType.Rumor, def.RumorCredibility, true,
+            //            currentDay, InfoAccessLevel.IndustrySources, gameEvent.SpecificAntiqueTypeId));
 
-            if (def.CanLeakEarly)
-                Publish(new NewsItem(gameEvent, NewsType.Leak, def.LeakCredibility, true,
-                    currentDay, InfoAccessLevel.InformantNetwork, gameEvent.SpecificAntiqueTypeId));
+            //    if (def.CanLeakEarly)
+            //        Publish(new NewsItem(gameEvent, NewsType.Leak, def.LeakCredibility, true,
+            //            currentDay, InfoAccessLevel.InformantNetwork, gameEvent.SpecificAntiqueTypeId));
         }
 
         public void PublishManual(NewsItem item) => Publish(item);
