@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: NewNpcProfile
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Agents.NpcBehaviorProfile
   Id: 1
-  ProfileName: 
+  ProfileName: default
   AccessLevel: 1
   PreferredTypes: 
   PreferredCountries: 

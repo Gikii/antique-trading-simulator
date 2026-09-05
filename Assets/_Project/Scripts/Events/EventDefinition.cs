@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Events
 {
@@ -7,7 +10,9 @@ namespace AntiqueTradingSimulator.Events
     [CreateAssetMenu(fileName = "NewEvent", menuName = "AntiqueTradingSimulator/Event Definition")]
     public class EventDefinition : ScriptableObject
     {
-        public string Id;
+        [FormerlySerializedAs("Id")]
+        [ReadOnly, SerializeField] private string id = Guid.NewGuid().ToString("N");
+        public string Id => id;
         public string DisplayName;
 
         [TextArea]

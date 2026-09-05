@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: clock_001
   DisplayName: Antique clock
-  Type: 3
+  Type: 1
   TimePeriod: 7
-  Country: 0
+  Country: 1
   BasePrice: 500
   Description: 
