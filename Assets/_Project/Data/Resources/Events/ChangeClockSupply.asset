@@ -12,11 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
   m_Name: ChangeClockSupply
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
-  Id: 
+  id: 2
   DisplayName: 
   Description: 
   DurationDays: 5
-  canLeak: 1
+  MinLeadDays: 1
+  MaxLeadDays: 5
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialCredibility: 1
+  CreateRumour: 0
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakDaysBefore: 5
+  LeakCredibility: 0.9
   Effects:
   - rid: 5782432427038736451
   references:
