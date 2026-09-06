@@ -76,7 +76,7 @@ namespace AntiqueTradingSimulator.Orders
 
         private void ExpireOrders()
         {
-            foreach(var order in _orders)
+            foreach(var order in _orders.ToList())
             {
                 if(order.DeadlineDay == timeManager.CurrentDay) {
                     order.SetStatusExpired();
