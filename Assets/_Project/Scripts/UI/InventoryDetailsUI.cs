@@ -1,12 +1,17 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
+﻿using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Market;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using AntiqueTradingSimulator.Agents;
 
 namespace AntiqueTradingSimulator.UI
 {
     public class InventoryDetailsUI : MonoBehaviour
     {
+        [Header("Dependencies")]
+        [SerializeField] private PlayerTrader playerTrader;
+
         [Header("Header")]
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private Button closeButton;
@@ -34,13 +39,23 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text currentValueText;
         [SerializeField] private TMP_Text baseValueText;
 
+        [Header("Actions")]
+        [SerializeField] private Button listOnMarketButton;
+        [SerializeField] private Button sellNowButton;
+
         private Antique _currentAntique;
         private InventoryView _inventoryView;
 
         private void Awake()
         {
+            if (playerTrader == null)
+                playerTrader = FindFirstObjectByType<PlayerTrader>();
+
             if (closeButton != null)
                 closeButton.onClick.AddListener(Close);
+
+            if (sellNowButton != null)
+                sellNowButton.onClick.AddListener(SellCurrentAntique);
         }
 
         public void Setup(InventoryView inventoryView)
@@ -126,6 +141,35 @@ namespace AntiqueTradingSimulator.UI
                 return "Poor";
 
             return "Very Poor";
+        }
+        private void SellCurrentAntique()
+        {
+            if (_currentAntique == null)
+                return;
+
+            if (playerTrader == null)
+            {
+                Debug.LogWarning("InventoryDetailsUI: PlayerTrader reference is missing.");
+                return;
+            }
+
+            bool success = playerTrader.SellListing(_currentAntique.Id);
+
+            if (!success)
+            {
+                Debug.LogWarning(
+                    $"InventoryDetailsUI: Failed to sell antique {_currentAntique.Id}.");
+
+                return;
+            }
+
+            Debug.Log(
+                $"InventoryDetailsUI: Sold antique {_currentAntique.Id} for {_currentAntique.CurrentPrice:F2} zł.");
+
+            _currentAntique = null;
+
+            if (_inventoryView != null)
+                _inventoryView.ShowCollectionSummary();
         }
     }
 }
