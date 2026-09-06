@@ -1,16 +1,16 @@
 using AntiqueTradingSimulator.Market;
-using AntiqueTradingSimulator.Orders;
+using AntiqueTradingSimulator.Contracts;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
-namespace AntiqueTradingSimulator.Orders
+namespace AntiqueTradingSimulator.Contracts
 {
     [Serializable]
-    public class OrderRequirement
+    public class ContractRequirement
     {
-        public OrderAttributeScope Scope;
+        public ContractAttributeScope Scope;
 
         public AntiqueType AntiqueType = AntiqueType.Other;
         public Country Country = Country.Other;
@@ -18,9 +18,9 @@ namespace AntiqueTradingSimulator.Orders
 
         public int Quantity;
 
-        public OrderRequirement() { }
+        public ContractRequirement() { }
 
-        public OrderRequirement(OrderAttributeScope scope, AntiqueType antiqueType, Country country, TimePeriod timePeriod, int quantity)
+        public ContractRequirement(ContractAttributeScope scope, AntiqueType antiqueType, Country country, TimePeriod timePeriod, int quantity)
         {
             Scope = scope;
             AntiqueType = antiqueType;
@@ -29,21 +29,21 @@ namespace AntiqueTradingSimulator.Orders
             Quantity = quantity;
         }
 
-        public OrderRequirement(OrderAttributeScope scope, AntiqueType antiqueType, int quantity)
+        public ContractRequirement(ContractAttributeScope scope, AntiqueType antiqueType, int quantity)
         {
             Scope = scope;
             AntiqueType = antiqueType;
             Quantity = quantity;
         }
 
-        public OrderRequirement(OrderAttributeScope scope, Country country, int quantity)
+        public ContractRequirement(ContractAttributeScope scope, Country country, int quantity)
         {
             Scope = scope;
             Country = country;
             Quantity = quantity;
         }
 
-        public OrderRequirement(OrderAttributeScope scope, TimePeriod timePeriod, int quantity)
+        public ContractRequirement(ContractAttributeScope scope, TimePeriod timePeriod, int quantity)
         {
             Scope = scope;
             TimePeriod = timePeriod;
@@ -57,9 +57,9 @@ namespace AntiqueTradingSimulator.Orders
 
             return Scope switch
             {
-                OrderAttributeScope.AntiqueType => antique.Type == AntiqueType,
-                OrderAttributeScope.Country => antique.Country == Country,
-                OrderAttributeScope.TimePeriod => antique.TimePeriod == TimePeriod,
+                ContractAttributeScope.AntiqueType => antique.Type == AntiqueType,
+                ContractAttributeScope.Country => antique.Country == Country,
+                ContractAttributeScope.TimePeriod => antique.TimePeriod == TimePeriod,
                 _ => false
             };
         }
@@ -68,9 +68,9 @@ namespace AntiqueTradingSimulator.Orders
         {
             return Scope switch
             {
-                OrderAttributeScope.AntiqueType => AntiqueDatabase.GetByType(AntiqueType),
-                OrderAttributeScope.Country => AntiqueDatabase.GetByCountry(Country),
-                OrderAttributeScope.TimePeriod => AntiqueDatabase.GetByTimePeriod(TimePeriod),
+                ContractAttributeScope.AntiqueType => AntiqueDatabase.GetByType(AntiqueType),
+                ContractAttributeScope.Country => AntiqueDatabase.GetByCountry(Country),
+                ContractAttributeScope.TimePeriod => AntiqueDatabase.GetByTimePeriod(TimePeriod),
                 _ => new List<AntiqueDefinition>()
             };
         }
