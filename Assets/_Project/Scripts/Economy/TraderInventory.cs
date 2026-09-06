@@ -1,6 +1,8 @@
+using AntiqueTradingSimulator.Market;
 using System;
 using System.Collections.Generic;
-using AntiqueTradingSimulator.Market;
+using System.Linq;
+using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Economy
 {
@@ -40,13 +42,29 @@ namespace AntiqueTradingSimulator.Economy
         /// </summary>
         public List<Antique> GetHoldingsByDefinition(string definitionId)
         {
-            var result = new List<Antique>();
-            foreach (var listing in _holdings.Values)
-            {
-                if (listing.DefinitionId == definitionId)
-                    result.Add(listing);
-            }
-            return result;
+            //var result = new List<Antique>();
+            //foreach (var listing in _holdings.Values)
+            //{
+            //    if (listing.DefinitionId == definitionId)
+            //        result.Add(listing);
+            //}
+            //return result;
+            return _holdings.Values.Where(h =>  h.DefinitionId == definitionId).ToList();
+        }
+
+        public List<Antique> GetByType(AntiqueType type)
+        {
+            return _holdings.Values.Where(l => l.Type == type).ToList();
+        }
+
+        public List<Antique> GetByTimePeriod(TimePeriod period)
+        {
+            return _holdings.Values.Where(l => l.TimePeriod == period).ToList();
+        }
+
+        public List<Antique> GetByCountry(Country country)
+        {
+            return _holdings.Values.Where(l => l.Country == country).ToList();
         }
 
         public bool Buy(Market.Market market, string listingId)

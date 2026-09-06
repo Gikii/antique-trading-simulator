@@ -8,6 +8,7 @@ using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Events
 {
+    [Serializable]
     public class ChangeSupplyEffect : EventEffect
     {
         [Tooltip("Which category this effect targets. Only the matching field below is used.")]
