@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: vase_001
   DisplayName: Chinese Vase
-  Category: Porcelain
   Type: 12
   TimePeriod: 1
-  CountryOfOrigin: 10
+  Country: 10
   BasePrice: 500
   Description: 

@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: coin_001
   DisplayName: Silver coin
-  Category: Coins
   Type: 7
   TimePeriod: 2
-  CountryOfOrigin: 3
+  Country: 4
   BasePrice: 150
   Description: 

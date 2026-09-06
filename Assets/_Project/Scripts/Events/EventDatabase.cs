@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Events
@@ -39,12 +40,15 @@ namespace AntiqueTradingSimulator.Events
         public static List<EventDefinition> GetAll()
         {
             EnsureLoaded();
-            return new List<EventDefinition>(_definitionsById.Values);
+            return _definitionsById.Values.ToList();
         }
 
-        /// <summary>
-        /// Clears the cache. Useful for editor tooling or tests that need a fresh reload.
-        /// </summary>
+        public static List<EventDefinition> GetPossibleFakeEvents()
+        {
+            EnsureLoaded();
+            return _definitionsById.Values.Where(d => d.CanBeFakeNews == true).ToList();
+        }
+
         public static void ClearCache()
         {
             _definitionsById = null;

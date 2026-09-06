@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using AntiqueTradingSimulator.Events;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
-using AntiqueTradingSimulator.Events;
+using UnityEngine.Serialization;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Agents
@@ -15,7 +17,9 @@ namespace AntiqueTradingSimulator.Agents
     public class NpcBehaviorProfile : ScriptableObject
     {
         [Header("Identity")]
-        public string Id;
+        [FormerlySerializedAs("Id")]
+        [ReadOnly ,SerializeField] private string id = Guid.NewGuid().ToString("N");
+        public string Id => id;
         public string ProfileName;
 
         [Header("Information access")]
