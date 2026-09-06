@@ -17,7 +17,7 @@ namespace AntiqueTradingSimulator.Agents
         [SerializeField] private Core.TimeManager timeManager;
         [SerializeField] private NewsManager newsManager;
 
-        [Header("Initial NPC population — one entry per NPC, referencing an NpcBehaviorProfile.Id")]
+        [Header("Initial NPC population. One entry per NPC, referencing an NpcBehaviorProfile.Id")]
         [SerializeField] private List<string> initialProfileIds = new();
         [SerializeField] private float defaultStartingCash = 2000f;
 

@@ -97,5 +97,14 @@ namespace AntiqueTradingSimulator.Economy
             OnHoldingChanged?.Invoke(listingId, null);
             return true;
         }
+
+        public bool RemoveHolding(string listingId)
+        {
+            if (!_holdings.Remove(listingId)) return false;
+
+            OnHoldingChanged?.Invoke(listingId, null);
+            return true;
+
+        }
     }
 }
