@@ -12,16 +12,25 @@ namespace AntiqueTradingSimulator.UI
         public void Show()
         {
             gameObject.SetActive(true);
-            OnShown();
         }
 
         public void Hide()
         {
-            OnHidden();
             gameObject.SetActive(false);
         }
 
+        private void OnEnable()
+        {
+            OnShown();
+        }
+
+        private void OnDisable()
+        {
+            OnHidden();
+        }
+
         protected virtual void OnShown() { }
+
         protected virtual void OnHidden() { }
     }
 }
