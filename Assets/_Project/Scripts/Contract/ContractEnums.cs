@@ -1,20 +1,20 @@
 using UnityEngine;
 
-namespace AntiqueTradingSimulator.Orders
+namespace AntiqueTradingSimulator.Contracts
 {
-    public enum OrderType
+    public enum ContractType
     {
         Open,
         Exclusive
     }
-    public enum OrderStatus
+    public enum ContractStatus
     {
         Active,
         Fulfilled,
         Expired,
     }
 
-    public enum OrderAttributeScope
+    public enum ContractAttributeScope
     {
         AntiqueType,
         Country,

@@ -1,14 +1,14 @@
 using System;
 using UnityEngine;
 
-namespace AntiqueTradingSimulator.Orders
+namespace AntiqueTradingSimulator.Contracts
 {
     [Serializable]
-    public class Order
+    public class Contract
     {
-        public string OrderId { get; }
-        public OrderType Type { get; }
-        public OrderRequirement Requirement { get; }
+        public string ContractId { get; }
+        public ContractType Type { get; }
+        public ContractRequirement Requirement { get; }
 
         public int CreatedDay { get; }
         public int DurationDays { get; set; }
@@ -19,32 +19,32 @@ namespace AntiqueTradingSimulator.Orders
 
         public float Penalty { get; }
 
-        public OrderStatus Status { get; private set; } = OrderStatus.Active;
+        public ContractStatus Status { get; private set; } = ContractStatus.Active;
         public int DeliveredQuantity { get; private set; }
         public int RemainingQuantity => Mathf.Max(0, Requirement.Quantity - DeliveredQuantity);
         public bool IsFulfilled => DeliveredQuantity >= Requirement.Quantity;
 
         public string ClaimedByTraderId { get; private set; }
         public bool IsClaimed => ClaimedByTraderId != null;
-        public bool CanBeClaimed => Type == OrderType.Exclusive && Status == OrderStatus.Active && !IsClaimed;
+        public bool CanBeClaimed => Type == ContractType.Exclusive && Status == ContractStatus.Active && !IsClaimed;
 
-        public event Action<Order> OnOrderExpired;
+        public event Action<Contract> OnContractExpired;
 
-        public Order(OrderType type, OrderRequirement requirement, int createdDay, int durationDays, int maxDurationDays, float rewardPerUnit, float penalty)
+        public Contract(ContractType type, ContractRequirement requirement, int createdDay, int durationDays, int maxDurationDays, float rewardPerUnit, float penalty)
         {
-            OrderId = Guid.NewGuid().ToString("N");
+            ContractId = Guid.NewGuid().ToString("N");
             Type = type;
             Requirement = requirement;
             CreatedDay = createdDay;
             DurationDays = Mathf.Clamp(durationDays, 1, maxDurationDays);
             RewardPerUnit = Mathf.Max(0f, rewardPerUnit);
-            Penalty = type == OrderType.Exclusive ? Mathf.Max(0f, penalty) : 0f;
+            Penalty = type == ContractType.Exclusive ? Mathf.Max(0f, penalty) : 0f;
         }
 
         public bool CanBeFulfilledBy(string traderId)
         {
-            if (Status != OrderStatus.Active) return false;
-            if (Type == OrderType.Open) return true;
+            if (Status != ContractStatus.Active) return false;
+            if (Type == ContractType.Open) return true;
             return IsClaimed && ClaimedByTraderId == traderId;
         }
 
@@ -57,12 +57,12 @@ namespace AntiqueTradingSimulator.Orders
 
         public void SetStatusFulfilled()
         {
-            Status = OrderStatus.Fulfilled;
+            Status = ContractStatus.Fulfilled;
         }
         
         public void SetStatusExpired()
         {
-            Status = OrderStatus.Expired;
+            Status = ContractStatus.Expired;
         }
     }
 }
