@@ -3,7 +3,6 @@ using AntiqueTradingSimulator.Market;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using AntiqueTradingSimulator.Agents;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -21,18 +20,14 @@ namespace AntiqueTradingSimulator.UI
 
         [Header("Antique Info")]
         [SerializeField] private TMP_Text categoryText;
-        [SerializeField] private TMP_Text subcategoryText;
         [SerializeField] private TMP_Text periodText;
         [SerializeField] private TMP_Text originText;
-        [SerializeField] private TMP_Text materialText;
         [SerializeField] private TMP_Text ownerText;
         [SerializeField] private TMP_Text itemIdText;
 
         [Header("Condition")]
         [SerializeField] private TMP_Text conditionText;
-        [SerializeField] private TMP_Text authenticityText;
         [SerializeField] private TMP_Text rarityText;
-        [SerializeField] private TMP_Text qualityText;
         [SerializeField] private TMP_Text historyText;
 
         [Header("Value")]
@@ -76,44 +71,32 @@ namespace AntiqueTradingSimulator.UI
             if (categoryText != null)
                 categoryText.text = antique.Category;
 
-            if (subcategoryText != null)
-                subcategoryText.text = "-";
-
             if (periodText != null)
-                periodText.text = "-";
+                periodText.text = antique.Century.ToDisplayString();
 
             if (originText != null)
-                originText.text = "-";
-
-            if (materialText != null)
-                materialText.text = "-";
+                originText.text = antique.Country.ToDisplayString();
 
             if (ownerText != null)
-                ownerText.text = "Player";
+                ownerText.text = string.IsNullOrEmpty(antique.OwnerId) ? "Unknown" : antique.OwnerId;
 
             if (itemIdText != null)
                 itemIdText.text = antique.Id;
 
             if (conditionText != null)
-                conditionText.text = GetConditionText(antique.State);
-
-            if (authenticityText != null)
-                authenticityText.text = "-";
+                conditionText.text = GetConditionText(antique.Condition);
 
             if (rarityText != null)
-                rarityText.text = "-";
-
-            if (qualityText != null)
-                qualityText.text = $"{antique.Quality:P0}";
+                rarityText.text = antique.IsLimitedEdition ? antique.RarityLabel : "-";
 
             if (historyText != null)
-                historyText.text = "-";
+                historyText.text = string.IsNullOrEmpty(antique.History) ? "-" : antique.History;
 
             if (currentValueText != null)
-                currentValueText.text = $"{antique.CurrentPrice:F0} zł";
+                currentValueText.text = $"{antique.CurrentPrice:F0} €";
 
             if (baseValueText != null)
-                baseValueText.text = $"{antique.BasePrice:F0} zł";
+                baseValueText.text = $"{antique.BasePrice:F0} €";
 
             gameObject.SetActive(true);
         }
@@ -164,7 +147,7 @@ namespace AntiqueTradingSimulator.UI
             }
 
             Debug.Log(
-                $"InventoryDetailsUI: Sold antique {_currentAntique.Id} for {_currentAntique.CurrentPrice:F2} zł.");
+                $"InventoryDetailsUI: Sold antique {_currentAntique.Id} for {_currentAntique.CurrentPrice:F2} €.");
 
             _currentAntique = null;
 

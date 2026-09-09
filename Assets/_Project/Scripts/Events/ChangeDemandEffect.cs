@@ -20,8 +20,8 @@ namespace AntiqueTradingSimulator.Events
         [Tooltip("Used when Scope = Country.")]
         public Country Country = Country.Other;
 
-        [Tooltip("Used when Scope = TimePeriod.")]
-        public TimePeriod TimePeriod = TimePeriod.Unknown;
+        [Tooltip("Used when Scope = Century.")]
+        public Century Century = Century.Unknown;
 
         [Tooltip("Temporarily added to Demand for every matching antique type. Use a negative value to lower demand.")]
         public float tempDemandChange = 1f;
@@ -59,7 +59,7 @@ namespace AntiqueTradingSimulator.Events
 
         public override NewsEventData CreateNewsData()
         {
-            return new NewsEventData(Scope, AntiqueType, Country, TimePeriod, (permDemandChange + tempDemandChange > 0) ? true : false);
+            return new NewsEventData(Scope, AntiqueType, Country, Century, (permDemandChange + tempDemandChange > 0) ? true : false);
         }
 
         public override EventEffect Clone()
@@ -69,7 +69,7 @@ namespace AntiqueTradingSimulator.Events
                 Scope = Scope,
                 AntiqueType = AntiqueType,
                 Country = Country,
-                TimePeriod = TimePeriod,
+                Century = Century,
                 tempDemandChange = tempDemandChange,
                 permDemandChange = permDemandChange
             };
@@ -81,7 +81,7 @@ namespace AntiqueTradingSimulator.Events
             {
                 TargetScope.AntiqueType => AntiqueDatabase.GetByType(AntiqueType),
                 TargetScope.Country => AntiqueDatabase.GetByCountry(Country),
-                TargetScope.TimePeriod => AntiqueDatabase.GetByTimePeriod(TimePeriod),
+                TargetScope.Century => AntiqueDatabase.GetByCentury(Century),
                 _ => new List<AntiqueDefinition>()
             };
 

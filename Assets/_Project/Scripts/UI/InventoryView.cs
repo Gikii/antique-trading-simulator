@@ -130,7 +130,7 @@ namespace AntiqueTradingSimulator.UI
             if (collectionTitleText != null)
             {
                 collectionTitleText.text =
-                    $"MOJA KOLEKCJA ({_collection.Count})";
+                    $"My collection ({_collection.Count})";
             }
 
             if (collectionValueText != null)
@@ -139,7 +139,7 @@ namespace AntiqueTradingSimulator.UI
                     _collection.Sum(antique => antique.CurrentPrice);
 
                 collectionValueText.text =
-                    $"Wartość rynkowa: {totalValue:F0} zł";
+                    $"Market value: {totalValue:F0} €";
             }
         }
 

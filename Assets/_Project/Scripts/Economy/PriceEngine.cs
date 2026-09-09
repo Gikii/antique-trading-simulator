@@ -4,7 +4,7 @@ namespace AntiqueTradingSimulator.Economy
 {
     /// <summary>
     /// Solely responsible for calculating an antique listing's price based on its
-    /// own Quality/State modifiers plus the supply and demand of its type.
+    /// own Condition modifier plus the supply and demand of its type.
     /// No other module should set the price directly.
     /// </summary>
     public static class PriceEngine
@@ -20,11 +20,11 @@ namespace AntiqueTradingSimulator.Economy
         public static float CalculatePrice(Market.Antique listing, Market.AntiqueMarketState typeState)
         {
             float multiplier = CalculateSupplyDemandMultiplier(typeState);
-            return listing.BasePrice * listing.Quality * listing.State * multiplier;
+            return listing.BasePrice * listing.Condition * listing.PriceFactor * multiplier;
         }
 
         /// <summary>
-        /// Price for a "reference" item of this type (quality/state = 1), used for
+        /// Price for a "reference" item of this type (condition = 1), used for
         /// the type-level price history shown in charts — independent of any one
         /// listing's specific wear, since individual listings come and go.
         /// </summary>

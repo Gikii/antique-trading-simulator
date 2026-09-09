@@ -1,6 +1,7 @@
 using AntiqueTradingSimulator.Economy;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
@@ -41,7 +42,7 @@ namespace AntiqueTradingSimulator.Market
         /// <summary>
         /// Rolls a new individual listing into existence: picks a definition at random,
         /// weighted by that definition's current Supply (higher supply = more likely to
-        /// appear), then rolls random Quality/State for the new item and adds it to the
+        /// appear), then rolls a random Condition for the new item and adds it to the
         /// market. Returns null if there are no registered types with positive supply.
         /// </summary>
         public Antique GenerateListing(int currentDay)
@@ -50,10 +51,11 @@ namespace AntiqueTradingSimulator.Market
             if (definitionId == null)
                 return null;
 
-            float quality = Random.Range(Antique.MinQuality, Antique.MaxQuality);
-            float state = Random.Range(Antique.MinState, Antique.MaxState);
+            float condition = Random.Range(Antique.MinCondition, Antique.MaxCondition);
+            float priceFactor = Random.Range(Antique.MinPriceFactor, Antique.MaxPriceFactor);
 
-            var listing = new Antique(definitionId, quality, state);
+
+            var listing = new Antique(definitionId, condition, priceFactor);
             AddListing(listing, currentDay);
             return listing;
         }
@@ -102,9 +104,9 @@ namespace AntiqueTradingSimulator.Market
             return _listings.FindAll(l => l.Type == type);
         }
 
-        public List<Antique> GetByTimePeriod(TimePeriod period)
+        public List<Antique> GetByCentury(Century century)
         {
-            return _listings.FindAll(l => l.TimePeriod == period);
+            return _listings.FindAll(l => l.Century == century);
         }
 
         public List<Antique> GetByCountry(Country country)
@@ -117,9 +119,9 @@ namespace AntiqueTradingSimulator.Market
             return _listings.Select(l => l.Type).Distinct().OrderBy(t => t.ToString()).ToList();
         }
 
-        public  List<TimePeriod> GetAvailableTimePeriods()
+        public List<Century> GetAvailableCenturies()
         {
-            return _listings.Select(l => l.TimePeriod).Distinct().OrderBy(p => (int)p).ToList();
+            return _listings.Select(l => l.Century).Distinct().OrderBy(c => (int)c).ToList();
         }
 
         public  List<Country> GetAvailableCountries()
@@ -132,7 +134,7 @@ namespace AntiqueTradingSimulator.Market
         /// Player/NPC buys a specific listing off the market — it's removed from the
         /// available listings, and its type's supply dips/demand rises slightly (buying pressure).
         /// </summary>
-        public bool Buy(string listingId)
+        public bool Buy(string listingId, string newOwnerId = Antique.PlayerOwnerId)
         {
             var listing = GetById(listingId);
 
@@ -141,7 +143,7 @@ namespace AntiqueTradingSimulator.Market
                 Debug.LogWarning($"Market: listing with ID {listingId} not found");
                 return false;
             }
-
+            listing.OwnerId = newOwnerId;
             _listings.Remove(listing);
 
             var typeState = GetTypeState(listing.DefinitionId);
@@ -165,6 +167,10 @@ namespace AntiqueTradingSimulator.Market
                 Debug.LogWarning("Market: attempted to sell a null listing");
                 return;
             }
+
+            // Relisting means relinquishing ownership — becomes an anonymous
+            // market listing again until someone else buys it.
+            listing.OwnerId = "";
 
             var typeState = GetTypeState(listing.DefinitionId);
             if (typeState != null)

@@ -131,7 +131,7 @@ namespace AntiqueTradingSimulator.Agents
                         {
                             TargetScope.AntiqueType => _economyManager.Market.GetByType(eventEffect.AntiqueType),
                             TargetScope.Country => _economyManager.Market.GetByCountry(eventEffect.Country),
-                            TargetScope.TimePeriod => _economyManager.Market.GetByTimePeriod(eventEffect.TimePeriod),
+                            TargetScope.Century => _economyManager.Market.GetByCentury(eventEffect.Century),
                             _ => new List<Antique>()
                         };
 
@@ -149,7 +149,7 @@ namespace AntiqueTradingSimulator.Agents
                         {
                             TargetScope.AntiqueType => Inventory.Holdings.Values.Where(h => h.Definition.Type == eventEffect.AntiqueType).ToList(),
                             TargetScope.Country => Inventory.Holdings.Values.Where(h => h.Definition.Country == eventEffect.Country).ToList(),
-                            TargetScope.TimePeriod => Inventory.Holdings.Values.Where(h => h.Definition.TimePeriod == eventEffect.TimePeriod).ToList()
+                            TargetScope.Century => Inventory.Holdings.Values.Where(h => h.Definition.Century == eventEffect.Century).ToList()
 
                         };
                         foreach (var holding in holdings) {
@@ -227,7 +227,7 @@ namespace AntiqueTradingSimulator.Agents
             if (def == null) return false;
             bool typeOk = profile.PreferredTypes.Count == 0 || profile.PreferredTypes.Contains(def.Type);
             bool countryOk = profile.PreferredCountries.Count == 0 || profile.PreferredCountries.Contains(def.Country);
-            bool periodOk = profile.PreferredPeriods.Count == 0 || profile.PreferredPeriods.Contains(def.TimePeriod);
+            bool periodOk = profile.PreferredCenturies.Count == 0 || profile.PreferredCenturies.Contains(def.Century);
             return typeOk && countryOk && periodOk;
         }
     }
