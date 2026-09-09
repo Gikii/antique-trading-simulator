@@ -11,7 +11,7 @@ namespace AntiqueTradingSimulator.Events
         {
             AntiqueType,
             Country,
-            TimePeriod,
+            Century,
             Other
         }
         public abstract void Apply(Market.Market market, int currentDay);

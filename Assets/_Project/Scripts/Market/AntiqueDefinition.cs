@@ -14,10 +14,15 @@ namespace AntiqueTradingSimulator.Market
         public string DisplayName;
 
         public AntiqueType Type = AntiqueType.Other;
-        public TimePeriod TimePeriod = TimePeriod.Unknown;
+        public Century Century = Century.Unknown;
         public Country Country = Country.Other;
 
         public float BasePrice;
+
+        // 0 = ordinary market item, not part of a tracked limited edition.
+        // A positive value caps how many physical examples of this exact
+        // definition are ever created (e.g. 5 for a "1/5" auction piece).
+        public int EditionSize = 0;
 
         [TextArea]
         public string Description;

@@ -28,7 +28,7 @@ namespace AntiqueTradingSimulator.Agents
         [Header("Interests (empty list = interested in everything on that axis)")]
         public List<AntiqueType> PreferredTypes = new();
         public List<Country> PreferredCountries = new();
-        public List<TimePeriod> PreferredPeriods = new();
+        public List<Century> PreferredCenturies = new();
 
         [Header("Trust in information")]
         [Range(0f, 1f)] public float RumorTrust = 0.3f;

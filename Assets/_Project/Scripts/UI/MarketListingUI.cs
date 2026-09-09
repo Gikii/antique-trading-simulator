@@ -14,7 +14,9 @@ namespace AntiqueTradingSimulator.UI
     {
         [SerializeField] private Image icon;
         [SerializeField] private TMP_Text nameText;
-        [SerializeField] private TMP_Text descriptionText;
+        [SerializeField] private TMP_Text centuryText;
+        [SerializeField] private TMP_Text conditionText;
+        [SerializeField] private TMP_Text sellerText;
         [SerializeField] private TMP_Text priceText;
         [SerializeField] private Button showDetailsButton;
 
@@ -30,8 +32,10 @@ namespace AntiqueTradingSimulator.UI
             _marketView = marketView;
 
             nameText.text = listing.Name;
-            descriptionText.text = $"{listing.Category} — condition {listing.State:P0}";
-            priceText.text = $"{listing.CurrentPrice:F2} $";
+            centuryText.text = $"Century: {listing.Century.ToDisplayString()}";
+            conditionText.text = $"Condition: {listing.Condition:P0}";
+            sellerText.text = string.IsNullOrEmpty(listing.OwnerId) ? "Private seller" : listing.OwnerId;
+            priceText.text = $"{listing.CurrentPrice:F2} €";
 
             if (newBadge != null)
                 newBadge.SetActive(listing.MarketListedOnDay == currentDay);
@@ -43,7 +47,7 @@ namespace AntiqueTradingSimulator.UI
         public void UpdatePrice(Antique listing)
         {
             _listing = listing;
-            priceText.text = $"{listing.CurrentPrice:F2} zł";
+            priceText.text = $"{listing.CurrentPrice:F2} €";
         }
     }
 }

@@ -18,7 +18,7 @@ namespace AntiqueTradingSimulator.Contracts
     {
         AntiqueType,
         Country,
-        TimePeriod
+        Century
     }
 
 }

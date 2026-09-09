@@ -35,16 +35,16 @@ namespace AntiqueTradingSimulator.UI
                 nameText.text = _antique.Name;
 
             if (conditionText != null)
-                conditionText.text = GetConditionText(_antique.State);
+                conditionText.text = GetConditionText(_antique.Condition);
 
             if (categoryText != null)
                 categoryText.text = _antique.Category;
 
             if (periodText != null)
-                periodText.text = string.Empty;
+                periodText.text = _antique.Century.ToDisplayString();
 
             if (priceText != null)
-                priceText.text = $"{_antique.CurrentPrice:F0} $";
+                priceText.text = $"{_antique.CurrentPrice:F0} €";
 
             if (button != null)
             {

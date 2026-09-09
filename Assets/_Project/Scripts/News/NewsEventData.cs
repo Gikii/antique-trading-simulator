@@ -9,16 +9,16 @@ namespace AntiqueTradingSimulator.News {
 
         public AntiqueEnums.AntiqueType AntiqueType;
         public AntiqueEnums.Country Country;
-        public AntiqueEnums.TimePeriod TimePeriod;
-        
+        public AntiqueEnums.Century Century;
+
         public bool affectsPriceUp;
 
-        public NewsEventData(EventEffect.TargetScope targetScope, AntiqueEnums.AntiqueType antiqueType, AntiqueEnums.Country country, AntiqueEnums.TimePeriod timePeriod, bool affectsPriceUp)
+        public NewsEventData(EventEffect.TargetScope targetScope, AntiqueEnums.AntiqueType antiqueType, AntiqueEnums.Country country, AntiqueEnums.Century century, bool affectsPriceUp)
         {
             this.targetScope = targetScope;
             AntiqueType = antiqueType;
             Country = country;
-            TimePeriod = timePeriod;
+            Century = century;
             this.affectsPriceUp = affectsPriceUp;
         }
     }

@@ -29,21 +29,21 @@ namespace AntiqueTradingSimulator.Market
             Toy
         }
 
-        public enum TimePeriod
+        // Explicit int values equal to the century number, so a Century can be
+        // cast directly to int for range comparisons (e.g. filtering XV-XVIII)
+        // without needing a separate numeric field.
+        public enum Century
         {
             Unknown = 0,
-            Ancient,
-            Medieval,
-            Renaissance,
-            Baroque,
-            Rococo,
-            Georgian,
-            Victorian,
-            Edwardian,
-            ArtNouveau,
-            ArtDeco,
-            MidCentury,
-            Contemporary
+            XII = 12,
+            XIII = 13,
+            XIV = 14,
+            XV = 15,
+            XVI = 16,
+            XVII = 17,
+            XVIII = 18,
+            XIX = 19,
+            XX = 20
         }
 
         public enum Country
@@ -70,13 +70,8 @@ namespace AntiqueTradingSimulator.Market
 
     public static class AntiqueEnumDisplay
     {
-        public static string ToDisplayString(this TimePeriod period) => period switch
-        {
-            TimePeriod.ArtNouveau => "Art Nouveau",
-            TimePeriod.ArtDeco => "Art Deco",
-            TimePeriod.MidCentury => "Mid-Century",
-            _ => period.ToString()
-        };
+        public static string ToDisplayString(this Century century) =>
+            century == Century.Unknown ? "Unknown" : $"{century} century";
 
         public static string ToDisplayString(this AntiqueType type) => type.ToString();
 

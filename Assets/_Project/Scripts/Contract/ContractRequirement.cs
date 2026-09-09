@@ -14,18 +14,18 @@ namespace AntiqueTradingSimulator.Contracts
 
         public AntiqueType AntiqueType = AntiqueType.Other;
         public Country Country = Country.Other;
-        public TimePeriod TimePeriod = TimePeriod.Unknown;
+        public Century Century = Century.Unknown;
 
         public int Quantity;
 
         public ContractRequirement() { }
 
-        public ContractRequirement(ContractAttributeScope scope, AntiqueType antiqueType, Country country, TimePeriod timePeriod, int quantity)
+        public ContractRequirement(ContractAttributeScope scope, AntiqueType antiqueType, Country country, Century century, int quantity)
         {
             Scope = scope;
             AntiqueType = antiqueType;
             Country = country;
-            TimePeriod = timePeriod;
+            Century = century;
             Quantity = quantity;
         }
 
@@ -43,10 +43,10 @@ namespace AntiqueTradingSimulator.Contracts
             Quantity = quantity;
         }
 
-        public ContractRequirement(ContractAttributeScope scope, TimePeriod timePeriod, int quantity)
+        public ContractRequirement(ContractAttributeScope scope, Century century, int quantity)
         {
             Scope = scope;
-            TimePeriod = timePeriod;
+            Century = century;
             Quantity = quantity;
         }
 
@@ -59,7 +59,7 @@ namespace AntiqueTradingSimulator.Contracts
             {
                 ContractAttributeScope.AntiqueType => antique.Type == AntiqueType,
                 ContractAttributeScope.Country => antique.Country == Country,
-                ContractAttributeScope.TimePeriod => antique.TimePeriod == TimePeriod,
+                ContractAttributeScope.Century => antique.Century == Century,
                 _ => false
             };
         }
@@ -70,7 +70,7 @@ namespace AntiqueTradingSimulator.Contracts
             {
                 ContractAttributeScope.AntiqueType => AntiqueDatabase.GetByType(AntiqueType),
                 ContractAttributeScope.Country => AntiqueDatabase.GetByCountry(Country),
-                ContractAttributeScope.TimePeriod => AntiqueDatabase.GetByTimePeriod(TimePeriod),
+                ContractAttributeScope.Century => AntiqueDatabase.GetByCentury(Century),
                 _ => new List<AntiqueDefinition>()
             };
         }

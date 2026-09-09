@@ -51,6 +51,6 @@ namespace AntiqueTradingSimulator.UI
         }
 
         private void UpdateDay(int day) => dayText.text = $"Day {day}";
-        private void UpdateCash(float cash) => cashText.text = $"Cash {cash:F2} $";
+        private void UpdateCash(float cash) => cashText.text = $"Cash {cash:F2} €";
     }
 }

@@ -135,9 +135,9 @@ namespace AntiqueTradingSimulator.Contracts
                     var countries = AntiqueDatabase.GetAvailableCountries();
                     return new ContractRequirement { Scope = scope, Country = countries[UnityEngine.Random.Range(0, countries.Count)] };
 
-                case ContractAttributeScope.TimePeriod:
-                    var periods = AntiqueDatabase.GetAvailableTimePeriods();
-                    return new ContractRequirement { Scope = scope, TimePeriod = periods[UnityEngine.Random.Range(0, periods.Count)] };
+                case ContractAttributeScope.Century:
+                    var centuries = AntiqueDatabase.GetAvailableCenturies();
+                    return new ContractRequirement { Scope = scope, Century = centuries[UnityEngine.Random.Range(0, centuries.Count)] };
                 default:
                     return null;
             }

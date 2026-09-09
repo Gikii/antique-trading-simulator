@@ -55,10 +55,10 @@ namespace AntiqueTradingSimulator.Market
             return _definitionsById.Values.Where(def => def.Type == type).ToList();
         }
 
-        public static List<AntiqueDefinition> GetByTimePeriod(TimePeriod period)
+        public static List<AntiqueDefinition> GetByCentury(Century century)
         {
             EnsureLoaded();
-            return _definitionsById.Values.Where(def => def.TimePeriod == period).ToList();
+            return _definitionsById.Values.Where(def => def.Century == century).ToList();
         }
 
         public static List<AntiqueDefinition> GetByCountry(Country country)
@@ -73,10 +73,10 @@ namespace AntiqueTradingSimulator.Market
             return _definitionsById.Values.Select(def => def.Type).Distinct().OrderBy(t => t.ToString()).ToList();
         }
 
-        public static List<TimePeriod> GetAvailableTimePeriods()
+        public static List<Century> GetAvailableCenturies()
         {
             EnsureLoaded();
-            return _definitionsById.Values.Select(def => def.TimePeriod).Distinct().OrderBy(p => (int)p).ToList();
+            return _definitionsById.Values.Select(def => def.Century).Distinct().OrderBy(c => (int)c).ToList();
         }
 
         public static List<Country> GetAvailableCountries()

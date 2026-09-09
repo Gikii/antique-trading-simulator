@@ -10,7 +10,7 @@ namespace AntiqueTradingSimulator.Economy
     /// Tracks a trader's (player or NPC) cash and antique holdings, and wraps
     /// Market.Buy/Sell so cash and inventory only ever change together with a successful trade.
     /// Holdings are keyed by ListingId rather than definition Id, since each owned antique
-    /// is a distinct individual item with its own Quality/State/price.
+    /// is a distinct individual item with its own Condition/price.
     /// </summary>
     [Serializable]
     public class TraderInventory
@@ -57,9 +57,9 @@ namespace AntiqueTradingSimulator.Economy
             return _holdings.Values.Where(l => l.Type == type).ToList();
         }
 
-        public List<Antique> GetByTimePeriod(TimePeriod period)
+        public List<Antique> GetByCentury(Century century)
         {
-            return _holdings.Values.Where(l => l.TimePeriod == period).ToList();
+            return _holdings.Values.Where(l => l.Century == century).ToList();
         }
 
         public List<Antique> GetByCountry(Country country)
