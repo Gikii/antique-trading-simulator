@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.News;
 
@@ -16,6 +17,7 @@ namespace AntiqueTradingSimulator.Agents
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private Core.TimeManager timeManager;
         [SerializeField] private NewsManager newsManager;
+        [SerializeField] private ContractManager contractManager;
 
         [Header("Initial NPC population. One entry per NPC, referencing an NpcBehaviorProfile.Id")]
         [SerializeField] private List<string> initialProfileIds = new();
@@ -33,6 +35,7 @@ namespace AntiqueTradingSimulator.Agents
             if (economyManager == null) economyManager = FindFirstObjectByType<EconomyManager>();
             if (timeManager == null) timeManager = FindFirstObjectByType<Core.TimeManager>();
             if (newsManager == null) newsManager = FindFirstObjectByType<NewsManager>();
+            if (contractManager == null) contractManager = FindFirstObjectByType<ContractManager>();
 
             SpawnInitialNPCs();
         }
@@ -54,7 +57,7 @@ namespace AntiqueTradingSimulator.Agents
 
         public NPCTrader SpawnNPC(string traderName, string profileId, float? startingCash = null)
         {
-            var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager);
+            var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager, contractManager);
             RegisterNPC(npc);
             Debug.Log("Created NPC Trader " + traderName);
             return npc;
@@ -67,6 +70,7 @@ namespace AntiqueTradingSimulator.Agents
             _npcsById.Remove(npcId);
             _npcs.Remove(npc);
             newsManager?.UnregisterReceiver(npc);
+            contractManager?.UnregisterTrader(npcId);
             OnNPCRemoved?.Invoke(npc);
             return true;
         }
@@ -82,6 +86,7 @@ namespace AntiqueTradingSimulator.Agents
             _npcs.Add(npc);
             _npcsById[npc.Id] = npc;
             newsManager?.RegisterReceiver(npc);
+            contractManager?.RegisterTrader(npc.Id, npc.Inventory);
             OnNPCAdded?.Invoke(npc);
         }
     }

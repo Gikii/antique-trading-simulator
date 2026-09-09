@@ -1,3 +1,4 @@
+using AntiqueTradingSimulator.Market;
 using System;
 using UnityEngine;
 
@@ -41,6 +42,8 @@ namespace AntiqueTradingSimulator.Contracts
             Penalty = type == ContractType.Exclusive ? Mathf.Max(0f, penalty) : 0f;
         }
 
+        public float ReferenceValue(Market.Market market) => Requirement.AverageReferenceUnitPrice(market) * RemainingQuantity;
+
         public bool CanBeFulfilledBy(string traderId)
         {
             if (Status != ContractStatus.Active) return false;
@@ -59,7 +62,7 @@ namespace AntiqueTradingSimulator.Contracts
         {
             Status = ContractStatus.Fulfilled;
         }
-        
+
         public void SetStatusExpired()
         {
             Status = ContractStatus.Expired;

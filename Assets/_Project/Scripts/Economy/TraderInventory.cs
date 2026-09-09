@@ -2,6 +2,7 @@ using AntiqueTradingSimulator.Market;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Economy
@@ -49,7 +50,7 @@ namespace AntiqueTradingSimulator.Economy
             //        result.Add(listing);
             //}
             //return result;
-            return _holdings.Values.Where(h =>  h.DefinitionId == definitionId).ToList();
+            return _holdings.Values.Where(h => h.DefinitionId == definitionId).ToList();
         }
 
         public List<Antique> GetByType(AntiqueType type)
@@ -89,6 +90,12 @@ namespace AntiqueTradingSimulator.Economy
         {
             if (!_holdings.TryGetValue(listingId, out var listing)) return false;
 
+            if (listing.IsReservedForContract)
+            {
+                Debug.LogWarning($"TraderInventory: refused to sell {listingId} — reserved for contract {listing.ReservedForContractId}.");
+                return false;
+            }
+
             _holdings.Remove(listingId);
             market.Sell(listing, currentDay);
             Cash += listing.CurrentPrice;
@@ -105,6 +112,76 @@ namespace AntiqueTradingSimulator.Economy
             OnHoldingChanged?.Invoke(listingId, null);
             return true;
 
+        }
+
+        /// <summary>
+        /// Adds cash not tied to a market transaction — e.g. a contract reward payout.
+        /// </summary>
+        public void AddCash(float amount)
+        {
+            if (amount <= 0f) return;
+
+            Cash += amount;
+            OnCashChanged?.Invoke(Cash);
+        }
+
+        /// <summary>
+        /// Deducts cash not tied to a market transaction — e.g. a contract penalty.
+        /// Clamped so Cash never goes negative; logs if the full amount couldn't be taken.
+        /// </summary>
+        public void RemoveCash(float amount)
+        {
+            if (amount <= 0f) return;
+
+            if (amount > Cash)
+                Debug.LogWarning($"TraderInventory: tried to deduct {amount:F2} but only {Cash:F2} cash available — clamping to 0.");
+
+            Cash = Mathf.Max(0f, Cash - amount);
+            OnCashChanged?.Invoke(Cash);
+        }
+
+        /// <summary>
+        /// Tags an owned listing as being gathered for a specific contract, so normal
+        /// selling logic (NPC or player) leaves it alone. Fails if the listing isn't
+        /// owned or is already reserved for something else.
+        /// </summary>
+        public bool ReserveForContract(string listingId, string contractId)
+        {
+            if (string.IsNullOrEmpty(contractId)) return false;
+            if (!_holdings.TryGetValue(listingId, out var listing)) return false;
+            if (listing.IsReservedForContract) return false;
+
+            listing.ReservedForContractId = contractId;
+            OnHoldingChanged?.Invoke(listingId, listing);
+            return true;
+        }
+
+        public void ReleaseReservation(string listingId)
+        {
+            if (!_holdings.TryGetValue(listingId, out var listing)) return;
+            if (!listing.IsReservedForContract) return;
+
+            listing.ReservedForContractId = null;
+            OnHoldingChanged?.Invoke(listingId, listing);
+        }
+
+        public void ReleaseAllReservationsForContract(string contractId)
+        {
+            foreach (var listing in _holdings.Values)
+            {
+                if (listing.ReservedForContractId == contractId)
+                    listing.ReservedForContractId = null;
+            }
+        }
+
+        public List<Antique> GetReservedForContract(string contractId)
+        {
+            return _holdings.Values.Where(h => h.ReservedForContractId == contractId).ToList();
+        }
+
+        public List<Antique> GetUnreservedHoldings()
+        {
+            return _holdings.Values.Where(h => !h.IsReservedForContract).ToList();
         }
     }
 }

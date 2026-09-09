@@ -16,10 +16,11 @@ namespace AntiqueTradingSimulator.Contracts
         [Header("Generation")]
         [SerializeField] private int contractsGeneratedPerDay = 1;
         [SerializeField] private int maxActiveContracts = 15;
+        [SerializeField] private int initialContractCount = 5;
 
         [SerializeField] private int minQuantity = 1;
         [SerializeField] private int maxQuantity = 5;
-        
+
         [SerializeField] private int minDurationDays = 1;
         [SerializeField] private int maxDurationDays = 10;
 
@@ -64,25 +65,67 @@ namespace AntiqueTradingSimulator.Contracts
 
         }
 
+        void Start()
+        {
+            int count = Mathf.Min(initialContractCount, maxActiveContracts);
+            int currentDay = timeManager != null ? timeManager.CurrentDay : 1;
+
+            for (int i = 0; i < count; i++)
+            {
+                GenerateContract(currentDay);
+            }
+        }
+
         private void HandleDayChanged(int newDay)
         {
-            ExpireContracts();
-            int newContractCount = Mathf.Min(contractsGeneratedPerDay, maxActiveContracts - _contracts.Count);
+            ExpireContracts(newDay);
+            int activeCount = _contracts.Count(c => c.Status == ContractStatus.Active);
+            int newContractCount = Mathf.Min(contractsGeneratedPerDay, maxActiveContracts - activeCount);
             for (int i = 0; i < newContractCount; i++)
             {
                 GenerateContract(newDay);
             }
         }
 
-        private void ExpireContracts()
+        /// <summary>
+        /// Expires only contracts that are still Active and have actually reached their
+        /// deadline, applies the exclusive-contract penalty (and frees any antiques the
+        /// claiming trader had reserved for it), then drops them from the active list.
+        /// </summary>
+        private void ExpireContracts(int currentDay)
         {
-            foreach(var contract in _contracts.ToList())
+            var toExpire = _contracts.Where(c => c.Status == ContractStatus.Active && c.DeadlineDay <= currentDay).ToList();
+
+            foreach (var contract in toExpire)
             {
-                if(contract.DeadlineDay == timeManager.CurrentDay) {
-                    contract.SetStatusExpired();
-                }
+                contract.SetStatusExpired();
+                ApplyExpiryConsequences(contract);
                 _contracts.Remove(contract);
+
+                Debug.Log($"ContractManager: contract {contract.ContractId} expired unfulfilled on day {currentDay}.");
                 OnContractExpired?.Invoke(contract);
+            }
+        }
+
+        /// <summary>
+        /// Applies the cash penalty and releases reserved antiques for a contract that
+        /// expired without being fulfilled. Only Exclusive contracts carry a penalty, and
+        /// only ones that were actually claimed have a known trader/inventory to apply it to
+        /// — Open contracts are never formally claimed, so any NPC informally pursuing one
+        /// is responsible for releasing its own reservations once it notices the contract
+        /// is no longer Active.
+        /// </summary>
+        private void ApplyExpiryConsequences(Contract contract)
+        {
+            if (!contract.IsClaimed) return;
+            if (!_inventoriesByTraderId.TryGetValue(contract.ClaimedByTraderId, out var inventory)) return;
+
+            inventory.ReleaseAllReservationsForContract(contract.ContractId);
+
+            if (contract.Penalty > 0f)
+            {
+                inventory.RemoveCash(contract.Penalty);
+                Debug.Log($"ContractManager: {contract.ClaimedByTraderId} incurred a {contract.Penalty:F2} penalty for failing exclusive contract {contract.ContractId}.");
             }
         }
 
@@ -94,8 +137,7 @@ namespace AntiqueTradingSimulator.Contracts
             var requirement = PickRequirement();
             if (requirement == null) return null;
 
-            var matchingDefs = requirement.MatchingDefinitions();
-            float avgReferencePrice = AverageReferencePrice(matchingDefs, market);
+            float avgReferencePrice = requirement.AverageReferenceUnitPrice(market);
             if (avgReferencePrice <= 0f) return null;
 
             requirement.Quantity = UnityEngine.Random.Range(minQuantity, maxQuantity + 1);
@@ -114,7 +156,7 @@ namespace AntiqueTradingSimulator.Contracts
             _contracts.Add(contract);
             _contractsById[contract.ContractId] = contract;
 
-            Debug.Log($"ContractManager: generated {contract.Type} contract ({contract.ContractId}) on day {currentDay} for {requirement.Quantity} antiques to be fullfilled by day {contract.DeadlineDay}");
+            Debug.Log($"ContractManager: generated {contract.Type} contract ({contract.ContractId}) on day {currentDay} for {requirement.Quantity} antiques at average price {requirement.AverageReferenceUnitPrice(economyManager.Market)} to be fullfilled by day {contract.DeadlineDay} with total payout {contract.TotalReward}");
             OnContractCreated?.Invoke(contract);
             return contract;
         }
@@ -143,25 +185,6 @@ namespace AntiqueTradingSimulator.Contracts
             }
         }
 
-        private static float AverageReferencePrice(List<AntiqueDefinition> definitions, Market.Market market)
-        {
-            if (definitions == null || definitions.Count == 0) return 0f;
-
-            float total = 0f;
-            int counted = 0;
-
-            foreach (var def in definitions)
-            {
-                if (def == null || def.BasePrice <= 0f) continue;
-
-                var typeState = market.GetTypeState(def.Id);
-                total += PriceEngine.CalculateReferencePrice(def.BasePrice, typeState);
-                counted++;
-            }
-
-            return counted > 0 ? total / counted : 0f;
-        }
-
         private float UrgencyFactor(int duration)
         {
             int span = Mathf.Max(1, maxDurationDays - 1);
@@ -180,7 +203,12 @@ namespace AntiqueTradingSimulator.Contracts
 
         public void RegisterTrader(string traderId, TraderInventory inventory)
         {
-            if (string.IsNullOrEmpty(traderId) || inventory == null) return;
+            if (string.IsNullOrEmpty(traderId) || inventory == null)
+            {
+                Debug.Log($"ContractManager: Trader registration failed.");
+                return;
+            }
+            Debug.Log($"ContractManager: Trader {traderId} registered.");
             _inventoriesByTraderId[traderId] = inventory;
         }
 
@@ -230,12 +258,21 @@ namespace AntiqueTradingSimulator.Contracts
                     Debug.LogWarning($"ContractManager: listing {listingId} does not match contract {contract.ContractId}'s requirement ({contract.Requirement}).");
                     return false;
                 }
+
+                if (listing.IsReservedForContract && listing.ReservedForContractId != contract.ContractId)
+                {
+                    Debug.LogWarning($"ContractManager: listing {listingId} is reserved for a different contract ({listing.ReservedForContractId}).");
+                    return false;
+                }
             }
 
             foreach (var listingId in listingIdList)
                 inventory.RemoveHolding(listingId);
 
             contract.SetStatusFulfilled();
+            inventory.AddCash(contract.TotalReward);
+
+            inventory.ReleaseAllReservationsForContract(contract.ContractId);
 
             Debug.Log($"ContractManager: {traderId} fulfilled contract {contract.ContractId} in full for {contract.TotalReward:F2}.");
             OnContractFulfilled?.Invoke(contract);
