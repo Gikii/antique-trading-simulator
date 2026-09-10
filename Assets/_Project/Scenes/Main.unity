@@ -7379,7 +7379,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Economy.EconomyManager
   defaultInitialSupply: 5
   defaultInitialDemand: 5
-  initialListingCount: 6
+  initialListingCount: 12
   newListingsPerDay: 1
 --- !u!114 &398503184
 MonoBehaviour:
@@ -7444,6 +7444,7 @@ MonoBehaviour:
   timeManager: {fileID: 398503184}
   contractsGeneratedPerDay: 1
   maxActiveContracts: 15
+  initialContractCount: 5
   minQuantity: 1
   maxQuantity: 5
   minDurationDays: 1
@@ -7483,10 +7484,11 @@ MonoBehaviour:
   economyManager: {fileID: 398503183}
   timeManager: {fileID: 398503184}
   newsManager: {fileID: 398503188}
+  contractManager: {fileID: 0}
   initialProfileIds:
   - 1
   - 1
-  defaultStartingCash: 2000
+  defaultStartingCash: 4000
 --- !u!1 &402901180
 GameObject:
   m_ObjectHideFlags: 0

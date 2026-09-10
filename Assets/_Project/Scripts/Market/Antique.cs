@@ -56,6 +56,10 @@ namespace AntiqueTradingSimulator.Market
         // into pricing until there's a concrete mechanic for it.
         public string History = "";
 
+        public string ReservedForContractId = null;
+        public bool IsReservedForContract => ReservedForContractId != null;
+
+
         [NonSerialized]
         private AntiqueDefinition _definitionCache;
 

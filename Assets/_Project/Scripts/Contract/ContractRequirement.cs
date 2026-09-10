@@ -1,7 +1,9 @@
 using AntiqueTradingSimulator.Market;
 using AntiqueTradingSimulator.Contracts;
+using AntiqueTradingSimulator.Economy;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
@@ -73,6 +75,28 @@ namespace AntiqueTradingSimulator.Contracts
                 ContractAttributeScope.Century => AntiqueDatabase.GetByCentury(Century),
                 _ => new List<AntiqueDefinition>()
             };
+        }
+
+        public float AverageReferenceUnitPrice(Market.Market market)
+        {
+            if (market == null) return 0f;
+
+            var definitions = MatchingDefinitions();
+            if (definitions == null || definitions.Count == 0) return 0f;
+
+            float total = 0f;
+            int counted = 0;
+
+            foreach (var def in definitions)
+            {
+                if (def == null || def.BasePrice <= 0f) continue;
+
+                var typeState = market.GetTypeState(def.Id);
+                total += PriceEngine.CalculateReferencePrice(def.BasePrice, typeState);
+                counted++;
+            }
+
+            return counted > 0 ? total / counted : 0f;
         }
     }
 }

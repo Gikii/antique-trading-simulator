@@ -1,3 +1,4 @@
+using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Market;
@@ -27,6 +28,7 @@ namespace AntiqueTradingSimulator.Agents
         public TraderInventory Inventory { get; }
 
         private readonly EconomyManager _economyManager;
+        private readonly ContractManager _contractManager;
         private NpcBehaviorProfile _profileCache;
         public NpcBehaviorProfile Profile => _profileCache ??= NpcProfileDatabase.GetById(ProfileId);
 
@@ -47,13 +49,17 @@ namespace AntiqueTradingSimulator.Agents
         private readonly List<PendingReaction> _pendingReactions = new();
         private readonly Dictionary<string, Acquisition> _acquisitions = new();
 
-        public NPCTrader(string traderName, string profileId, float startingCash, EconomyManager economyManager)
+        private readonly List<string> _committedContractIds = new();
+        public IReadOnlyList<string> CommittedContractIds => _committedContractIds;
+
+        public NPCTrader(string traderName, string profileId, float startingCash, EconomyManager economyManager, ContractManager contractManager = null)
         {
             Id = Guid.NewGuid().ToString("N");
             TraderName = traderName;
             ProfileId = profileId;
             Inventory = new TraderInventory(startingCash);
             _economyManager = economyManager;
+            _contractManager = contractManager;
         }
 
         public void ReceiveNews(NewsItem news)
@@ -69,7 +75,7 @@ namespace AntiqueTradingSimulator.Agents
                 NewsType.Fake => profile.RumorTrust * 0.5f,
                 _ => 0f
             };
-            
+
             float actionChance = trust * news.Credibility * (0.5f + profile.RiskTolerance);
 
             Debug.Log($"Trader {TraderName} received {news.Type} news on Day {news.DayPublished} ({news.NewsData.Count} effects, trust {trust:F2}, credibility {news.Credibility:F2}, action chance {actionChance:F2})");
@@ -102,6 +108,11 @@ namespace AntiqueTradingSimulator.Agents
             float budget = Inventory.Cash * profile.DailyBudgetFraction;
             budget = ProcessPendingReactions(currentDay, budget, profile);
             ConsiderSellingHoldings(currentDay, profile);
+
+            RemoveInactiveContracts();
+            budget = PursueCommittedContracts(budget, profile, currentDay);
+            ConsiderNewContract(profile);
+
             ConsiderBuyingFromMarket(budget, profile);
         }
 
@@ -126,7 +137,8 @@ namespace AntiqueTradingSimulator.Agents
             {
                 if (eventEffect.targetScope != EventEffect.TargetScope.Other)
                 {
-                    if (eventEffect.affectsPriceUp) {
+                    if (eventEffect.affectsPriceUp)
+                    {
                         var listings = eventEffect.targetScope switch
                         {
                             TargetScope.AntiqueType => _economyManager.Market.GetByType(eventEffect.AntiqueType),
@@ -147,12 +159,13 @@ namespace AntiqueTradingSimulator.Agents
                     {
                         var holdings = eventEffect.targetScope switch
                         {
-                            TargetScope.AntiqueType => Inventory.Holdings.Values.Where(h => h.Definition.Type == eventEffect.AntiqueType).ToList(),
-                            TargetScope.Country => Inventory.Holdings.Values.Where(h => h.Definition.Country == eventEffect.Country).ToList(),
-                            TargetScope.Century => Inventory.Holdings.Values.Where(h => h.Definition.Century == eventEffect.Century).ToList()
+                            TargetScope.AntiqueType => Inventory.Holdings.Values.Where(h => h.Definition.Type == eventEffect.AntiqueType && !h.IsReservedForContract).ToList(),
+                            TargetScope.Country => Inventory.Holdings.Values.Where(h => h.Definition.Country == eventEffect.Country && !h.IsReservedForContract).ToList(),
+                            TargetScope.Century => Inventory.Holdings.Values.Where(h => h.Definition.Century == eventEffect.Century && !h.IsReservedForContract).ToList()
 
                         };
-                        foreach (var holding in holdings) {
+                        foreach (var holding in holdings)
+                        {
                             var typeState = _economyManager.Market.GetTypeState(holding.DefinitionId);
                             float sellPrice = PriceEngine.CalculatePrice(holding, typeState);
                             if (SellListing(holding.ListingId)) budget += sellPrice;
@@ -188,6 +201,7 @@ namespace AntiqueTradingSimulator.Agents
             {
                 var listing = Inventory.GetHolding(listingId);
                 if (listing == null) { _acquisitions.Remove(listingId); continue; }
+                if (listing.IsReservedForContract) continue; // being gathered for a contract — not for sale
 
                 var acquisition = _acquisitions[listingId];
                 if (currentDay - acquisition.Day < profile.MinHoldingDaysBeforeSell) continue;
@@ -198,6 +212,118 @@ namespace AntiqueTradingSimulator.Agents
 
                 if (SellListing(listing.Id)) _acquisitions.Remove(listingId);
             }
+        }
+
+
+        private void RemoveInactiveContracts()
+        {
+            if (_contractManager == null) return;
+
+            foreach (var contractId in _committedContractIds.ToList())
+            {
+                var contract = _contractManager.GetById(contractId);
+                if (contract != null && contract.Status == ContractStatus.Active) continue;
+
+                Inventory.ReleaseAllReservationsForContract(contractId);
+                _committedContractIds.Remove(contractId);
+            }
+        }
+
+        /// <summary>
+        /// Buys antiques for each contract
+        /// </summary>
+        private float PursueCommittedContracts(float budget, NpcBehaviorProfile profile, int currentDay)
+        {
+            foreach (var contractId in _committedContractIds.ToList())
+            {
+                var contract = _contractManager.GetById(contractId);
+                if (contract == null || contract.Status != ContractStatus.Active) continue;
+
+                int needed = contract.Requirement.Quantity - Inventory.GetReservedForContract(contractId).Count;
+
+                if (needed > 0 && budget > 0f)
+                {
+                    var candidates = _economyManager.Market.Listings.Where(l => contract.Requirement.IsSatisfiedBy(l)).ToList();
+                    foreach (var listing in candidates)
+                    {
+                        if (needed <= 0 || budget <= 0f) break;
+                        if (!IsAcceptablePrice(listing, profile) || listing.CurrentPrice > budget) continue;
+
+                        if (TryBuy(listing, currentDay))
+                        {
+                            budget -= listing.CurrentPrice;
+                            Inventory.ReserveForContract(listing.Id, contractId);
+                            needed--;
+                        }
+                    }
+                }
+
+                if (Inventory.GetReservedForContract(contractId).Count >= contract.Requirement.Quantity)
+                    TryFulfillContract(contract);
+            }
+
+            return budget;
+        }
+
+        private void TryFulfillContract(Contract contract)
+        {
+            var listingIds = Inventory.GetReservedForContract(contract.ContractId)
+                .Take(contract.Requirement.Quantity)
+                .Select(a => a.Id)
+                .ToList();
+
+            if (listingIds.Count < contract.Requirement.Quantity) return;
+
+            if (_contractManager.FulfillContract(contract.ContractId, Id, Inventory, listingIds))
+                _committedContractIds.Remove(contract.ContractId);
+        }
+
+        private void ConsiderNewContract(NpcBehaviorProfile profile)
+        {
+            if (_contractManager == null) return;
+
+            var candidates = _contractManager.OpenContracts.Where(c => !_committedContractIds.Contains(c.ContractId))
+                .Concat(_contractManager.ExclusiveContracts.Where(c => c.CanBeClaimed))
+                .ToList();
+            if (candidates.Count == 0) return;
+
+            var market = _economyManager.Market;
+            float cashLimit = Inventory.Cash * 0.5f;
+
+            float committedValue = _committedContractIds
+                .Select(id => _contractManager.GetById(id))
+                .Where(c => c != null)
+                .Sum(c => c.ReferenceValue(market));
+
+            var affordable = candidates.Where(c => committedValue + c.ReferenceValue(market) <= cashLimit).ToList();
+            if (affordable.Count == 0)
+            {
+                Debug.Log($"{TraderName} found no contract affordable without exceeding half of {Inventory.Cash:F2} cash ({committedValue:F2} already committed).");
+                return;
+            }
+
+            var candidate = affordable[UnityEngine.Random.Range(0, affordable.Count)];
+
+            if (candidate.Type == ContractType.Exclusive && !_contractManager.ClaimContract(candidate.ContractId, Id))
+                return;
+
+            InsertByDeadline(candidate.ContractId);
+            Debug.Log($"{TraderName} picked up {candidate.Type} contract {candidate.ContractId} — needs {candidate.Requirement.Quantity}, due day {candidate.DeadlineDay}.");
+        }
+
+        private void InsertByDeadline(string contractId)
+        {
+            var contract = _contractManager.GetById(contractId);
+            if (contract == null) { _committedContractIds.Add(contractId); return; }
+
+            int index = 0;
+            while (index < _committedContractIds.Count)
+            {
+                var existing = _contractManager.GetById(_committedContractIds[index]);
+                if (existing != null && existing.DeadlineDay > contract.DeadlineDay) break;
+                index++;
+            }
+            _committedContractIds.Insert(index, contractId);
         }
 
         private bool TryBuy(Antique listing, int currentDay)
