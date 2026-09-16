@@ -183,5 +183,20 @@ namespace AntiqueTradingSimulator.Economy
         {
             return _holdings.Values.Where(h => !h.IsReservedForContract).ToList();
         }
+
+        private readonly HashSet<string> _committedContractIds = new();
+        public IReadOnlyCollection<string> CommittedContractIds => _committedContractIds;
+
+        public bool IsCommittedToContract(string contractId) =>
+            !string.IsNullOrEmpty(contractId) && _committedContractIds.Contains(contractId);
+
+        public bool CommitToContract(string contractId)
+        {
+            if (string.IsNullOrEmpty(contractId)) return false;
+            return _committedContractIds.Add(contractId);
+        }
+
+        public bool ReleaseCommittedContract(string contractId) => _committedContractIds.Remove(contractId);
+
     }
 }

@@ -234,7 +234,11 @@ namespace AntiqueTradingSimulator.Agents
         /// </summary>
         private float PursueCommittedContracts(float budget, NpcBehaviorProfile profile, int currentDay)
         {
-            foreach (var contractId in _committedContractIds.ToList())
+            var orderedContractIds = Inventory.CommittedContractIds
+                .OrderBy(id => _contractManager.GetById(id)?.DeadlineDay ?? int.MaxValue)
+                .ToList();
+
+            foreach (var contractId in orderedContractIds)
             {
                 var contract = _contractManager.GetById(contractId);
                 if (contract == null || contract.Status != ContractStatus.Active) continue;
@@ -275,14 +279,14 @@ namespace AntiqueTradingSimulator.Agents
             if (listingIds.Count < contract.Requirement.Quantity) return;
 
             if (_contractManager.FulfillContract(contract.ContractId, Id, Inventory, listingIds))
-                _committedContractIds.Remove(contract.ContractId);
+                Inventory.ReleaseCommittedContract(contract.ContractId);
         }
 
         private void ConsiderNewContract(NpcBehaviorProfile profile)
         {
             if (_contractManager == null) return;
 
-            var candidates = _contractManager.OpenContracts.Where(c => !_committedContractIds.Contains(c.ContractId))
+            var candidates = _contractManager.OpenContracts.Where(c => !Inventory.IsCommittedToContract(c.ContractId))
                 .Concat(_contractManager.ExclusiveContracts.Where(c => c.CanBeClaimed))
                 .ToList();
             if (candidates.Count == 0) return;
@@ -290,7 +294,7 @@ namespace AntiqueTradingSimulator.Agents
             var market = _economyManager.Market;
             float cashLimit = Inventory.Cash * 0.5f;
 
-            float committedValue = _committedContractIds
+            float committedValue = Inventory.CommittedContractIds
                 .Select(id => _contractManager.GetById(id))
                 .Where(c => c != null)
                 .Sum(c => c.ReferenceValue(market));
@@ -307,24 +311,10 @@ namespace AntiqueTradingSimulator.Agents
             if (candidate.Type == ContractType.Exclusive && !_contractManager.ClaimContract(candidate.ContractId, Id))
                 return;
 
-            InsertByDeadline(candidate.ContractId);
+            Inventory.CommitToContract(candidate.ContractId);
             Debug.Log($"{TraderName} picked up {candidate.Type} contract {candidate.ContractId} — needs {candidate.Requirement.Quantity}, due day {candidate.DeadlineDay}.");
         }
 
-        private void InsertByDeadline(string contractId)
-        {
-            var contract = _contractManager.GetById(contractId);
-            if (contract == null) { _committedContractIds.Add(contractId); return; }
-
-            int index = 0;
-            while (index < _committedContractIds.Count)
-            {
-                var existing = _contractManager.GetById(_committedContractIds[index]);
-                if (existing != null && existing.DeadlineDay > contract.DeadlineDay) break;
-                index++;
-            }
-            _committedContractIds.Insert(index, contractId);
-        }
 
         private bool TryBuy(Antique listing, int currentDay)
         {
