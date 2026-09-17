@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: NewEvent
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
   id: 1
-  DisplayName: 1
+  DisplayName: sdfgsgdgsdg
   Description: 
   DurationDays: 5
   MinLeadDays: 1
@@ -37,6 +37,6 @@ MonoBehaviour:
         Scope: 0
         AntiqueType: 1
         Country: 0
-        TimePeriod: 0
+        Century: 0
         tempDemandChange: 1
         permDemandChange: 0

@@ -77,6 +77,7 @@ namespace AntiqueTradingSimulator.Market
         {
             EnsureLoaded();
             return _definitionsById.Values.Select(def => def.Century).Distinct().OrderBy(c => (int)c).ToList();
+
         }
 
         public static List<Country> GetAvailableCountries()

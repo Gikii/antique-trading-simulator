@@ -15,7 +15,8 @@ MonoBehaviour:
   Id: clock_001
   DisplayName: Antique clock
   Type: 1
-  TimePeriod: 7
+  Century: 18
   Country: 1
   BasePrice: 500
+  EditionSize: 0
   Description: 

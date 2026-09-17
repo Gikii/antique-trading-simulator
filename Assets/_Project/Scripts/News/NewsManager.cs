@@ -131,7 +131,7 @@ namespace AntiqueTradingSimulator.News
 
             float credibility = type switch
             {
-                NewsType.Official => definition.OfficialCredibility,
+                NewsType.Official => 1f,
                 NewsType.Leak => definition.LeakCredibility,
                 NewsType.Rumor => definition.RumorCredibility,
                 _ => 1f

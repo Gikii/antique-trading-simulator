@@ -29,13 +29,12 @@ namespace AntiqueTradingSimulator.Events
         public bool CanBeFakeNews = true;
 
         public bool CreateOfficialNews = true;
-        [Range(0f, 1f)] public float OfficialCredibility = 1f;
+        [Range(0, 5)] public int OfficialAnnouncementDaysBefore = 0;
 
         public bool CreateRumour = false;
         [Range(0f, 1f)] public float RumorCredibility = 0.5f;
 
         public bool CreateLeak = false;
-        [Range(0, 5)] public int LeakDaysBefore = 0;
         [Range(0f, 1f)] public float LeakCredibility = 0.9f;
 
         [Tooltip("Effects of the event.")]

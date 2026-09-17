@@ -15,7 +15,8 @@ MonoBehaviour:
   Id: vase_001
   DisplayName: Chinese Vase
   Type: 12
-  TimePeriod: 1
+  Century: 18
   Country: 10
   BasePrice: 500
+  EditionSize: 0
   Description: 

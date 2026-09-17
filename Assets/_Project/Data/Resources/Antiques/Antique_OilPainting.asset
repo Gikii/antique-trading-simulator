@@ -15,7 +15,8 @@ MonoBehaviour:
   Id: painting_001
   DisplayName: Oil painting
   Type: 4
-  TimePeriod: 3
+  Century: 18
   Country: 2
   BasePrice: 1200
+  EditionSize: 0
   Description: 

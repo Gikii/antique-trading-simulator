@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ChangeClockSupply
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
   id: 2
-  DisplayName: 
+  DisplayName: zxczxczxcxzc
   Description: 
   DurationDays: 5
   MinLeadDays: 1
@@ -37,6 +37,6 @@ MonoBehaviour:
         Scope: 0
         AntiqueType: 1
         Country: 0
-        TimePeriod: 0
+        Century: 0
         tempSupplyChange: 1
         permSupplyChange: 0
