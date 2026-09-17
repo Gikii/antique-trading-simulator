@@ -15,7 +15,8 @@ MonoBehaviour:
   Id: coin_001
   DisplayName: Silver coin
   Type: 7
-  TimePeriod: 2
+  Century: 18
   Country: 4
   BasePrice: 150
+  EditionSize: 0
   Description: 
