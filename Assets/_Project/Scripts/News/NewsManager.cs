@@ -87,10 +87,35 @@ namespace AntiqueTradingSimulator.News
             int typesToPublish = Mathf.Min(candidateTypes.Count, leadDays);
             int startIndex = candidateTypes.Count - typesToPublish;
 
+
+
+            int[] publishDays = new int[typesToPublish];
+            int upperBoundExclusive = triggerDay; 
+
+            for (int i = typesToPublish - 1; i >= 0; i--)
+            {
+                NewsType type = candidateTypes[startIndex + i];
+                int minDay = today+i;
+                int maxDay = upperBoundExclusive - 1;
+
+                int day;
+                if (type == NewsType.Official)
+                {
+                    day = Mathf.Clamp(triggerDay - definition.OfficialAnnouncementDaysBefore, minDay, maxDay);
+                }
+                else
+                {
+                    day = UnityEngine.Random.Range(minDay, maxDay + 1);
+                }
+
+                publishDays[i] = day;
+                upperBoundExclusive = day;
+            }
+
             for (int i = 0; i < typesToPublish; i++)
             {
                 NewsType type = candidateTypes[startIndex + i];
-                int publishDay = triggerDay - (typesToPublish - i);
+                int publishDay = publishDays[i];
 
                 if (publishDay <= today)
                 {
@@ -102,6 +127,7 @@ namespace AntiqueTradingSimulator.News
                     Debug.Log($"NewsManager: {type} queued for '{definition.DisplayName}' [{definition.name}]. publishing day: {publishDay} event trigger day: {triggerDay}.");
                 }
             }
+
         }
 
 

@@ -29,7 +29,7 @@ namespace AntiqueTradingSimulator.Events
         public bool CanBeFakeNews = true;
 
         public bool CreateOfficialNews = true;
-        [Range(0, 5)] public int OfficialAnnouncementDaysBefore = 0;
+        [Range(0, 5)] public int OfficialAnnouncementDaysBefore = 1;
 
         public bool CreateRumour = false;
         [Range(0f, 1f)] public float RumorCredibility = 0.5f;
