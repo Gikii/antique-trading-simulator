@@ -8,24 +8,13 @@ using AntiqueTradingSimulator.Core;
 
 namespace AntiqueTradingSimulator.UI
 {
-    // Only these two tabs exist for now. Closed Contracts and History are
-    // deliberately left out — add them here, add a button, and add a case to
-    // GetContractsForActiveTab() when they're ready; everything else (filters,
-    // sorting, the details panel) already works generically off a Contract list.
     public enum ContractsTab
     {
         Available,
         Mine
     }
 
-    /// <summary>
-    /// Top-level Contracts view. Owns tab switching between "Available
-    /// Contracts" and "My Contracts" and feeds the shared list/detail
-    /// sub-components whichever data the active tab needs. The list panel and
-    /// details panel are separate components (ContractListPanelUI,
-    /// ContractDetailsUI) combined here, the same way MarketView combines
-    /// MarketListingUI rows with AntiqueDetailsUI.
-    /// </summary>
+
     public class ContractsView : UIView
     {
         [Header("Dependencies")]
@@ -36,8 +25,8 @@ namespace AntiqueTradingSimulator.UI
         [Header("Tabs")]
         [SerializeField] private Button availableTabButton;
         [SerializeField] private Button myContractsTabButton;
-        [SerializeField] private GameObject availableTabSelectedHighlight; // optional
-        [SerializeField] private GameObject myContractsTabSelectedHighlight; // optional
+        [SerializeField] private GameObject availableTabSelectedHighlight;
+        [SerializeField] private GameObject myContractsTabSelectedHighlight;
 
         [Header("Panels")]
         [SerializeField] private ContractListPanelUI listPanel;
@@ -105,7 +94,6 @@ namespace AntiqueTradingSimulator.UI
         private void HandleContractsChanged(Contract contract) => RefreshActiveTab();
         private void HandleDayChanged(int day) => RefreshActiveTab();
 
-        // Called by the two tab buttons
         public void SetTab(ContractsTab tab)
         {
             _activeTab = tab;
@@ -139,7 +127,7 @@ namespace AntiqueTradingSimulator.UI
             return _activeTab switch
             {
                 ContractsTab.Available => contractManager.AllContracts
-                    .Where(c => c.Status == ContractStatus.Active)
+                    .Where(c => c.Status == ContractStatus.Active && (c.Type == ContractType.Open || c.CanBeClaimed))
                     .ToList(),
 
                 ContractsTab.Mine => (playerTrader != null
@@ -164,8 +152,6 @@ namespace AntiqueTradingSimulator.UI
             if (contract == null || contract.Status != ContractStatus.Active) return false;
             if (playerTrader != null && playerTrader.Inventory.IsCommittedToContract(contract.ContractId)) return false;
 
-            // Open contracts have no claim step — anyone can go after one at any
-            // time. Exclusive contracts can only be accepted while unclaimed.
             return contract.Type == ContractType.Open || contract.CanBeClaimed;
         }
 

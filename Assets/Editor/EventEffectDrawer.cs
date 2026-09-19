@@ -1,8 +1,3 @@
-// Place this file inside an "Editor" folder anywhere under Assets
-// (e.g. Assets/Editor/EventEffectDrawer.cs). It must NOT be in a
-// regular script folder, since it references UnityEditor and would
-// break builds otherwise.
-
 using System;
 using System.Linq;
 using UnityEditor;
@@ -11,9 +6,7 @@ using AntiqueTradingSimulator.Events;
 
 namespace AntiqueTradingSimulator.EditorTools
 {
-    // "true" for useForChildren makes this drawer apply to every
-    // subclass of EventEffect (ChangeDemandEffect, future effects, etc.),
-    // not just to EventEffect itself.
+
     [CustomPropertyDrawer(typeof(EventEffect), true)]
     public class EventEffectDrawer : PropertyDrawer
     {
@@ -36,10 +29,6 @@ namespace AntiqueTradingSimulator.EditorTools
                 float y = typeRect.yMax + Spacing;
                 EditorGUI.indentLevel++;
 
-                // We deliberately draw the CHILD properties here, not
-                // `property` itself, via EditorGUI.PropertyField — calling
-                // PropertyField on `property` again would re-enter this
-                // same drawer and recurse forever.
                 var end = property.GetEndProperty();
                 var child = property.Copy();
                 bool enterChildren = true;
