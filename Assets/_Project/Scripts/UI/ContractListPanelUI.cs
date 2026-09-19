@@ -3,24 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 using AntiqueTradingSimulator.Contracts;
 
 namespace AntiqueTradingSimulator.UI
 {
-    // Dropdown index order matters here — each enum's declaration order must
-    // match the option order set on its TMP_Dropdown in the Inspector.
-
     public enum ContractTypeFilter
     {
         All,
         Open,
         Exclusive
     }
-
-    // Filters by *which* attribute a contract's requirement is scoped to
-    // (AntiqueType / Country / Century) — not by a concrete value of that
-    // attribute (e.g. not "only France" or "only Porcelain"). That's a
-    // deliberate scope cut for now; see ContractRequirement.Scope.
     public enum ContractAttributeFilter
     {
         All,
@@ -39,31 +32,24 @@ namespace AntiqueTradingSimulator.UI
         QuantityDesc
     }
 
-    /// <summary>
-    /// The list half of the Contracts view: status/attribute filters, a sort
-    /// dropdown, and the scrolling list of contract rows. Fully self-contained —
-    /// ContractsView just calls SetContracts() with whatever pool of contracts
-    /// the active tab should show; this panel handles filtering, sorting, and
-    /// spawning ContractListItemUI rows, and reports row clicks back through
-    /// the callback given to Initialize().
-    ///
-    /// Filtering by contract status (open/closed as in "still active" vs
-    /// "fulfilled/expired") and full history are intentionally left for later —
-    /// this only filters the pool it's given, which for now is always the
-    /// currently-Active contracts for whichever tab is showing.
-    /// </summary>
     public class ContractListPanelUI : MonoBehaviour
     {
         [Header("Filters")]
-        [SerializeField] private TMP_Dropdown typeFilterDropdown; // All / Open / Exclusive
-        [SerializeField] private TMP_Dropdown attributeFilterDropdown; // All / Antique Type / Country / Century
+        [SerializeField] private TMP_Dropdown typeFilterDropdown;
+        [SerializeField] private TMP_Dropdown attributeFilterDropdown;
 
         [Header("Sorting")]
-        [SerializeField] private TMP_Dropdown sortDropdown; // Deadline/Reward/Quantity x Asc/Desc
+        [SerializeField] private TMP_Dropdown sortDropdown;
 
         [Header("List")]
         [SerializeField] private RectTransform listContainer;
         [SerializeField] private GameObject listItemPrefab;
+
+        [Header("Pagination")]
+        [SerializeField] private TMP_Text pageText;
+        [SerializeField] private Button prevPageButton;
+        [SerializeField] private Button nextPageButton;
+        private const int ItemsPerPage = 6;
 
         [Header("Empty state")]
         [SerializeField] private GameObject emptyStateLabel; // optional — shown when the filtered list has 0 results
@@ -71,6 +57,7 @@ namespace AntiqueTradingSimulator.UI
         private ContractTypeFilter _typeFilter = ContractTypeFilter.All;
         private ContractAttributeFilter _attributeFilter = ContractAttributeFilter.All;
         private ContractSortMode _sortMode = ContractSortMode.DeadlineAsc;
+        private int _currentPage;
 
         private List<Contract> _sourceContracts = new();
         private readonly List<ContractListItemUI> _spawnedRows = new();
@@ -91,6 +78,12 @@ namespace AntiqueTradingSimulator.UI
 
             if (sortDropdown != null)
                 sortDropdown.onValueChanged.AddListener(SetSortMode);
+
+            if (prevPageButton != null)
+                prevPageButton.onClick.AddListener(PreviousPage);
+
+            if (nextPageButton != null)
+                nextPageButton.onClick.AddListener(NextPage);
         }
 
         public void SetContracts(List<Contract> contracts, int currentDay)
@@ -100,24 +93,36 @@ namespace AntiqueTradingSimulator.UI
             Refresh();
         }
 
-        // Called by the type filter TMP_Dropdown's OnValueChanged(int)
+
         public void SetTypeFilter(int dropdownIndex)
         {
             _typeFilter = (ContractTypeFilter)dropdownIndex;
+            _currentPage = 0;
             Refresh();
         }
 
-        // Called by the attribute filter TMP_Dropdown's OnValueChanged(int)
         public void SetAttributeFilter(int dropdownIndex)
         {
             _attributeFilter = (ContractAttributeFilter)dropdownIndex;
+            _currentPage = 0;
             Refresh();
         }
 
-        // Called by the sort TMP_Dropdown's OnValueChanged(int)
         public void SetSortMode(int dropdownIndex)
         {
             _sortMode = (ContractSortMode)dropdownIndex;
+            Refresh();
+        }
+
+        public void NextPage()
+        {
+            _currentPage++;
+            Refresh();
+        }
+
+        public void PreviousPage()
+        {
+            if (_currentPage > 0) _currentPage--;
             Refresh();
         }
 
@@ -132,33 +137,76 @@ namespace AntiqueTradingSimulator.UI
 
         private void Refresh()
         {
-            var filtered = GetFilteredSorted();
+            var filteredSorted = GetFilteredSorted();
+
+            int totalPages = Mathf.Max(1, Mathf.CeilToInt(filteredSorted.Count / (float)ItemsPerPage));
+            _currentPage = Mathf.Clamp(_currentPage, 0, totalPages - 1);
+
+            var pageItems = filteredSorted
+                .Skip(_currentPage * ItemsPerPage)
+                .Take(ItemsPerPage)
+                .ToList();
 
             foreach (var row in _spawnedRows)
                 if (row != null) Destroy(row.gameObject);
             _spawnedRows.Clear();
 
             if (emptyStateLabel != null)
-                emptyStateLabel.SetActive(filtered.Count == 0);
+                emptyStateLabel.SetActive(filteredSorted.Count == 0);
 
-            if (listContainer == null || listItemPrefab == null)
-                return;
-
-            foreach (var contract in filtered)
+            if (listContainer != null && listItemPrefab != null)
             {
-                var rowObj = Instantiate(listItemPrefab, listContainer);
-                var rowUI = rowObj.GetComponent<ContractListItemUI>();
-                if (rowUI == null)
-                {
-                    Debug.LogError("ContractListPanelUI: list item prefab is missing ContractListItemUI.", rowObj);
-                    Destroy(rowObj);
-                    continue;
-                }
+                float rowHeight = GetRowHeight();
 
-                rowUI.Setup(contract, _currentDay, HandleRowClicked);
-                rowUI.SetSelected(contract.ContractId == _selectedContractId);
-                _spawnedRows.Add(rowUI);
+                foreach (var contract in pageItems)
+                {
+                    var rowObj = Instantiate(listItemPrefab, listContainer);
+                    var rowUI = rowObj.GetComponent<ContractListItemUI>();
+                    if (rowUI == null)
+                    {
+                        Debug.LogError("ContractListPanelUI: list item prefab is missing ContractListItemUI.", rowObj);
+                        Destroy(rowObj);
+                        continue;
+                    }
+
+                    if (rowHeight > 0f)
+                    {
+                        var rowRT = rowObj.GetComponent<RectTransform>();
+                        if (rowRT != null) rowRT.sizeDelta = new Vector2(rowRT.sizeDelta.x, rowHeight);
+                    }
+
+                    rowUI.Setup(contract, _currentDay, HandleRowClicked);
+                    rowUI.SetSelected(contract.ContractId == _selectedContractId);
+                    _spawnedRows.Add(rowUI);
+                }
             }
+
+            if (pageText != null)
+                pageText.text = $"Page {_currentPage + 1}/{totalPages}";
+
+            if (prevPageButton != null) prevPageButton.interactable = _currentPage > 0;
+            if (nextPageButton != null) nextPageButton.interactable = _currentPage < totalPages - 1;
+        }
+
+        private float GetRowHeight()
+        {
+            if (listContainer == null) return 0f;
+
+            Canvas.ForceUpdateCanvases();
+
+            float availableHeight = listContainer.rect.height;
+            float spacing = 0f;
+            float verticalPadding = 0f;
+
+            var layoutGroup = listContainer.GetComponent<VerticalLayoutGroup>();
+            if (layoutGroup != null)
+            {
+                spacing = layoutGroup.spacing;
+                verticalPadding = layoutGroup.padding.vertical;
+            }
+
+            float usableHeight = availableHeight - verticalPadding - (ItemsPerPage - 1) * spacing;
+            return ItemsPerPage > 0 ? usableHeight / ItemsPerPage : 0f;
         }
 
         private void HandleRowClicked(Contract contract)

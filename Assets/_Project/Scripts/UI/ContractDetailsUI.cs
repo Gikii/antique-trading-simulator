@@ -8,22 +8,12 @@ using AntiqueTradingSimulator.Core;
 
 namespace AntiqueTradingSimulator.UI
 {
-    /// <summary>
-    /// Detail panel for a selected contract, shared by both Contracts tabs.
-    /// Header is a name (blank for now — contracts don't have generated names
-    /// yet) and an image placeholder, sized the same as the equivalent image
-    /// slot in the Market/Inventory detail panels. Below that sit two lists
-    /// side by side: requirements on the left, contract terms on the right.
-    /// Only the bottom area differs by tab — Available Contracts shows the
-    /// Accept button, My Contracts is left empty for now (reserved for the
-    /// delivery flow later) — toggled by SetMode().
-    /// </summary>
     public class ContractDetailsUI : MonoBehaviour
     {
         [SerializeField] private TimeManager timeManager;
 
         [Header("Header")]
-        [SerializeField] private TMP_Text nameText; // left blank — no name generation yet
+        [SerializeField] private TMP_Text nameText;
         [SerializeField] private Image contractImage;
 
         [Header("Requirements (left list)")]
@@ -43,7 +33,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button acceptButton;
 
         [Header("My Contracts tab only")]
-        [SerializeField] private GameObject myContractsContent; // empty for now — used later
+        [SerializeField] private GameObject myContractsContent;
 
         [Header("Empty state")]
         [SerializeField] private GameObject noSelectionState;
@@ -68,8 +58,6 @@ namespace AntiqueTradingSimulator.UI
             _onAccept = onAccept;
         }
 
-        // Switches which bottom section is visible; doesn't touch the
-        // requirement/terms lists above, which look the same either way.
         public void SetMode(ContractsTab tab)
         {
             if (acceptButtonContainer != null)
