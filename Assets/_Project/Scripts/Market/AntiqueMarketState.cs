@@ -1,18 +1,10 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace AntiqueTradingSimulator.Market
 {
-    /// <summary>
-    /// Tracks the dynamic, type-level Supply and Demand for one AntiqueDefinition.
-    /// This is what used to live on the old per-type "Antique" runtime object. Now that
-    /// each physical antique is its own AntiqueListing, Supply/Demand no longer represent
-    /// "how many are left to buy" — instead they represent overall market conditions for
-    /// that type of antique, which drive two things:
-    ///   1) The odds that a new listing of this type appears (see Market.GenerateListing).
-    ///   2) The supply/demand price multiplier applied to every listing of this type.
-    /// </summary>
-    /// 
+
     [Serializable]
     public class PricePoint
     {
@@ -30,19 +22,42 @@ namespace AntiqueTradingSimulator.Market
     public class AntiqueMarketState
     {
         public string DefinitionId;
+
         public float Supply;
         public float Demand;
 
-        // Rolling price history, capped at 90 entries so it never grows unbounded.
+        public float BaselineSupply;
+        public float BaselineDemand;
+
+        public float TempSupplyMod;
+        public float TempDemandMod;
+
         public List<PricePoint> PriceHistory = new List<PricePoint>();
         private const int MaxHistoryDays = 90;
+
+        private const float SnapThreshold = 0.01f;
 
         public AntiqueMarketState(string definitionId, float initialSupply, float initialDemand)
         {
             DefinitionId = definitionId;
             Supply = initialSupply;
             Demand = initialDemand;
+            BaselineSupply = initialSupply;
+            BaselineDemand = initialDemand;
         }
+
+        public void ApplyMeanReversion(float supplyRate, float demandRate)
+        {
+            Supply = RevertToward(Supply, BaselineSupply, supplyRate);
+            Demand = RevertToward(Demand, BaselineDemand, demandRate);
+        }
+
+        private static float RevertToward(float value, float baseline, float rate)
+        {
+            float next = Mathf.Lerp(value, baseline, Mathf.Clamp01(rate));
+            return Mathf.Abs(next - baseline) < SnapThreshold ? baseline : next;
+        }
+
 
         public void RecordPrice(int day, float price)
         {

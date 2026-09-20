@@ -37,8 +37,8 @@ namespace AntiqueTradingSimulator.Economy
         {
             if (typeState == null) return 1f;
 
-            float safeSupply = Mathf.Max(typeState.Supply, MinSupply);
-            float ratio = typeState.Demand / safeSupply;
+            float safeSupply = Mathf.Max(typeState.Supply + typeState.TempSupplyMod, MinSupply);
+            float ratio = (typeState.Demand + typeState.TempDemandMod) / safeSupply;
             float multiplier = Mathf.Pow(ratio, SensitivityFactor);
             return Mathf.Clamp(multiplier, MinPriceMultiplier, MaxPriceMultiplier);
         }

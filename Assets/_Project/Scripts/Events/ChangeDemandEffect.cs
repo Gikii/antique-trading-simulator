@@ -37,7 +37,8 @@ namespace AntiqueTradingSimulator.Events
                 var typeState = market.GetTypeState(definitionId);
                 if (typeState == null) continue;
 
-                typeState.Demand = Mathf.Max(0f, typeState.Demand + tempDemandChange + permDemandChange);
+                typeState.Demand = Mathf.Max(0f, typeState.Demand + permDemandChange);
+                typeState.TempDemandMod += tempDemandChange;
                 RecalculatePricesForDefinition(market, definitionId);
             }
         }
@@ -51,7 +52,7 @@ namespace AntiqueTradingSimulator.Events
                 var typeState = market.GetTypeState(definitionId);
                 if (typeState == null) continue;
 
-                typeState.Demand = Mathf.Max(0f, typeState.Demand - tempDemandChange);
+                typeState.TempDemandMod -= tempDemandChange;
                 RecalculatePricesForDefinition(market, definitionId);
             }
 
