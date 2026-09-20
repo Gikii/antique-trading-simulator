@@ -182,6 +182,14 @@ namespace AntiqueTradingSimulator.Market
             AddListing(listing, currentDay); 
         }
 
+        public void ApplyMeanReversion(float supplyRate, float demandRate)
+        {
+            foreach (var typeState in _typeStates.Values)
+                typeState.ApplyMeanReversion(supplyRate, demandRate);
+
+            RecalculateAllPrices();
+        }
+
         public void RecalculatePrice(Antique listing)
         {
             var typeState = GetTypeState(listing.DefinitionId);

@@ -19,6 +19,13 @@ namespace AntiqueTradingSimulator.Economy
         [SerializeField] private float defaultInitialSupply = 5f;
         [SerializeField] private float defaultInitialDemand = 5f;
 
+        [Header("Mean reversion")]
+        [Range(0f, 1f)]
+        [SerializeField] private float supplyReversionRate = 0.05f;
+        [Range(0f, 1f)]
+        [SerializeField] private float demandReversionRate = 0.05f;
+
+
         [Header("Listing spawning")]
         [SerializeField] private int initialListingCount = 6;
         [SerializeField] private int newListingsPerDay = 1;
@@ -65,6 +72,7 @@ namespace AntiqueTradingSimulator.Economy
 
         private void HandleDayChanged(int newDay)
         {
+            Market.ApplyMeanReversion(supplyReversionRate, demandReversionRate);
             Market.RecordDailyPrices(newDay);
 
             for (int i = 0; i < newListingsPerDay; i++)
