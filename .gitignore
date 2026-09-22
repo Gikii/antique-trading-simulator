@@ -43,3 +43,6 @@
 # OS generated
 .DS_Store
 Thumbs.db
+
+# Scripts
+/Assets/Scripts/Editor/NewsEvents/

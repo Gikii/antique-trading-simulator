@@ -12,8 +12,7 @@ namespace AntiqueTradingSimulator.UI
         Contracts,
         Warehouse,
         Company,
-        News,
-        Events
+        NewsEvents
     }
 
     /// <summary>
@@ -72,8 +71,7 @@ namespace AntiqueTradingSimulator.UI
         public void ShowContracts() => ShowView(ViewType.Contracts);
         public void ShowWarehouse() => ShowView(ViewType.Warehouse);
         public void ShowCompany() => ShowView(ViewType.Company);
-        public void ShowNews() => ShowView(ViewType.News);
-        public void ShowEvents() => ShowView(ViewType.Events);
+        public void ShowNewsEvents() => ShowView(ViewType.NewsEvents);
 
     }
 }
