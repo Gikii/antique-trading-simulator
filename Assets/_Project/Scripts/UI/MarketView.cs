@@ -45,12 +45,17 @@ namespace AntiqueTradingSimulator.UI
 
         [SerializeField] private AntiqueDetailsUI antiqueDetailsUI;
 
+        // Century's enum values equal the century number (XII=12 ... XX=20),
+        // not 0..N, so the Century dropdown's option index -> enum needs an
+        // explicit lookup table (dropdown option order matches this array).
         private static readonly Century[] CenturyOptions =
         {
             Century.XII, Century.XIII, Century.XIV, Century.XV, Century.XVI,
             Century.XVII, Century.XVIII, Century.XIX, Century.XX
         };
 
+        // Quality buckets, expressed as an inclusive [min, max] Condition range
+        // (dropdown option order matches this array).
         private static readonly (string Label, float Min, float Max)[] QualityOptions =
         {
             ("Excellent (90-100%)", 0.9f, 1f),
@@ -59,6 +64,8 @@ namespace AntiqueTradingSimulator.UI
             ("Poor (30-49%)", Antique.MinCondition, 0.4999f),
         };
 
+        // Each set holds the currently-selected option indices for that
+        // dropdown; an empty set means "don't filter on this field".
         private readonly HashSet<AntiqueType> _typeFilters = new HashSet<AntiqueType>();
         private readonly HashSet<Century> _centuryFilters = new HashSet<Century>();
         private readonly HashSet<Country> _countryFilters = new HashSet<Country>();
@@ -92,6 +99,13 @@ namespace AntiqueTradingSimulator.UI
                 timeManager.OnDayChanged += HandleDayChanged;
                 _subscribed = true;
             }
+
+            // Safety net: force the layout groups built into this view
+            // (ListPanel, ListArea, FiltersRow, ...) to actually arrange
+            // themselves as soon as this view becomes visible, in case
+            // nothing else triggered that pass yet.
+            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)transform);
+
             RefreshListings();
         }
 
@@ -107,6 +121,9 @@ namespace AntiqueTradingSimulator.UI
                 RefreshListings();
         }
 
+        // Called by the Antique Type filter dropdown's onSelectionChanged.
+        // Dropdown option index N corresponds directly to AntiqueType N, since
+        // AntiqueType's own values already run 0..18 in declaration order.
         private void OnTypeFilterChanged(List<int> selectedIndices)
         {
             _typeFilters.Clear();
@@ -117,6 +134,7 @@ namespace AntiqueTradingSimulator.UI
             RefreshListings();
         }
 
+        // Called by the Century filter dropdown's onSelectionChanged.
         private void OnCenturyFilterChanged(List<int> selectedIndices)
         {
             _centuryFilters.Clear();
@@ -128,6 +146,9 @@ namespace AntiqueTradingSimulator.UI
             RefreshListings();
         }
 
+        // Called by the Country filter dropdown's onSelectionChanged. Option
+        // index N corresponds directly to Country N, since Country's own
+        // values already run 0..14 in declaration order.
         private void OnCountryFilterChanged(List<int> selectedIndices)
         {
             _countryFilters.Clear();
@@ -138,6 +159,7 @@ namespace AntiqueTradingSimulator.UI
             RefreshListings();
         }
 
+        // Called by the Quality filter dropdown's onSelectionChanged.
         private void OnQualityFilterChanged(List<int> selectedIndices)
         {
             _qualityFilterIndices.Clear();
@@ -148,6 +170,7 @@ namespace AntiqueTradingSimulator.UI
             RefreshListings();
         }
 
+        // Called by the "Clear Filters" button.
         public void ClearFilters()
         {
             _typeFilters.Clear();
@@ -164,6 +187,7 @@ namespace AntiqueTradingSimulator.UI
             RefreshListings();
         }
 
+        // Called by the sort TMP_Dropdown's OnValueChanged(int)
         public void SetSortMode(int dropdownIndex)
         {
             _sortMode = (MarketSortMode)dropdownIndex;
@@ -182,6 +206,7 @@ namespace AntiqueTradingSimulator.UI
             RefreshListings();
         }
 
+        // Stub for now — implemented in the detail panel phase.
         public void ShowDetails(Antique listing)
         {
             if (antiqueDetailsUI != null)
@@ -192,6 +217,8 @@ namespace AntiqueTradingSimulator.UI
         {
             IEnumerable<Antique> result = economyManager.Market.Listings;
 
+            // Within a field, selections are OR'd (Country = France OR Germany);
+            // an empty set means that field isn't filtered at all.
             if (_typeFilters.Count > 0)
                 result = result.Where(l => _typeFilters.Contains(l.Type));
 
@@ -229,6 +256,8 @@ namespace AntiqueTradingSimulator.UI
                 .Take(ItemsPerPage)
                 .ToList();
 
+            // Full rebuild each refresh — only 8 cards at a time, so this stays cheap
+            // and avoids leftover cards from a previous filter/page.
             foreach (var row in _rowsByListingId.Values)
                 Destroy(row.gameObject);
             _rowsByListingId.Clear();
