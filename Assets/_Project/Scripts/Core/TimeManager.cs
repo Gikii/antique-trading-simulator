@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Core
@@ -7,11 +8,19 @@ namespace AntiqueTradingSimulator.Core
     /// Minimal time system: tracks the current in-game day and advances it
     /// after a fixed real-time duration. Can be paused/resumed. Other systems
     /// subscribe to OnDayChanged to react to the passage of time.
+    /// Also maps game days to calendar dates (Day 1 = campaign start date).
     /// </summary>
     public class TimeManager : MonoBehaviour
     {
         [SerializeField] private float secondsPerDay = 10f;
         [SerializeField] private float[] speedSteps = { 1f, 2f, 4f };
+
+        [Header("Calendar")]
+        [Tooltip("Calendar date of Day 1.")]
+        [SerializeField] private int startYear = 1884;
+        [SerializeField] private int startMonth = 4;
+        [SerializeField] private int startDay = 22; // Day 23 = 14 May 1884
+        [SerializeField] private int campaignLength = 90;
 
         public int CurrentDay { get; private set; } = 1;
         public bool IsRunning { get; private set; } = true;
@@ -26,6 +35,23 @@ namespace AntiqueTradingSimulator.Core
         public float SecondsPerDay => secondsPerDay;
         public float TimeUntilNextDay => Mathf.Max(0f, secondsPerDay - _timer);
         public float DayProgress01 => Mathf.Clamp01(_timer / secondsPerDay);
+
+        private static readonly CultureInfo English = CultureInfo.InvariantCulture;
+
+        public int CampaignLength => campaignLength;
+        public DateTime StartDate => new DateTime(startYear, startMonth, startDay);
+        public DateTime CurrentDate => DayToDate(CurrentDay);
+
+        public DateTime DayToDate(int day) => StartDate.AddDays(day - 1);
+        public int DateToDay(DateTime date) => (date.Date - StartDate).Days + 1;
+
+        public static string FormatLong(DateTime date) => date.ToString("d MMMM yyyy", English);
+
+        public static string FormatDayMonth(DateTime date) => date.ToString("d MMMM", English);
+
+        public static string FormatMonthYear(DateTime date) => date.ToString("MMMM yyyy", English);
+
+        public static string FormatWithWeekday(DateTime date) => date.ToString("dddd, d MMMM yyyy", English);
 
         void Update()
         {
@@ -76,6 +102,5 @@ namespace AntiqueTradingSimulator.Core
             SpeedMultiplier = speedSteps[_speedIndex];
             OnSpeedChanged?.Invoke(SpeedMultiplier);
         }
-
     }
 }

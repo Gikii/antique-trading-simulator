@@ -44,6 +44,15 @@ namespace AntiqueTradingSimulator.UI
 
         [Header("History (unique items only)")]
         [SerializeField] private TMP_Text historyText;
+
+        // Visibility is driven through this CanvasGroup instead of
+        // gameObject.SetActive(). This panel sits in a HorizontalLayoutGroup
+        // row next to the listings panel; LayoutGroups skip inactive
+        // children entirely, so SetActive(false) here would make the
+        // listings panel stretch to fill the whole row whenever the details
+        // panel is hidden. Fading it out via CanvasGroup instead keeps the
+        // GameObject active, so its column stays reserved.
+        [SerializeField] private CanvasGroup canvasGroup;
         // Temporary placeholder until unique items carry real, meaningful History
         // text — swap this back to antique.History once that content exists.
         private const string PlaceholderHistoryText =
@@ -58,13 +67,32 @@ namespace AntiqueTradingSimulator.UI
             if (playerTrader == null)
                 playerTrader = FindFirstObjectByType<PlayerTrader>();
 
+            if (canvasGroup == null)
+                canvasGroup = GetComponent<CanvasGroup>();
+
             if (closeButton != null)
                 closeButton.onClick.AddListener(Hide);
 
             if (buyButton != null)
                 buyButton.onClick.AddListener(BuyCurrentAntique);
 
-            gameObject.SetActive(false);
+            SetVisible(false);
+        }
+
+        private void SetVisible(bool visible)
+        {
+            if (canvasGroup != null)
+            {
+                canvasGroup.alpha = visible ? 1f : 0f;
+                canvasGroup.interactable = visible;
+                canvasGroup.blocksRaycasts = visible;
+            }
+            else
+            {
+                // Fallback for a panel that doesn't have a CanvasGroup — behaves
+                // like before, but won't reserve layout space while hidden.
+                gameObject.SetActive(visible);
+            }
         }
 
         public void Show(Antique antique)
@@ -121,13 +149,13 @@ namespace AntiqueTradingSimulator.UI
             if (buyButton != null)
                 buyButton.interactable = true;
 
-            gameObject.SetActive(true);
+            SetVisible(true);
         }
 
         public void Hide()
         {
             _currentAntique = null;
-            gameObject.SetActive(false);
+            SetVisible(false);
         }
 
         private void BuyCurrentAntique()

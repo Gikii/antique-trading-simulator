@@ -24,6 +24,9 @@ namespace AntiqueTradingSimulator.News
         private readonly List<NewsItem> _publishedNews = new();
         public IReadOnlyList<NewsItem> PublishedNews => _publishedNews;
 
+        /// <summary>Raised after a news item has been published (e.g. so the UI can refresh).</summary>
+        public event System.Action<NewsItem> OnNewsPublished;
+
         private readonly List<PendingNews> _pendingNews = new();
 
         private struct PendingNews
@@ -90,12 +93,12 @@ namespace AntiqueTradingSimulator.News
 
 
             int[] publishDays = new int[typesToPublish];
-            int upperBoundExclusive = triggerDay; 
+            int upperBoundExclusive = triggerDay;
 
             for (int i = typesToPublish - 1; i >= 0; i--)
             {
                 NewsType type = candidateTypes[startIndex + i];
-                int minDay = today+i;
+                int minDay = today + i;
                 int maxDay = upperBoundExclusive - 1;
 
                 int day;
@@ -219,6 +222,8 @@ namespace AntiqueTradingSimulator.News
             foreach (var receiver in _codeReceivers)
                 if (receiver.AccessLevel >= item.RequiredAccessLevel)
                     receiver.ReceiveNews(item);
+
+            OnNewsPublished?.Invoke(item);
         }
     }
 }
