@@ -68,6 +68,22 @@ namespace AntiqueTradingSimulator.Economy
             return _holdings.Values.Where(l => l.Country == country).ToList();
         }
 
+        /// <summary>
+        /// Adds an antique straight into the holdings, bypassing the Market entirely — e.g. an
+        /// event reward (a financed expedition's finds), not a purchase off a listing. The antique
+        /// is never added to Market.Listings, so it never appears for sale and its
+        /// MarketListedOnDay stays -1 until the owner lists it themselves.
+        /// </summary>
+        public bool GrantHolding(Antique antique)
+        {
+            if (antique == null) return false;
+
+            _holdings[antique.Id] = antique;
+
+            OnHoldingChanged?.Invoke(antique.Id, antique);
+            return true;
+        }
+
         public bool Buy(Market.Market market, string listingId)
         {
             var listing = market.GetById(listingId);
@@ -141,8 +157,7 @@ namespace AntiqueTradingSimulator.Economy
         }
 
         /// <summary>
-        /// Tags an owned listing as being gathered for a specific contract, so normal
-        /// selling logic (NPC or player) leaves it alone. Fails if the listing isn't
+        /// Tags an owned listing as being gathered for a specific contract. Returns false if the listing isn't
         /// owned or is already reserved for something else.
         /// </summary>
         public bool ReserveForContract(string listingId, string contractId)

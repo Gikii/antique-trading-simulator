@@ -10,6 +10,7 @@ namespace AntiqueTradingSimulator.Events
     {
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private Core.TimeManager timeManager;
+        [SerializeField] private Agents.PlayerTrader playerTrader;
 
         private readonly List<ActiveEvent> _activeEvents = new List<ActiveEvent>();
         public IReadOnlyList<ActiveEvent> ActiveEvents => _activeEvents;
@@ -22,15 +23,23 @@ namespace AntiqueTradingSimulator.Events
 
         [SerializeField] private int maxScheduleAttempts = 20;
 
+        /// <summary>Null-safe accessor — effects that need it (e.g. GrantAntiquesEffect) check for null themselves.</summary>
+        private Economy.TraderInventory PlayerInventory => playerTrader != null ? playerTrader.Inventory : null;
+
+        private EventContext BuildContext(int day) => new EventContext(economyManager.Market, day, PlayerInventory);
+
 
         public event Action<ActiveEvent> OnEventTriggered;
         public event Action<ActiveEvent> OnEventEnded;
         public event Action<EventDefinition, int> OnEventScheduled;
+        /// <summary>Fired when a Player event rolls its FailureChance and fails — its effects never apply.</summary>
+        public event Action<EventDefinition, int> OnEventFailed;
 
         void Awake()
         {
             if (economyManager == null) economyManager = FindFirstObjectByType<EconomyManager>();
             if (timeManager == null) timeManager = FindFirstObjectByType<Core.TimeManager>();
+            if (playerTrader == null) playerTrader = FindFirstObjectByType<Agents.PlayerTrader>();
 
         }
 
@@ -39,7 +48,7 @@ namespace AntiqueTradingSimulator.Events
             if (timeManager != null)
             {
                 timeManager.OnDayChanged += HandleDayChanged;
-                ScheduleNextRandomEvent(timeManager.CurrentDay);
+                ScheduleNextMinorEvent(timeManager.CurrentDay);
             }
 
         }
@@ -54,7 +63,7 @@ namespace AntiqueTradingSimulator.Events
         {
             ExpireFinishedEvents(newDay);
             TriggerScheduledEvent(newDay);
-            ScheduleNextRandomEvent(newDay);
+            ScheduleNextMinorEvent(newDay);
         }
 
         private void ExpireFinishedEvents(int day)
@@ -64,7 +73,7 @@ namespace AntiqueTradingSimulator.Events
                 var active = _activeEvents[i];
                 if (!active.HasExpired(day)) continue;
 
-                active.End(economyManager.Market, day);
+                active.End(BuildContext(day));
                 _activeEvents.RemoveAt(i);
                 _endedEvents.Add(active);
 
@@ -75,24 +84,35 @@ namespace AntiqueTradingSimulator.Events
 
         private void TriggerScheduledEvent(int day)
         {
-            int index = _scheduledEvents.FindIndex(s => s.TriggerDay == day);
-            if (index < 0) return;
-            var scheduled = _scheduledEvents[index];
-            _scheduledEvents.RemoveAt(index);
-
-            var definition = scheduled.Definition;
-            if (definition == null)
+            for (int i = _scheduledEvents.Count - 1; i >= 0; i--)
             {
-                Debug.Log($"EventManager: Failed to scheduled trigger event for day {day}. No EventDefinition with Id {scheduled.EventDefinitionId}");
-                return;
+                var scheduled = _scheduledEvents[i];
+                if (scheduled.TriggerDay != day) continue;
+
+                _scheduledEvents.RemoveAt(i);
+
+                var definition = scheduled.Definition;
+                if (definition == null)
+                {
+                    Debug.Log($"EventManager: Failed to scheduled trigger event for day {day}. No EventDefinition with Id {scheduled.EventDefinitionId}");
+                    continue;
+                }
+
+                if (definition.EventType == EventType.Player && UnityEngine.Random.value < definition.FailureChance)
+                {
+                    Debug.Log($"EventManager: player event failed — {definition.DisplayName} did not occur (Day {day}).");
+                    OnEventFailed?.Invoke(definition, day);
+                    continue;
+                }
+
+                var active = new ActiveEvent(definition, day);
+                active.Begin(BuildContext(day));
+
+                _activeEvents.Add(active);
+
+                Debug.Log($"EventManager: event triggered — {active.Definition.name}");
+                OnEventTriggered?.Invoke(active);
             }
-            var active = new ActiveEvent(definition, day);
-            active.Begin(economyManager.Market, day);
-
-            _activeEvents.Add(active);
-
-            Debug.Log($"EventManager: event triggered — {active.Definition.name}");
-            OnEventTriggered?.Invoke(active);
         }
 
 
@@ -104,9 +124,14 @@ namespace AntiqueTradingSimulator.Events
                 return false;
             }
 
-            if (_scheduledEvents.Any(s => s.TriggerDay == triggerDay))
+            // Different event types don't interfere with each other (a Minor and a Player event can
+            // share a day), but non-player types are still limited to one of their own type per day
+            // (e.g. only one Minor event per day). Player-created events are never blocked by what's
+            // already on the calendar that day, including other Player events.
+            if (definition.EventType != EventType.Player &&
+                _scheduledEvents.Any(s => s.EventType == definition.EventType && s.TriggerDay == triggerDay))
             {
-                Debug.LogWarning($"EventManager: day {triggerDay} already has an event scheduled. '{definition.name}' was not scheduled.");
+                Debug.LogWarning($"EventManager: day {triggerDay} already has a {definition.EventType} event scheduled. '{definition.name}' was not scheduled.");
                 return false;
             }
 
@@ -117,9 +142,9 @@ namespace AntiqueTradingSimulator.Events
             return true;
         }
 
-        private void ScheduleNextRandomEvent(int afterDay)
+        private void ScheduleNextMinorEvent(int afterDay)
         {
-            List<EventDefinition> pool = EventDatabase.GetAll();
+            List<EventDefinition> pool = EventDatabase.GetAllByType(EventType.Minor);
             if (pool.Count == 0) return;
 
             for (int attempt = 0; attempt < maxScheduleAttempts; attempt++)
@@ -130,7 +155,7 @@ namespace AntiqueTradingSimulator.Events
                 int maxLead = Mathf.Max(minLead, definition.MaxLeadDays);
                 int candidateDay = afterDay + UnityEngine.Random.Range(minLead, maxLead + 1);
 
-                if (_scheduledEvents.Any(s => s.TriggerDay == candidateDay)) continue;
+                if (_scheduledEvents.Any(s => s.EventType == EventType.Minor && s.TriggerDay == candidateDay)) continue;
 
                 ScheduleEvent(definition, candidateDay);
                 return;

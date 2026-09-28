@@ -8,6 +8,7 @@ namespace AntiqueTradingSimulator.Events
     {
         public int TriggerDay;
         public string EventDefinitionId;
+        public EventType EventType;
 
         [NonSerialized] private EventDefinition _definitionCache;
         public EventDefinition Definition => _definitionCache ??= EventDatabase.GetById(EventDefinitionId);
@@ -19,6 +20,7 @@ namespace AntiqueTradingSimulator.Events
             TriggerDay = triggerDay;
             EventDefinitionId = eventDefinition.Id;
             _definitionCache = eventDefinition;
+            EventType = eventDefinition.EventType;
         }
 
     }

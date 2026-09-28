@@ -14,8 +14,9 @@ namespace AntiqueTradingSimulator.Events
             Century,
             Other
         }
-        public abstract void Apply(Market.Market market, int currentDay);
-        public abstract void Revert(Market.Market market, int currentDay);
+
+        public abstract void Apply(EventContext context);
+        public abstract void Revert(EventContext context);
 
         public abstract NewsEventData CreateNewsData();
         public abstract EventEffect Clone();

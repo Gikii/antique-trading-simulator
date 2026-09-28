@@ -26,20 +26,20 @@ namespace AntiqueTradingSimulator.Events
             EndDay = startDay + Mathf.Max(1, definition.DurationDays);
         }
 
-        public void Begin(Market.Market market, int currentDay)
+        public void Begin(EventContext context)
         {
             foreach (var effect in Definition.Effects)
             {
                 var instance = effect.Clone();
-                instance.Apply(market, currentDay);
+                instance.Apply(context);
                 EffectInstances.Add(instance);
             }
         }
 
-        public void End(Market.Market market, int currentDay)
+        public void End(EventContext context)
         {
             foreach (var instance in EffectInstances)
-                instance.Revert(market, currentDay);
+                instance.Revert(context);
         }
 
         public bool HasExpired(int day) => day >= EndDay;

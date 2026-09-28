@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: PlaceholderPlayerEvent
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: d609316607f1403593d43c966234aa84
+  DisplayName: Sponsor Archeolgic Digsite in Poland
+  EventType: 3
+  Description: Invest in archelogic research in Poland in exchange for possible antiques.
+  DurationDays: 5
+  MinLeadDays: 1
+  MaxLeadDays: 5
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementDaysBefore: 1
+  CreateRumour: 0
+  RumorCredibility: 0.5
+  CreateLeak: 0
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 7722896656900030532
+  - rid: 7722896656900030533
+  references:
+    version: 2
+    RefIds:
+    - rid: 7722896656900030532
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 0
+        Country: 15
+        Century: 0
+        tempSupplyChange: 0
+        permSupplyChange: 1
+    - rid: 7722896656900030533
+      type: {class: GrantAntiquesEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 1
+        RandomizeAntiqueType: 1
+        AntiqueType: 0
+        RandomizeCentury: 1
+        Century: 0
+        RandomizeCountry: 1
+        Country: 15
+        RandomizeQuality: 1
+        Quality: 1
