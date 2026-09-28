@@ -43,6 +43,12 @@ namespace AntiqueTradingSimulator.Events
             return _definitionsById.Values.ToList();
         }
 
+        public static List<EventDefinition> GetAllByType(EventType eventType)
+        {
+            EnsureLoaded();
+            return _definitionsById.Values.Where(d => d.EventType == eventType).ToList();
+        }
+
         public static List<EventDefinition> GetPossibleFakeEvents()
         {
             EnsureLoaded();

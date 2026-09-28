@@ -15,6 +15,9 @@ namespace AntiqueTradingSimulator.Events
         public string Id => id;
         public string DisplayName;
 
+        [Tooltip("Type of event.")]
+        public EventType EventType = EventType.Minor;
+
         [TextArea]
         public string Description;
 
@@ -24,6 +27,14 @@ namespace AntiqueTradingSimulator.Events
         public int MinLeadDays = 1;
         [Tooltip("Maximum number of days from 'today' this event can be scheduled to trigger.")]
         public int MaxLeadDays = 5;
+
+        [Tooltip("Whether or not the player can select when exactly the event will trigger between min/max lead days." +
+            "If false then the event's trigger date will be randomised within the bounds of min/max lead days")]
+        public bool PlayerSelectsLeadTime = true;
+
+
+        [Tooltip("Chance the event fails to occur")]
+        [Range(0f, 1f)] public float FailureChance = 0f;
 
         [Header("News generation")]
         public bool CanBeFakeNews = true;

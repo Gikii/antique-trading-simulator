@@ -28,8 +28,9 @@ namespace AntiqueTradingSimulator.Events
         [Tooltip("Permamently added to Demand for every matching antique type.")]
         public float permDemandChange = 0f;
 
-        public override void Apply(Market.Market market, int currentDay)
+        public override void Apply(EventContext context)
         {
+            var market = context.Market;
             var affectedDefinitionIds = ResolveTargetDefinitionIds();
 
             foreach (var definitionId in affectedDefinitionIds)
@@ -43,8 +44,9 @@ namespace AntiqueTradingSimulator.Events
             }
         }
 
-        public override void Revert(Market.Market market, int currentDay)
+        public override void Revert(EventContext context)
         {
+            var market = context.Market;
             var affectedDefinitionIds = ResolveTargetDefinitionIds();
 
             foreach (var definitionId in affectedDefinitionIds)

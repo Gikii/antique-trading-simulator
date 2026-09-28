@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Events;
 using TMPro;
@@ -175,7 +174,8 @@ namespace AntiqueTradingSimulator.UI
 
             if (itemTemplate == null) return;
 
-            List<EventDefinition> definitions = EventDatabase.GetAll();
+            // Players may only create events from Player-type templates.
+            List<EventDefinition> definitions = EventDatabase.GetAllByType(AntiqueTradingSimulator.Events.EventType.Player);
             int count = Mathf.Min(definitions.Count, maxVisibleTemplates);
 
             if (definitions.Count > maxVisibleTemplates)
@@ -268,7 +268,7 @@ namespace AntiqueTradingSimulator.UI
 
         private void ChangeLeadDays(int delta)
         {
-            if (selected == null) return;
+            if (selected == null || !selected.PlayerSelectsLeadTime) return;
 
             leadDays = Mathf.Clamp(leadDays + delta, MinLead(selected), MaxLead(selected));
             UpdateSchedule();
@@ -289,6 +289,15 @@ namespace AntiqueTradingSimulator.UI
 
             int min = MinLead(selected);
             int max = MaxLead(selected);
+
+            if (selected.PlayerSelectsLeadTime)
+                UpdateScheduleForPlayerChoice(min, max);
+            else
+                UpdateScheduleForRandomLead(min, max);
+        }
+
+        private void UpdateScheduleForPlayerChoice(int min, int max)
+        {
             int triggerDay = timeManager.CurrentDay + leadDays;
 
             SetText(leadText, NewsPresentation.DaysLabel(leadDays));
@@ -298,28 +307,52 @@ namespace AntiqueTradingSimulator.UI
             SetInteractable(increaseButton, leadDays < max);
 
             bool afterCampaign = triggerDay > timeManager.CampaignLength;
-            bool dayTaken = IsDayTaken(triggerDay);
 
+            // Player events are never blocked by what's already scheduled that day (Minor/Major/
+            // Spontaneous/other Player events), so there's no "day taken" case to check for here.
             if (afterCampaign)
                 SetHint("This date is after the end of the campaign.", true);
-            else if (dayTaken)
-                SetHint("This day is not available. Choose another day.", true);
             else
                 SetHint($"This event can be scheduled between {NewsPresentation.DaysLabel(min)} " +
                         $"and {NewsPresentation.DaysLabel(max)} from today.", false);
 
-            SetInteractable(createButton, !afterCampaign && !dayTaken);
+            SetInteractable(createButton, !afterCampaign);
         }
 
-        /// <summary>EventManager allows only one scheduled event per day.</summary>
-        private bool IsDayTaken(int day) =>
-            eventManager != null && eventManager.ScheduledEvents.Any(s => s.TriggerDay == day);
+        /// <summary>
+        /// PlayerSelectsLeadTime == false: the lead time is rolled randomly (between min and max)
+        /// only when the event is actually created, so there's no single day to show yet — the
+        /// stepper is disabled and shows the range instead of a value, and no specific date is shown.
+        /// </summary>
+        private void UpdateScheduleForRandomLead(int min, int max)
+        {
+            SetText(leadText, $"{min} - {max} days");
+            SetText(dateText, "");
+
+            SetInteractable(decreaseButton, false);
+            SetInteractable(increaseButton, false);
+
+            // Checked against the worst case (max lead) so "Create" is never enabled for a roll
+            // that could land past the end of the campaign.
+            int worstCaseDay = timeManager.CurrentDay + max;
+            bool afterCampaign = worstCaseDay > timeManager.CampaignLength;
+
+            if (afterCampaign)
+                SetHint("This date is after the end of the campaign.", true);
+            else
+                SetHint($"This event will be scheduled at random between {NewsPresentation.DaysLabel(min)} " +
+                        $"and {NewsPresentation.DaysLabel(max)} from today.", false);
+
+            SetInteractable(createButton, !afterCampaign);
+        }
 
         private void CreateSelectedEvent()
         {
             if (selected == null || eventManager == null || timeManager == null) return;
 
-            int triggerDay = timeManager.CurrentDay + leadDays;
+            int triggerDay = selected.PlayerSelectsLeadTime
+                ? timeManager.CurrentDay + leadDays
+                : timeManager.CurrentDay + UnityEngine.Random.Range(MinLead(selected), MaxLead(selected) + 1);
 
             if (!eventManager.ScheduleEvent(selected, triggerDay))
             {
