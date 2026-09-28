@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
+using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.News;
 using AntiqueTradingSimulator.Events;
 
@@ -19,13 +21,18 @@ namespace AntiqueTradingSimulator.UI
 
         [Header("Header Actions")]
         [SerializeField] private Button createEventButton;
+        [SerializeField] private CreateEventModalUI createEventModal; // auto-found (also when inactive)
+
+        [Header("Player Information Access (auto-found if empty)")]
+        [SerializeField] private PlayerTrader player;
+        [SerializeField] private TMP_Text accessLevelText;
 
         [Header("Main Content")]
         [SerializeField] private GameObject newsContent;
         [SerializeField] private GameObject activeEventsContent;
 
         [Header("Side Panel")]
-        [SerializeField] private GameObject calendarPanel;
+        [SerializeField] private GameObject calendarPanel; // calendar logic lives in NewsCalendarUI on this object
         [SerializeField] private GameObject newsDetails;
         [SerializeField] private GameObject eventDetails;
 
@@ -44,11 +51,6 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button newsDetailsCloseButton;
         [SerializeField] private Button eventDetailsCloseButton;
 
-        [Header("Calendar")]
-        [SerializeField] private Button previousMonthButton;
-        [SerializeField] private Button nextMonthButton;
-        [SerializeField] private Button[] calendarDayButtons;
-
         private enum ContentMode
         {
             News,
@@ -66,7 +68,9 @@ namespace AntiqueTradingSimulator.UI
         private ContentMode currentMode = ContentMode.News;
         private NewsFilter currentFilter = NewsFilter.All;
 
-        private Button selectedCalendarDay;
+        // Fill the right-side panels with data of the clicked item (added automatically if missing).
+        private DetailsPanelUI newsDetailsUI;
+        private DetailsPanelUI eventDetailsUI;
 
 
         // =====================================================
@@ -76,20 +80,49 @@ namespace AntiqueTradingSimulator.UI
         private void Awake()
         {
             BindButtons();
+
+            newsDetailsUI = GetOrAddDetailsPanel(newsDetails);
+            eventDetailsUI = GetOrAddDetailsPanel(eventDetails);
+
+            if (player == null)
+                player = FindAnyObjectByType<PlayerTrader>();
+
+            if (accessLevelText == null)
+            {
+                Transform t = transform.Find("Header/InfoAccessPanel/AccessInfo/AccessLevelText");
+                if (t != null)
+                    accessLevelText = t.GetComponent<TMP_Text>();
+            }
+        }
+
+        private static DetailsPanelUI GetOrAddDetailsPanel(GameObject panel)
+        {
+            if (panel == null)
+                return null;
+
+            DetailsPanelUI details = panel.GetComponent<DetailsPanelUI>();
+            if (details == null)
+                details = panel.AddComponent<DetailsPanelUI>();
+
+            return details;
         }
 
         private void Start()
         {
             SubscribeToEventManager();
+            SubscribeToNewsManager();
         }
 
         private void OnDestroy()
         {
             UnsubscribeFromEventManager();
+            UnsubscribeFromNewsManager();
         }
 
         protected override void OnShown()
         {
+            UpdateAccessLevelText();
+
             ShowNewsMode();
 
             RefreshNewsList();
@@ -133,6 +166,36 @@ namespace AntiqueTradingSimulator.UI
 
 
         // =====================================================
+        // NEWS MANAGER SUBSCRIPTION
+        // =====================================================
+
+        private void SubscribeToNewsManager()
+        {
+            if (newsManager != null)
+                newsManager.OnNewsPublished += HandleNewsPublished;
+        }
+
+        private void UnsubscribeFromNewsManager()
+        {
+            if (newsManager != null)
+                newsManager.OnNewsPublished -= HandleNewsPublished;
+        }
+
+        private void HandleNewsPublished(NewsItem news)
+        {
+            // Hidden view doesn't need to rebuild – OnShown refreshes it anyway.
+            if (!isActiveAndEnabled)
+                return;
+
+            // Counts in tabs/filters change even when the Active Events tab is open.
+            if (currentMode == ContentMode.News)
+                RefreshNewsList();
+            else
+                UpdateCounts();
+        }
+
+
+        // =====================================================
         // BUTTON BINDING
         // =====================================================
 
@@ -150,26 +213,6 @@ namespace AntiqueTradingSimulator.UI
 
             Bind(newsDetailsCloseButton, CloseNewsDetails);
             Bind(eventDetailsCloseButton, CloseEventDetails);
-
-            Bind(previousMonthButton, PreviousMonth);
-            Bind(nextMonthButton, NextMonth);
-
-            if (calendarDayButtons != null)
-            {
-                foreach (Button button in calendarDayButtons)
-                {
-                    if (button == null)
-                        continue;
-
-                    Button capturedButton = button;
-
-                    button.onClick.RemoveAllListeners();
-
-                    button.onClick.AddListener(
-                        () => SelectCalendarDay(capturedButton)
-                    );
-                }
-            }
         }
 
         private static void Bind(
@@ -263,9 +306,16 @@ namespace AntiqueTradingSimulator.UI
 
             ClearNewsList();
 
-            foreach (NewsItem news in newsManager.PublishedNews)
+            // Newest first (PublishedNews is stored in publishing order).
+            var publishedNews = newsManager.PublishedNews;
+            InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
+
+            for (int i = publishedNews.Count - 1; i >= 0; i--)
             {
-                if (!MatchesCurrentFilter(news))
+                NewsItem news = publishedNews[i];
+
+                // Only news the player actually has access to (same rule as NewsManager uses).
+                if (!NewsPresentation.CanSee(news, accessLevel) || !MatchesCurrentFilter(news))
                     continue;
 
                 NewsListItemUI item = Instantiate(
@@ -275,9 +325,12 @@ namespace AntiqueTradingSimulator.UI
 
                 item.Setup(
                     news,
-                    HandleNewsClicked
+                    HandleNewsClicked,
+                    timeManager
                 );
             }
+
+            UpdateCounts();
         }
 
         private void ClearNewsList()
@@ -287,9 +340,12 @@ namespace AntiqueTradingSimulator.UI
 
             for (int i = newsListContainer.childCount - 1; i >= 0; i--)
             {
-                Destroy(
-                    newsListContainer.GetChild(i).gameObject
-                );
+                GameObject child = newsListContainer.GetChild(i).gameObject;
+
+                // Destroy happens at the end of the frame; hide first so the layout
+                // doesn't show old and new rows together for one frame.
+                child.SetActive(false);
+                Destroy(child);
             }
         }
 
@@ -301,6 +357,10 @@ namespace AntiqueTradingSimulator.UI
             );
 
             OpenNewsDetails();
+
+            // Panel is active now, so it can fill its texts.
+            if (newsDetailsUI != null && currentMode == ContentMode.News)
+                newsDetailsUI.ShowNews(news);
         }
 
         private bool MatchesCurrentFilter(NewsItem news)
@@ -419,6 +479,8 @@ namespace AntiqueTradingSimulator.UI
                     HandleActiveEventClicked
                 );
             }
+
+            UpdateCounts();
         }
 
         private void ClearActiveEventsList()
@@ -450,6 +512,9 @@ namespace AntiqueTradingSimulator.UI
             );
 
             OpenEventDetails();
+
+            if (eventDetailsUI != null && currentMode == ContentMode.ActiveEvents)
+                eventDetailsUI.ShowEvent(activeEvent);
         }
 
 
@@ -526,43 +591,63 @@ namespace AntiqueTradingSimulator.UI
 
 
         // =====================================================
-        // CALENDAR
+        // COUNTS & ACCESS LEVEL
         // =====================================================
 
-        private void PreviousMonth()
+        /// <summary>Updates "News (N)", "Active Events (N)" and the filter chips from what the player can see.</summary>
+        private void UpdateCounts()
         {
-            Debug.Log("Previous calendar month");
+            int all = 0, official = 0, rumours = 0, leaked = 0;
+
+            if (newsManager != null)
+            {
+                InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
+
+                foreach (NewsItem news in newsManager.PublishedNews)
+                {
+                    if (!NewsPresentation.CanSee(news, accessLevel))
+                        continue;
+
+                    all++;
+
+                    switch (news.Type)
+                    {
+                        case NewsType.Official: official++; break;
+                        case NewsType.Rumor: rumours++; break;
+                        case NewsType.Leak: leaked++; break;
+                    }
+                }
+            }
+
+            int activeEvents = eventManager != null ? eventManager.ActiveEvents.Count : 0;
+
+            SetButtonLabel(newsTabButton, $"News  ({all})");
+            SetButtonLabel(activeEventsTabButton, $"Active Events  ({activeEvents})");
+
+            SetButtonLabel(allFilterButton, $"All  ({all})");
+            SetButtonLabel(officialFilterButton, $"Official  ({official})");
+            SetButtonLabel(rumoursFilterButton, $"Rumours  ({rumours})");
+            SetButtonLabel(leakedFilterButton, $"Leaked  ({leaked})");
         }
 
-        private void NextMonth()
+        private void UpdateAccessLevelText()
         {
-            Debug.Log("Next calendar month");
+            if (accessLevelText == null)
+                return;
+
+            accessLevelText.text = NewsPresentation.AccessLevelLabel(
+                NewsPresentation.GetAccessLevel(player)
+            );
         }
 
-        private void SelectCalendarDay(Button button)
+        private static void SetButtonLabel(Button button, string label)
         {
             if (button == null)
                 return;
 
-            if (selectedCalendarDay != null)
-            {
-                SetButtonSelected(
-                    selectedCalendarDay,
-                    false
-                );
-            }
-
-            selectedCalendarDay = button;
-
-            SetButtonSelected(
-                selectedCalendarDay,
-                true
-            );
-
-            Debug.Log(
-                "Selected calendar day: " +
-                button.name
-            );
+            TMP_Text text = button.GetComponentInChildren<TMP_Text>(true);
+            if (text != null)
+                text.text = label;
         }
 
 
@@ -572,7 +657,21 @@ namespace AntiqueTradingSimulator.UI
 
         public void OpenCreateEvent()
         {
-            Debug.Log("Create Event clicked");
+            if (createEventModal == null)
+                createEventModal = FindAnyObjectByType<CreateEventModalUI>(FindObjectsInactive.Include);
+
+            if (createEventModal == null)
+            {
+                Debug.LogError(
+                    "NewsEventsView: Create Event modal not found. " +
+                    "Build it with Tools > UI > News & Events > Build Create Event Modal.",
+                    this
+                );
+
+                return;
+            }
+
+            createEventModal.Open();
         }
 
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -61,96 +60,28 @@ namespace AntiqueTradingSimulator.UI
                 Debug.LogError("NewsListItemUI: DateText not found.", this);
         }
 
+        /// <param name="timeManager">Optional. When given, the date is shown as "14 May 1884" instead of "Day 23".</param>
         public void Setup(
             NewsItem newsItem,
-            Action<NewsItem> onClicked)
+            Action<NewsItem> onClicked,
+            Core.TimeManager timeManager = null)
         {
             news = newsItem;
 
             if (button == null)
                 CacheReferences();
 
-            titleText.text = BuildTitle(news);
-            previewText.text = BuildPreview(news);
-            typeText.text = FormatNewsType(news.Type);
-            dateText.text = $"Day {news.DayPublished}";
+            // All wording comes from NewsPresentation, so the calendar and details panel show the same texts.
+            titleText.text = NewsPresentation.GetTitle(news);
+            previewText.text = NewsPresentation.GetPreview(news);
+            typeText.text = NewsPresentation.TypeLabel(news.Type);
+            dateText.text = NewsPresentation.FormatDay(news.DayPublished, timeManager);
 
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() =>
             {
                 onClicked?.Invoke(news);
             });
-        }
-
-        private static string BuildTitle(NewsItem item)
-        {
-            if (item.NewsData == null || item.NewsData.Count == 0)
-                return "Market information";
-
-            NewsEventData data = item.NewsData[0];
-
-            string subject = BuildSubject(data);
-
-            return data.affectsPriceUp
-                ? $"{subject} gaining market interest"
-                : $"{subject} facing market pressure";
-        }
-
-        private static string BuildPreview(NewsItem item)
-        {
-            if (item.NewsData == null || item.NewsData.Count == 0)
-                return "No additional information available.";
-
-            StringBuilder builder = new StringBuilder();
-
-            for (int i = 0; i < item.NewsData.Count; i++)
-            {
-                NewsEventData data = item.NewsData[i];
-
-                if (i > 0)
-                    builder.Append(" • ");
-
-                builder.Append(BuildSubject(data));
-
-                builder.Append(
-                    data.affectsPriceUp
-                        ? " ↑"
-                        : " ↓"
-                );
-            }
-
-            return builder.ToString();
-        }
-
-        private static string BuildSubject(NewsEventData data)
-        {
-            switch (data.targetScope)
-            {
-                case Events.EventEffect.TargetScope.AntiqueType:
-                    return data.AntiqueType.ToString();
-
-                case Events.EventEffect.TargetScope.Country:
-                    return data.Country.ToString();
-
-                case Events.EventEffect.TargetScope.Century:
-                    return data.Century.ToString();
-
-                case Events.EventEffect.TargetScope.Other:
-                    return "Antique market";
-
-                default:
-                    return "Antique market";
-            }
-        }
-        private static string FormatNewsType(NewsType type)
-        {
-            return type switch
-            {
-                NewsType.Official => "Official",
-                NewsType.Rumor => "Rumour",
-                NewsType.Leak => "Leaked",
-                _ => type.ToString()
-            };
         }
     }
 }

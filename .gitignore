@@ -45,4 +45,14 @@
 Thumbs.db
 
 # Scripts
-/Assets/Scripts/Editor/NewsEvents/
+Assets/Editor
+/Assets/Scripts/Editor/
+UIDumps/
+Assets/TextMesh Pro/Examples & Extras/
+Assets/TextMesh Pro/Examples & Extras.meta
+
+#Temporary
+Assets/_Project/Editor/
+Assets/_Project/Fonts.meta
+Assets/_Project/Fonts/
+Assets/TextMesh Pro/Resources/Fonts & Materials

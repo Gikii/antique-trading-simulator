@@ -16,6 +16,10 @@ namespace AntiqueTradingSimulator.Events
         private readonly List<ScheduledEvent> _scheduledEvents = new List<ScheduledEvent>();
         public IReadOnlyList<ScheduledEvent> ScheduledEvents => _scheduledEvents;
 
+        /// <summary>History of events that already finished (e.g. for the calendar).</summary>
+        private readonly List<ActiveEvent> _endedEvents = new List<ActiveEvent>();
+        public IReadOnlyList<ActiveEvent> EndedEvents => _endedEvents;
+
         [SerializeField] private int maxScheduleAttempts = 20;
 
 
@@ -62,6 +66,7 @@ namespace AntiqueTradingSimulator.Events
 
                 active.End(economyManager.Market, day);
                 _activeEvents.RemoveAt(i);
+                _endedEvents.Add(active);
 
                 Debug.Log($"EventManager: event ended — {active}");
                 OnEventEnded?.Invoke(active);
