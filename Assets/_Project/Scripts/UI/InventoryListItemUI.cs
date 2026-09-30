@@ -46,7 +46,9 @@ namespace AntiqueTradingSimulator.UI
             if (conditionText != null)
             {
                 string condition = UIFormat.ConditionLabel(_antique.Condition);
-                if (_antique.IsReservedForContract)
+                if (_antique.IsListedForSale)
+                    condition += UIFormat.Colorize($"  • listed for {UIFormat.Money(_antique.AskingPrice)}", UIFormat.MutedColor);
+                else if (_antique.IsReservedForContract)
                     condition += UIFormat.Colorize("  • reserved for contract", UIFormat.MutedColor);
                 conditionText.text = condition;
             }

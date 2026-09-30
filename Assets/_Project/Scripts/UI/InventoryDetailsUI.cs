@@ -78,9 +78,12 @@ namespace AntiqueTradingSimulator.UI
 
         [Header("Actions")]
         [SerializeField] private Button listOnMarketButton;
+        [SerializeField] private TMP_Text listOnMarketLabel;
+        [SerializeField] private ListOnMarketModalUI listOnMarketModal;
         [SerializeField] private Button placeOnAuctionButton;
         [SerializeField] private Button sellNowButton;
         [SerializeField] private TMP_Text sellNowLabel;
+        [SerializeField] private SellNowModalUI sellNowModal;
 
         private Antique _currentAntique;
         private InventoryView _inventoryView;
@@ -106,13 +109,20 @@ namespace AntiqueTradingSimulator.UI
                 closeButton.onClick.AddListener(Close);
 
             if (sellNowButton != null)
-                sellNowButton.onClick.AddListener(SellCurrentAntique);
+                sellNowButton.onClick.AddListener(OpenSellNowModal);
 
-            // Player-priced listings and auctions don't exist yet — keep the buttons
-            // visible so the layout is final, but not clickable.
+            if (sellNowModal == null)
+                sellNowModal = FindFirstObjectByType<SellNowModalUI>(FindObjectsInactive.Include);
+
+            // The modal starts inactive, so it has to be searched for including inactive objects.
+            if (listOnMarketModal == null)
+                listOnMarketModal = FindFirstObjectByType<ListOnMarketModalUI>(FindObjectsInactive.Include);
+
             if (listOnMarketButton != null)
-                listOnMarketButton.interactable = false;
+                listOnMarketButton.onClick.AddListener(ToggleMarketListing);
 
+            // Auctions don't exist yet — keep the button visible so the layout is final,
+            // but not clickable.
             if (placeOnAuctionButton != null)
                 placeOnAuctionButton.interactable = false;
         }
@@ -321,11 +331,32 @@ namespace AntiqueTradingSimulator.UI
 
         private void RefreshActions(Antique antique)
         {
+            bool reserved = antique.IsReservedForContract;
+            bool listed = antique.IsListedForSale;
+
+            // List on market <-> Cancel listing
+            if (listOnMarketButton != null)
+                listOnMarketButton.interactable = listed || (!reserved && listOnMarketModal != null);
+
+            if (listOnMarketLabel != null)
+            {
+                if (listed)
+                {
+                    string since = antique.MarketListedOnDay >= 0 ? $" since day {antique.MarketListedOnDay}" : "";
+                    listOnMarketLabel.text = $"Cancel listing\n<size=70%>Listed for {UIFormat.Money(antique.AskingPrice)}{since}</size>";
+                }
+                else
+                {
+                    listOnMarketLabel.text = reserved
+                        ? "List on market\n<size=70%>Reserved for a contract</size>"
+                        : "List on market";
+                }
+            }
+
             if (sellNowButton == null)
                 return;
 
-            bool reserved = antique.IsReservedForContract;
-            sellNowButton.interactable = !reserved;
+            sellNowButton.interactable = !reserved && !listed;
 
             if (sellNowLabel == null)
                 return;
@@ -336,11 +367,38 @@ namespace AntiqueTradingSimulator.UI
                 return;
             }
 
+            if (listed)
+            {
+                sellNowLabel.text = "Sell now\n<size=70%>Cancel the listing first</size>";
+                return;
+            }
+
             float offer = CurrentMarket != null
                 ? CurrentMarket.EstimateInstantSalePrice(antique)
                 : antique.CurrentPrice;
 
             sellNowLabel.text = $"Sell now\n<size=70%>Instant offer: {UIFormat.Money(offer)}</size>";
+        }
+
+        private void ToggleMarketListing()
+        {
+            if (_currentAntique == null)
+                return;
+
+            if (_currentAntique.IsListedForSale)
+            {
+                if (playerTrader == null || !playerTrader.CancelMarketListing(_currentAntique.Id))
+                {
+                    Debug.LogWarning($"InventoryDetailsUI: failed to cancel the listing of {_currentAntique.Id}.");
+                    return;
+                }
+
+                Show(_currentAntique);
+                return;
+            }
+
+            if (listOnMarketModal != null)
+                listOnMarketModal.Open(_currentAntique);
         }
 
         private void Close()
@@ -351,35 +409,12 @@ namespace AntiqueTradingSimulator.UI
                 _inventoryView.ShowCollectionSummary();
         }
 
-        private void SellCurrentAntique()
+        // The sale happens in the modal after confirmation. When it goes through,
+        // InventoryView notices the antique left the collection and shows the summary.
+        private void OpenSellNowModal()
         {
-            if (_currentAntique == null)
-                return;
-
-            if (playerTrader == null)
-            {
-                Debug.LogWarning("InventoryDetailsUI: PlayerTrader reference is missing.");
-                return;
-            }
-
-            string antiqueId = _currentAntique.Id;
-            bool success = playerTrader.SellListing(antiqueId);
-
-            if (!success)
-            {
-                Debug.LogWarning(
-                    $"InventoryDetailsUI: Failed to sell antique {antiqueId}.");
-
-                return;
-            }
-
-            Debug.Log(
-                $"InventoryDetailsUI: Sold antique {antiqueId} for {_currentAntique.CurrentPrice:F2} €.");
-
-            _currentAntique = null;
-
-            if (_inventoryView != null)
-                _inventoryView.ShowCollectionSummary();
+            if (_currentAntique != null && sellNowModal != null)
+                sellNowModal.Open(_currentAntique);
         }
 
         // ------------------------------------------------------------------

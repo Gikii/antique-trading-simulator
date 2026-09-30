@@ -150,9 +150,10 @@ namespace AntiqueTradingSimulator.Agents
                         foreach (var listing in listings)
                         {
                             if (budget <= 0f) break;
-                            if (!IsAcceptablePrice(listing, profile) || listing.CurrentPrice > budget) continue;
+                            float price = listing.SalePrice;
+                            if (!IsAcceptablePrice(listing, profile) || price > budget) continue;
 
-                            if (TryBuy(listing, currentDay)) budget -= listing.CurrentPrice;
+                            if (TryBuy(listing, currentDay)) budget -= price;
                         }
                     }
                     else
@@ -187,9 +188,10 @@ namespace AntiqueTradingSimulator.Agents
             {
                 if (budget <= 0f) break;
                 if (!IsInterestedIn(listing.Definition, profile)) continue;
-                if (!IsAcceptablePrice(listing, profile) || listing.CurrentPrice > budget) continue;
+                float price = listing.SalePrice;
+                if (!IsAcceptablePrice(listing, profile) || price > budget) continue;
 
-                if (TryBuy(listing, currentDay)) budget -= listing.CurrentPrice;
+                if (TryBuy(listing, currentDay)) budget -= price;
             }
         }
 
@@ -251,11 +253,12 @@ namespace AntiqueTradingSimulator.Agents
                     foreach (var listing in candidates)
                     {
                         if (needed <= 0 || budget <= 0f) break;
-                        if (!IsAcceptablePrice(listing, profile) || listing.CurrentPrice > budget) continue;
+                        float price = listing.SalePrice;
+                        if (!IsAcceptablePrice(listing, profile) || price > budget) continue;
 
                         if (TryBuy(listing, currentDay))
                         {
-                            budget -= listing.CurrentPrice;
+                            budget -= price;
                             Inventory.ReserveForContract(listing.Id, contractId);
                             needed--;
                         }
@@ -318,7 +321,7 @@ namespace AntiqueTradingSimulator.Agents
 
         private bool TryBuy(Antique listing, int currentDay)
         {
-            float price = listing.CurrentPrice;
+            float price = listing.SalePrice;
             if (!BuyListing(listing.Id)) return false;
 
             _acquisitions[listing.Id] = new Acquisition { PurchasePrice = price, Day = currentDay };
@@ -335,7 +338,7 @@ namespace AntiqueTradingSimulator.Agents
         {
             var typeState = _economyManager.Market.GetTypeState(listing.DefinitionId);
             float referencePrice = PriceEngine.CalculateReferencePrice(listing.BasePrice, typeState);
-            return listing.CurrentPrice <= referencePrice * profile.MaxPriceMultiplierWillingToPay;
+            return listing.SalePrice <= referencePrice * profile.MaxPriceMultiplierWillingToPay;
         }
 
         private bool IsInterestedIn(AntiqueDefinition def, NpcBehaviorProfile profile)

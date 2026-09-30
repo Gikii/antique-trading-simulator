@@ -253,6 +253,12 @@ namespace AntiqueTradingSimulator.Contracts
                     return false;
                 }
 
+                if (listing.IsListedForSale)
+                {
+                    Debug.LogWarning($"ContractManager: listing {listingId} is listed on the market — cancel the listing before handing it in.");
+                    return false;
+                }
+
                 if (!contract.Requirement.IsSatisfiedBy(listing))
                 {
                     Debug.LogWarning($"ContractManager: listing {listingId} does not match contract {contract.ContractId}'s requirement ({contract.Requirement}).");

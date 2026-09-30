@@ -21,6 +21,15 @@ namespace AntiqueTradingSimulator.Market
         // listings. Owned by EconomyManager so traders can register before the Market exists.
         private readonly IReadOnlyList<TraderInventory> _inventories;
 
+        // Share of an owner-set asking price kept by the market when the listing sells.
+        public const float ListingFeeRate = 0.05f;
+
+        public static float ListingFee(float askingPrice) => Mathf.Max(0f, askingPrice) * ListingFeeRate;
+        public static float ListingProceeds(float askingPrice) => Mathf.Max(0f, askingPrice) - ListingFee(askingPrice);
+
+        /// <summary>Raised when an owner-set listing is bought: antique, seller inventory, price paid, proceeds for the seller.</summary>
+        public event System.Action<Antique, TraderInventory, float, float> OnOwnerListingSold;
+
         public IReadOnlyList<Antique> Listings => _listings;
         public IReadOnlyDictionary<string, AntiqueMarketState> TypeStates => _typeStates;
 
@@ -152,17 +161,97 @@ namespace AntiqueTradingSimulator.Market
                 Debug.LogWarning($"Market: listing with ID {listingId} not found");
                 return false;
             }
+            // An owner-set listing: the owner still holds the antique and gets paid now.
+            if (listing.IsListedForSale)
+                SettleOwnerListing(listing);
+
             listing.OwnerId = newOwnerId;
             _listings.Remove(listing);
-
-            var typeState = GetTypeState(listing.DefinitionId);
-            if (typeState != null)
-            {
-                typeState.Supply = Mathf.Max(0f, typeState.Supply - 1f);
-                typeState.Demand += 0.1f;
-            }
+            ApplyBuyPressure(listing.DefinitionId);
 
             return true;
+        }
+
+        private void SettleOwnerListing(Antique listing)
+        {
+            float price = listing.AskingPrice;
+            float proceeds = ListingProceeds(price);
+            listing.AskingPrice = 0f;
+
+            TraderInventory seller = null;
+            foreach (var inventory in _inventories)
+            {
+                if (inventory.Owns(listing.Id))
+                {
+                    seller = inventory;
+                    break;
+                }
+            }
+
+            if (seller == null)
+            {
+                Debug.LogWarning($"Market: seller of owner listing {listing.Id} not found — nobody was paid.");
+                return;
+            }
+
+            seller.CompleteListingSale(listing, proceeds);
+            OnOwnerListingSold?.Invoke(listing, seller, price, proceeds);
+        }
+
+        /// <summary>
+        /// The owner puts an antique they keep holding on the market at their own price.
+        /// It stays in their inventory (and counts toward their collection) until someone
+        /// buys it — then the owner receives the price minus ListingFee. Adds the same
+        /// supply pressure as any other item offered for sale.
+        /// </summary>
+        public bool ListForSale(Antique antique, float askingPrice, int currentDay)
+        {
+            if (antique == null || askingPrice <= 0f) return false;
+
+            if (_listings.Contains(antique))
+            {
+                Debug.LogWarning($"Market: {antique.Id} is already listed.");
+                return false;
+            }
+
+            antique.AskingPrice = askingPrice;
+            ApplySellPressure(antique.DefinitionId);
+            AddListing(antique, currentDay);
+            // The extra supply lowers this type's value everywhere, the listed item included.
+            RecalculatePricesForDefinition(antique.DefinitionId);
+            return true;
+        }
+
+        /// <summary>Withdraws an owner-set listing. Free of charge; reverses its supply pressure.</summary>
+        public bool CancelListing(Antique antique)
+        {
+            if (antique == null || !antique.IsListedForSale) return false;
+
+            _listings.Remove(antique);
+            antique.AskingPrice = 0f;
+            antique.MarketListedOnDay = -1;
+            ApplyBuyPressure(antique.DefinitionId);
+            RecalculatePricesForDefinition(antique.DefinitionId);
+            return true;
+        }
+
+        // Supply/demand nudges shared by every way an antique enters or leaves the market.
+        private void ApplySellPressure(string definitionId)
+        {
+            var typeState = GetTypeState(definitionId);
+            if (typeState == null) return;
+
+            typeState.Supply += 1f;
+            typeState.Demand = Mathf.Max(0f, typeState.Demand - 0.1f);
+        }
+
+        private void ApplyBuyPressure(string definitionId)
+        {
+            var typeState = GetTypeState(definitionId);
+            if (typeState == null) return;
+
+            typeState.Supply = Mathf.Max(0f, typeState.Supply - 1f);
+            typeState.Demand += 0.1f;
         }
 
         /// <summary>
@@ -180,15 +269,10 @@ namespace AntiqueTradingSimulator.Market
             // Relisting means relinquishing ownership — becomes an anonymous
             // market listing again until someone else buys it.
             listing.OwnerId = "";
+            listing.AskingPrice = 0f;
 
-            var typeState = GetTypeState(listing.DefinitionId);
-            if (typeState != null)
-            {
-                typeState.Supply += 1f;
-                typeState.Demand = Mathf.Max(0f, typeState.Demand - 0.1f);
-            }
-
-            AddListing(listing, currentDay); 
+            ApplySellPressure(listing.DefinitionId);
+            AddListing(listing, currentDay);
         }
 
         /// <summary>
@@ -207,9 +291,8 @@ namespace AntiqueTradingSimulator.Market
             float demand = typeState.Demand;
             try
             {
-                // Must mirror the adjustments in Sell().
-                typeState.Supply += 1f;
-                typeState.Demand = Mathf.Max(0f, typeState.Demand - 0.1f);
+                // Same pressure Sell() applies.
+                ApplySellPressure(antique.DefinitionId);
                 return PriceEngine.CalculatePrice(antique, typeState);
             }
             finally

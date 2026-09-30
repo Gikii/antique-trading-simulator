@@ -75,6 +75,15 @@ namespace AntiqueTradingSimulator.Market
             PurchasedOnDay = -1;
         }
 
+        // Price asked by the owner while the antique is listed on the market by them
+        // (Market.ListForSale). 0 = not an owner listing — buyers pay the market-driven
+        // CurrentPrice. CurrentPrice keeps meaning "market value" either way.
+        public float AskingPrice = 0f;
+        public bool IsListedForSale => AskingPrice > 0f;
+
+        /// <summary>What a buyer pays for this antique right now.</summary>
+        public float SalePrice => IsListedForSale ? AskingPrice : CurrentPrice;
+
         public string ReservedForContractId = null;
         public bool IsReservedForContract => ReservedForContractId != null;
 

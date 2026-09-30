@@ -174,7 +174,10 @@ namespace AntiqueTradingSimulator.UI
 
             // Everything the player owns is in the warehouse for now. Transport, renovation
             // and auctions don't exist yet — their tiles show a placeholder until they do.
-            SetText(inWarehouseText, StatusTile("In warehouse", collection.Count.ToString(), UIFormat.Money(totalValue)));
+            // Listed antiques are still physically in the warehouse until a buyer takes them.
+            int listed = collection.Count(a => a.IsListedForSale);
+            string warehouseDetail = UIFormat.Money(totalValue) + (listed > 0 ? $" · {listed} listed" : "");
+            SetText(inWarehouseText, StatusTile("In warehouse", collection.Count.ToString(), warehouseDetail));
             SetText(inTransportText, StatusTile("In transport", "—", "Coming soon"));
             SetText(inRenovationText, StatusTile("In renovation", "—", "Coming soon"));
             SetText(onAuctionText, StatusTile("On auction", "—", "Coming soon"));

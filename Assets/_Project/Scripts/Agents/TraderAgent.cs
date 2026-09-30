@@ -51,6 +51,19 @@ namespace AntiqueTradingSimulator.Agents
             return TraderHelper.BuyListing(Inventory, market, listingId, traderName, currentDay);
         }
 
+        public bool ListOnMarket(string listingId, float askingPrice)
+        {
+            var market = economyManager != null ? economyManager.Market : null;
+            int currentDay = economyManager != null ? economyManager.TimeManager.CurrentDay : 0;
+            return Inventory.ListForSale(market, listingId, askingPrice, currentDay);
+        }
+
+        public bool CancelMarketListing(string listingId)
+        {
+            var market = economyManager != null ? economyManager.Market : null;
+            return Inventory.CancelListing(market, listingId);
+        }
+
         public bool SellListing(string listingId)
         {
             var market = economyManager != null ? economyManager.Market : null;
