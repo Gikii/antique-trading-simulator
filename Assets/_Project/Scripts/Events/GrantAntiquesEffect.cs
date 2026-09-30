@@ -56,7 +56,7 @@ namespace AntiqueTradingSimulator.Events
             int granted = 0;
             for (int i = 0; i < count; i++)
             {
-                if (GrantOne(playerInventory))
+                if (GrantOne(playerInventory, context.CurrentDay))
                     granted++;
             }
 
@@ -89,7 +89,7 @@ namespace AntiqueTradingSimulator.Events
             };
         }
 
-        private bool GrantOne(TraderInventory playerInventory)
+        private bool GrantOne(TraderInventory playerInventory, int currentDay)
         {
             AntiqueDefinition definition = PickDefinition();
             if (definition == null) return false;
@@ -101,7 +101,7 @@ namespace AntiqueTradingSimulator.Events
             float priceFactor = UnityEngine.Random.Range(Antique.MinPriceFactor, Antique.MaxPriceFactor);
 
             var antique = new Antique(definition.Id, condition, priceFactor, ownerId: Antique.PlayerOwnerId);
-            return playerInventory.GrantHolding(antique);
+            return playerInventory.GrantHolding(antique, currentDay);
         }
 
         private AntiqueDefinition PickDefinition()

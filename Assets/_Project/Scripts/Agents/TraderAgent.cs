@@ -32,12 +32,23 @@ namespace AntiqueTradingSimulator.Agents
 
             if (economyManager == null)
                 economyManager = FindFirstObjectByType<EconomyManager>();
+
+            // Lets the market re-value this trader's holdings together with its own listings.
+            if (economyManager != null)
+                economyManager.RegisterInventory(Inventory);
+        }
+
+        protected virtual void OnDestroy()
+        {
+            if (economyManager != null)
+                economyManager.UnregisterInventory(Inventory);
         }
 
         public bool BuyListing(string listingId)
         {
             var market = economyManager != null ? economyManager.Market : null;
-            return TraderHelper.BuyListing(Inventory, market, listingId, traderName);
+            int currentDay = economyManager != null ? economyManager.TimeManager.CurrentDay : -1;
+            return TraderHelper.BuyListing(Inventory, market, listingId, traderName, currentDay);
         }
 
         public bool SellListing(string listingId)

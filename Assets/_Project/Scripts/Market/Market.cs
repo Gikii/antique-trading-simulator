@@ -17,8 +17,17 @@ namespace AntiqueTradingSimulator.Market
         private readonly List<Antique> _listings = new List<Antique>();
         private readonly Dictionary<string, AntiqueMarketState> _typeStates = new Dictionary<string, AntiqueMarketState>();
 
+        // Inventories (player + NPCs) whose holdings are re-priced together with the
+        // listings. Owned by EconomyManager so traders can register before the Market exists.
+        private readonly IReadOnlyList<TraderInventory> _inventories;
+
         public IReadOnlyList<Antique> Listings => _listings;
         public IReadOnlyDictionary<string, AntiqueMarketState> TypeStates => _typeStates;
+
+        public Market(IReadOnlyList<TraderInventory> inventories = null)
+        {
+            _inventories = inventories ?? new List<TraderInventory>();
+        }
 
         /// <summary>
         /// Registers an AntiqueDefinition with the market so it has Supply/Demand tracked
@@ -182,6 +191,34 @@ namespace AntiqueTradingSimulator.Market
             AddListing(listing, currentDay); 
         }
 
+        /// <summary>
+        /// What the owner would get right now for selling this antique instantly via Sell():
+        /// the price after the sale's own supply/demand impact, exactly as Sell() computes it.
+        /// Does not change any state.
+        /// </summary>
+        public float EstimateInstantSalePrice(Antique antique)
+        {
+            if (antique == null) return 0f;
+
+            var typeState = GetTypeState(antique.DefinitionId);
+            if (typeState == null) return antique.CurrentPrice;
+
+            float supply = typeState.Supply;
+            float demand = typeState.Demand;
+            try
+            {
+                // Must mirror the adjustments in Sell().
+                typeState.Supply += 1f;
+                typeState.Demand = Mathf.Max(0f, typeState.Demand - 0.1f);
+                return PriceEngine.CalculatePrice(antique, typeState);
+            }
+            finally
+            {
+                typeState.Supply = supply;
+                typeState.Demand = demand;
+            }
+        }
+
         public void ApplyMeanReversion(float supplyRate, float demandRate)
         {
             foreach (var typeState in _typeStates.Values)
@@ -200,6 +237,19 @@ namespace AntiqueTradingSimulator.Market
         {
             foreach (var listing in _listings)
                 RecalculatePrice(listing);
+
+            foreach (var inventory in _inventories)
+                inventory.RevalueHoldings(this);
+        }
+
+        public void RecalculatePricesForDefinition(string definitionId)
+        {
+            foreach (var listing in _listings)
+                if (listing.DefinitionId == definitionId)
+                    RecalculatePrice(listing);
+
+            foreach (var inventory in _inventories)
+                inventory.RevalueHoldings(this, definitionId);
         }
 
         public void RecordDailyPrices(int day)
@@ -211,6 +261,9 @@ namespace AntiqueTradingSimulator.Market
                 float referencePrice = PriceEngine.CalculateReferencePrice(basePrice, typeState);
                 typeState.RecordPrice(day, referencePrice);
             }
+
+            foreach (var inventory in _inventories)
+                inventory.RecordValue(day);
         }
     }
 }

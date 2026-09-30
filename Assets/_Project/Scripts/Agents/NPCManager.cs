@@ -71,6 +71,7 @@ namespace AntiqueTradingSimulator.Agents
             _npcs.Remove(npc);
             newsManager?.UnregisterReceiver(npc);
             contractManager?.UnregisterTrader(npcId);
+            if (economyManager != null) economyManager.UnregisterInventory(npc.Inventory);
             OnNPCRemoved?.Invoke(npc);
             return true;
         }
@@ -87,6 +88,7 @@ namespace AntiqueTradingSimulator.Agents
             _npcsById[npc.Id] = npc;
             newsManager?.RegisterReceiver(npc);
             contractManager?.RegisterTrader(npc.Id, npc.Inventory);
+            if (economyManager != null) economyManager.RegisterInventory(npc.Inventory);
             OnNPCAdded?.Invoke(npc);
         }
     }

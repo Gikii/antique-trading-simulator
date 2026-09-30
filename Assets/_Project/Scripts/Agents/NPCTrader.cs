@@ -326,7 +326,7 @@ namespace AntiqueTradingSimulator.Agents
         }
 
         public bool BuyListing(string listingId) =>
-            TraderHelper.BuyListing(Inventory, _economyManager.Market, listingId, TraderName);
+            TraderHelper.BuyListing(Inventory, _economyManager.Market, listingId, TraderName, _economyManager.TimeManager.CurrentDay);
 
         public bool SellListing(string listingId) =>
             TraderHelper.SellListing(Inventory, _economyManager.Market, listingId, TraderName, _economyManager.TimeManager.CurrentDay);

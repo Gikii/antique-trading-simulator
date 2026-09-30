@@ -93,8 +93,8 @@ namespace AntiqueTradingSimulator.Events
 
         private static void RecalculatePricesForDefinition(Market.Market market, string definitionId)
         {
-            foreach (var listing in market.GetListingsByDefinition(definitionId))
-                market.RecalculatePrice(listing);
+            // Covers both open listings and antiques already owned by traders.
+            market.RecalculatePricesForDefinition(definitionId);
         }
 
     }

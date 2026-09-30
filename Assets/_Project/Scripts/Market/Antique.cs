@@ -56,6 +56,25 @@ namespace AntiqueTradingSimulator.Market
         // into pricing until there's a concrete mechanic for it.
         public string History = "";
 
+        // Acquisition record for the current owner. PurchasedOnDay = -1 means the
+        // item has no acquisition record (e.g. an anonymous market listing).
+        // Items received for free (event rewards) keep PurchasePrice = 0.
+        public float PurchasePrice = 0f;
+        public int PurchasedOnDay = -1;
+        public bool HasPurchaseRecord => PurchasedOnDay >= 0;
+
+        public void RecordAcquisition(float price, int day)
+        {
+            PurchasePrice = Mathf.Max(0f, price);
+            PurchasedOnDay = day;
+        }
+
+        public void ClearAcquisition()
+        {
+            PurchasePrice = 0f;
+            PurchasedOnDay = -1;
+        }
+
         public string ReservedForContractId = null;
         public bool IsReservedForContract => ReservedForContractId != null;
 
