@@ -24,6 +24,21 @@ namespace AntiqueTradingSimulator.Economy
         public event Action<float> OnCashChanged;
         public event Action<string, Antique> OnHoldingChanged; // (listingId, listing — null if it was just removed)
 
+        // Fired after the market re-values the holdings (daily tick, events), so UI
+        // showing collection value can refresh without polling.
+        public event Action OnHoldingsRevalued;
+
+        // (antique, proceeds) — an antique this trader listed on the market was bought.
+        public event Action<Antique, float> OnListingSold;
+
+        // Daily snapshot of the total market value of all holdings — feeds the
+        // "collection value over time" chart. Recorded by Market.RecordDailyPrices.
+        private const int MaxValueHistoryDays = 90;
+        private readonly List<PricePoint> _valueHistory = new List<PricePoint>();
+        public IReadOnlyList<PricePoint> ValueHistory => _valueHistory;
+
+        public float TotalHoldingsValue => _holdings.Values.Sum(h => h.CurrentPrice);
+
         public TraderInventory(float startingCash = 0f)
         {
             Cash = startingCash;
@@ -74,9 +89,13 @@ namespace AntiqueTradingSimulator.Economy
         /// is never added to Market.Listings, so it never appears for sale and its
         /// MarketListedOnDay stays -1 until the owner lists it themselves.
         /// </summary>
-        public bool GrantHolding(Antique antique)
+        public bool GrantHolding(Antique antique, int currentDay = -1)
         {
             if (antique == null) return false;
+
+            // Free acquisition — cost basis 0, but remember when it arrived.
+            if (currentDay >= 0 && !antique.HasPurchaseRecord)
+                antique.RecordAcquisition(0f, currentDay);
 
             _holdings[antique.Id] = antique;
 
@@ -84,17 +103,21 @@ namespace AntiqueTradingSimulator.Economy
             return true;
         }
 
-        public bool Buy(Market.Market market, string listingId)
+        public bool Buy(Market.Market market, string listingId, int currentDay = -1)
         {
             var listing = market.GetById(listingId);
             if (listing == null) return false;
 
-            float cost = listing.CurrentPrice;
+            // Can't buy your own listing — cancel it instead.
+            if (Owns(listingId)) return false;
+
+            float cost = listing.SalePrice;
             if (cost > Cash) return false;
 
             if (!market.Buy(listingId)) return false;
 
             Cash -= cost;
+            listing.RecordAcquisition(cost, currentDay);
             _holdings[listing.Id] = listing;
 
             OnCashChanged?.Invoke(Cash);
@@ -112,7 +135,14 @@ namespace AntiqueTradingSimulator.Economy
                 return false;
             }
 
+            if (listing.IsListedForSale)
+            {
+                Debug.LogWarning($"TraderInventory: refused to sell {listingId} — it is listed on the market; cancel the listing first.");
+                return false;
+            }
+
             _holdings.Remove(listingId);
+            listing.ClearAcquisition();
             market.Sell(listing, currentDay);
             Cash += listing.CurrentPrice;
 
@@ -128,6 +158,77 @@ namespace AntiqueTradingSimulator.Economy
             OnHoldingChanged?.Invoke(listingId, null);
             return true;
 
+        }
+
+        /// <summary>
+        /// Lists an owned antique on the market at the given price. The antique stays in
+        /// the holdings until a buyer takes it (see CompleteListingSale).
+        /// </summary>
+        public bool ListForSale(Market.Market market, string listingId, float askingPrice, int currentDay)
+        {
+            if (market == null || askingPrice <= 0f) return false;
+            if (!_holdings.TryGetValue(listingId, out var antique)) return false;
+            if (antique.IsListedForSale || antique.IsReservedForContract) return false;
+
+            if (!market.ListForSale(antique, askingPrice, currentDay)) return false;
+
+            OnHoldingChanged?.Invoke(listingId, antique);
+            return true;
+        }
+
+        public bool CancelListing(Market.Market market, string listingId)
+        {
+            if (market == null) return false;
+            if (!_holdings.TryGetValue(listingId, out var antique)) return false;
+
+            if (!market.CancelListing(antique)) return false;
+
+            OnHoldingChanged?.Invoke(listingId, antique);
+            return true;
+        }
+
+        /// <summary>
+        /// Called by the Market when someone buys an antique this trader listed:
+        /// hands the item over and pays the proceeds (price minus the market fee).
+        /// </summary>
+        public void CompleteListingSale(Antique antique, float proceeds)
+        {
+            if (antique == null || !_holdings.Remove(antique.Id)) return;
+
+            antique.ClearAcquisition();
+            Cash += Mathf.Max(0f, proceeds);
+
+            OnCashChanged?.Invoke(Cash);
+            OnHoldingChanged?.Invoke(antique.Id, null);
+            OnListingSold?.Invoke(antique, proceeds);
+        }
+
+        /// <summary>
+        /// Re-prices every holding against the current market state. Called by the Market
+        /// whenever it re-prices its own listings, so owned items don't keep the price
+        /// they had on the day they were bought.
+        /// </summary>
+        public void RevalueHoldings(Market.Market market, string definitionId = null)
+        {
+            if (market == null) return;
+
+            bool any = false;
+            foreach (var holding in _holdings.Values)
+            {
+                if (definitionId != null && holding.DefinitionId != definitionId) continue;
+                market.RecalculatePrice(holding);
+                any = true;
+            }
+
+            if (any)
+                OnHoldingsRevalued?.Invoke();
+        }
+
+        public void RecordValue(int day)
+        {
+            _valueHistory.Add(new PricePoint(day, TotalHoldingsValue));
+            if (_valueHistory.Count > MaxValueHistoryDays)
+                _valueHistory.RemoveAt(0);
         }
 
         /// <summary>
@@ -165,6 +266,7 @@ namespace AntiqueTradingSimulator.Economy
             if (string.IsNullOrEmpty(contractId)) return false;
             if (!_holdings.TryGetValue(listingId, out var listing)) return false;
             if (listing.IsReservedForContract) return false;
+            if (listing.IsListedForSale) return false;
 
             listing.ReservedForContractId = contractId;
             OnHoldingChanged?.Invoke(listingId, listing);

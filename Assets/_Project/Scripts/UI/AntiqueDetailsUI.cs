@@ -126,8 +126,9 @@ namespace AntiqueTradingSimulator.UI
             if (descriptionText != null)
                 descriptionText.text = antique.Description;
 
+            // Owner listings sell at the owner's asking price, not the market value.
             if (currentPriceText != null)
-                currentPriceText.text = $"{antique.CurrentPrice:F2} €";
+                currentPriceText.text = $"{antique.SalePrice:F2} €";
 
             if (basePriceText != null)
                 basePriceText.text = $"{antique.BasePrice:F2} €";
@@ -146,8 +147,10 @@ namespace AntiqueTradingSimulator.UI
             
 
 
+            // The player's own listings show up on the market too, but can't be bought back —
+            // they're cancelled from the collection view instead.
             if (buyButton != null)
-                buyButton.interactable = true;
+                buyButton.interactable = antique.OwnerId != Antique.PlayerOwnerId;
 
             SetVisible(true);
         }

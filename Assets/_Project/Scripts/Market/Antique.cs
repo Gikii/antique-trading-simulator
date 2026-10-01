@@ -56,6 +56,34 @@ namespace AntiqueTradingSimulator.Market
         // into pricing until there's a concrete mechanic for it.
         public string History = "";
 
+        // Acquisition record for the current owner. PurchasedOnDay = -1 means the
+        // item has no acquisition record (e.g. an anonymous market listing).
+        // Items received for free (event rewards) keep PurchasePrice = 0.
+        public float PurchasePrice = 0f;
+        public int PurchasedOnDay = -1;
+        public bool HasPurchaseRecord => PurchasedOnDay >= 0;
+
+        public void RecordAcquisition(float price, int day)
+        {
+            PurchasePrice = Mathf.Max(0f, price);
+            PurchasedOnDay = day;
+        }
+
+        public void ClearAcquisition()
+        {
+            PurchasePrice = 0f;
+            PurchasedOnDay = -1;
+        }
+
+        // Price asked by the owner while the antique is listed on the market by them
+        // (Market.ListForSale). 0 = not an owner listing — buyers pay the market-driven
+        // CurrentPrice. CurrentPrice keeps meaning "market value" either way.
+        public float AskingPrice = 0f;
+        public bool IsListedForSale => AskingPrice > 0f;
+
+        /// <summary>What a buyer pays for this antique right now.</summary>
+        public float SalePrice => IsListedForSale ? AskingPrice : CurrentPrice;
+
         public string ReservedForContractId = null;
         public bool IsReservedForContract => ReservedForContractId != null;
 

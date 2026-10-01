@@ -32,6 +32,18 @@ namespace AntiqueTradingSimulator.Economy
 
         public Market.Market Market { get; private set; }
 
+        // Field-initialised so traders can register from their own Awake regardless
+        // of script execution order; the Market reads this same list.
+        private readonly List<TraderInventory> _inventories = new List<TraderInventory>();
+
+        public void RegisterInventory(TraderInventory inventory)
+        {
+            if (inventory != null && !_inventories.Contains(inventory))
+                _inventories.Add(inventory);
+        }
+
+        public void UnregisterInventory(TraderInventory inventory) => _inventories.Remove(inventory);
+
         private Core.TimeManager _timeManager;
         public Core.TimeManager TimeManager => _timeManager;
 
@@ -53,7 +65,7 @@ namespace AntiqueTradingSimulator.Economy
 
         private void InitializeMarket()
         {
-            Market = new Market.Market();
+            Market = new Market.Market(_inventories);
 
             List<AntiqueDefinition> allDefinitions = AntiqueDatabase.GetAll();
 

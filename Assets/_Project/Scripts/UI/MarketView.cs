@@ -234,8 +234,8 @@ namespace AntiqueTradingSimulator.UI
 
             result = _sortMode switch
             {
-                MarketSortMode.PriceAsc => result.OrderBy(l => l.CurrentPrice),
-                MarketSortMode.PriceDesc => result.OrderByDescending(l => l.CurrentPrice),
+                MarketSortMode.PriceAsc => result.OrderBy(l => l.SalePrice),
+                MarketSortMode.PriceDesc => result.OrderByDescending(l => l.SalePrice),
                 _ => result.OrderBy(l => l.Name)
             };
 

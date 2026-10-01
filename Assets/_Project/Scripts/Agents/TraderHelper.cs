@@ -8,11 +8,11 @@ namespace AntiqueTradingSimulator.Agents
     /// </summary>
     public class TraderHelper
     {
-        public static bool BuyListing(TraderInventory inventory, Market.Market market, string listingId, string traderName)
+        public static bool BuyListing(TraderInventory inventory, Market.Market market, string listingId, string traderName, int currentDay = -1)
         {
             if (!HasMarket(market, traderName)) return false;
 
-            bool success = inventory.Buy(market, listingId);
+            bool success = inventory.Buy(market, listingId, currentDay);
             LogResult(traderName, "buy", listingId, success, inventory.Cash);
             return success;
         }

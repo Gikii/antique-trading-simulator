@@ -34,8 +34,8 @@ namespace AntiqueTradingSimulator.UI
             nameText.text = listing.Name;
             centuryText.text = $"Century: {listing.Century.ToDisplayString()}";
             conditionText.text = $"Condition: {listing.Condition:P0}";
-            sellerText.text = string.IsNullOrEmpty(listing.OwnerId) ? "Private seller" : listing.OwnerId;
-            priceText.text = $"{listing.CurrentPrice:F2} €";
+            sellerText.text = SellerLabel(listing);
+            priceText.text = $"{listing.SalePrice:F2} €";
 
             if (newBadge != null)
                 newBadge.SetActive(listing.MarketListedOnDay == currentDay);
@@ -47,7 +47,15 @@ namespace AntiqueTradingSimulator.UI
         public void UpdatePrice(Antique listing)
         {
             _listing = listing;
-            priceText.text = $"{listing.CurrentPrice:F2} €";
+            priceText.text = $"{listing.SalePrice:F2} €";
+        }
+
+        private static string SellerLabel(Antique listing)
+        {
+            if (string.IsNullOrEmpty(listing.OwnerId))
+                return "Private seller";
+
+            return listing.OwnerId == Antique.PlayerOwnerId ? "You (your listing)" : listing.OwnerId;
         }
     }
 }
