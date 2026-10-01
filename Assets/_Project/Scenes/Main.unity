@@ -78348,7 +78348,7 @@ MonoBehaviour:
   traderName: Trader
   economyManager: {fileID: 398503183}
   startingCash: 1000
-  accessLevel: 1
+  accessLevel: 5
   contractManager: {fileID: 398503187}
 --- !u!4 &1223275183
 Transform:

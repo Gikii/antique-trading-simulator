@@ -50,7 +50,7 @@ namespace AntiqueTradingSimulator.UI
                 timeManager.OnDayChanged -= HandleDayChanged;
         }
 
-        private void HandleScheduleChanged(EventDefinition definition, int triggerDay) => Refresh();
+        private void HandleScheduleChanged(ScheduledEvent scheduled) => Refresh();
         private void HandleScheduleChanged(ActiveEvent activeEvent) => Refresh();
         private void HandleDayChanged(int day) => Refresh();
 

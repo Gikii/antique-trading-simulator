@@ -11,6 +11,7 @@ namespace AntiqueTradingSimulator.Events
         public string EventDefinitionID { get; }
         public int StartDay { get; }
         public int EndDay { get; }
+        public string InstanceId { get; }
 
         [NonSerialized] private EventDefinition _definitionCache;
         public EventDefinition Definition => _definitionCache ??= EventDatabase.GetById(EventDefinitionID);
@@ -18,12 +19,13 @@ namespace AntiqueTradingSimulator.Events
 
         public List<EventEffect> EffectInstances = new List<EventEffect>();
 
-        public ActiveEvent(EventDefinition definition, int startDay)
+        public ActiveEvent(EventDefinition definition, int startDay, string instanceId = null)
         {
             EventDefinitionID = definition.Id;
             _definitionCache = definition;
             StartDay = startDay;
             EndDay = startDay + Mathf.Max(1, definition.DurationDays);
+            InstanceId = instanceId;
         }
 
         public void Begin(EventContext context)

@@ -24,10 +24,15 @@ namespace AntiqueTradingSimulator.News
         private readonly List<NewsItem> _publishedNews = new();
         public IReadOnlyList<NewsItem> PublishedNews => _publishedNews;
 
-        /// <summary>Raised after a news item has been published (e.g. so the UI can refresh).</summary>
+        /// <summary> Raised after a news item has been published (e.g. so the UI can refresh).</summary>
         public event System.Action<NewsItem> OnNewsPublished;
 
+        /// <summary> Raised when the event the news item is about starts. <summary>
+        public event System.Action<NewsItem> OnNewsResolved;
+
         private readonly List<PendingNews> _pendingNews = new();
+
+        private readonly List<NewsItem> _resolvedBuffer = new();
 
         private struct PendingNews
         {
@@ -35,6 +40,7 @@ namespace AntiqueTradingSimulator.News
             public EventDefinition Definition;
             public int EventTriggerDay;
             public NewsType Type;
+            public string EventInstanceId;
         }
 
 
@@ -48,6 +54,7 @@ namespace AntiqueTradingSimulator.News
             if (eventManager != null)
             {
                 eventManager.OnEventScheduled += HandleEventScheduled;
+                eventManager.OnEventTriggered += HandleEventTriggered;
             }
             else
             {
@@ -73,11 +80,55 @@ namespace AntiqueTradingSimulator.News
             if (eventManager != null)
             {
                 eventManager.OnEventScheduled -= HandleEventScheduled;
+                eventManager.OnEventTriggered -= HandleEventTriggered;
             }
         }
 
-        private void HandleEventScheduled(EventDefinition definition, int triggerDay)
+
+        private void HandleEventTriggered(ActiveEvent activeEvent)
         {
+            if (activeEvent == null) return;
+
+            if (string.IsNullOrEmpty(activeEvent.InstanceId)) return;
+
+            for (int i = _pendingNews.Count - 1; i >= 0; i--)
+            {
+                if (_pendingNews[i].EventInstanceId == activeEvent.InstanceId)
+                    _pendingNews.RemoveAt(i);
+            }
+
+            _resolvedBuffer.Clear();
+
+            foreach (NewsItem news in _publishedNews)
+            {
+                if (news.Resolved || !IsAbout(news, activeEvent)) continue;
+
+                news.MarkResolved();
+                _resolvedBuffer.Add(news);
+            }
+
+            foreach (NewsItem news in _resolvedBuffer)
+                OnNewsResolved?.Invoke(news);
+
+            _resolvedBuffer.Clear();
+        }
+
+        private static bool IsAbout(NewsItem news, ActiveEvent activeEvent)
+        {
+            return !string.IsNullOrEmpty(news.EventInstanceId)
+                && news.EventInstanceId == activeEvent.InstanceId;
+        }
+
+        private void HandleEventScheduled(ScheduledEvent scheduled)
+        {
+            if (scheduled == null) return;
+
+            EventDefinition definition = scheduled.Definition;
+            if (definition == null) return;
+
+            int triggerDay = scheduled.TriggerDay;
+            string instanceId = scheduled.InstanceId;
+
             int today = timeManager != null ? timeManager.CurrentDay : triggerDay;
             int leadDays = triggerDay - today;
             if (leadDays < 1) return;
@@ -104,7 +155,7 @@ namespace AntiqueTradingSimulator.News
                 int day;
                 if (type == NewsType.Official)
                 {
-                    day = Mathf.Clamp(triggerDay - definition.OfficialAnnouncementDaysBefore, minDay, maxDay);
+                    day = Mathf.Clamp(triggerDay - definition.OfficialNewsDaysBefore, minDay, maxDay);
                 }
                 else
                 {
@@ -122,11 +173,11 @@ namespace AntiqueTradingSimulator.News
 
                 if (publishDay <= today)
                 {
-                    PublishNews(definition, type, today, triggerDay);
+                    PublishNews(definition, type, today, triggerDay, instanceId);
                 }
                 else
                 {
-                    _pendingNews.Add(new PendingNews { PublishDay = publishDay, Definition = definition, Type = type, EventTriggerDay = triggerDay });
+                    _pendingNews.Add(new PendingNews { PublishDay = publishDay, Definition = definition, Type = type, EventTriggerDay = triggerDay, EventInstanceId = instanceId });
                     Debug.Log($"NewsManager: {type} queued for '{definition.DisplayName}' [{definition.name}]. publishing day: {publishDay} event trigger day: {triggerDay}.");
                 }
             }
@@ -140,12 +191,12 @@ namespace AntiqueTradingSimulator.News
             {
                 if (_pendingNews[i].PublishDay > newDay) continue;
 
-                PublishNews(_pendingNews[i].Definition, _pendingNews[i].Type, newDay, _pendingNews[i].EventTriggerDay);
+                PublishNews(_pendingNews[i].Definition, _pendingNews[i].Type, newDay, _pendingNews[i].EventTriggerDay, _pendingNews[i].EventInstanceId);
                 _pendingNews.RemoveAt(i);
             }
         }
 
-        private void PublishNews(EventDefinition definition, NewsType type, int day, int eventTriggerDay)
+        private void PublishNews(EventDefinition definition, NewsType type, int day, int eventTriggerDay, string eventInstanceId)
         {
             string label = type switch
             {
@@ -174,7 +225,7 @@ namespace AntiqueTradingSimulator.News
                 _ => InfoAccessLevel.LocalPress
             };
 
-            Publish(new NewsItem(newsData, type, credibility, day, accessLevel, eventTriggerDay));
+            Publish(new NewsItem(newsData, type, credibility, day, accessLevel, eventTriggerDay, definition.Id, eventInstanceId));
         }
 
 

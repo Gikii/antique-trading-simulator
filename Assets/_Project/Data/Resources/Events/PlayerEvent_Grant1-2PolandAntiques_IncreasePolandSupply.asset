@@ -10,18 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
-  m_Name: PlaceholderPlayerEvent
+  m_Name: PlayerEvent_Grant1-2PolandAntiques_IncreasePolandSupply
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
   id: d609316607f1403593d43c966234aa84
-  DisplayName: Sponsor Archeolgic Digsite in Poland
+  DisplayName: Sponsor Archeolgical Research in Poland
   EventType: 3
-  Description: Invest in archelogic research in Poland in exchange for possible antiques.
+  Description: Invest in archelogical research in Poland in exchange for possible
+    antiques.
   DurationDays: 5
   MinLeadDays: 1
   MaxLeadDays: 5
+  PlayerSelectsLeadTime: 1
   FailureChance: 0
   CanBeFakeNews: 1
-  CreateOfficialNews: 1
+  CreateOfficialNews: 0
   OfficialAnnouncementDaysBefore: 1
   CreateRumour: 0
   RumorCredibility: 0.5

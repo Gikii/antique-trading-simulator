@@ -68,9 +68,10 @@ namespace AntiqueTradingSimulator.UI
         private ContentMode currentMode = ContentMode.News;
         private NewsFilter currentFilter = NewsFilter.All;
 
-        // Fill the right-side panels with data of the clicked item (added automatically if missing).
         private DetailsPanelUI newsDetailsUI;
         private DetailsPanelUI eventDetailsUI;
+
+        private NewsItem shownNews;
 
 
         // =====================================================
@@ -172,13 +173,41 @@ namespace AntiqueTradingSimulator.UI
         private void SubscribeToNewsManager()
         {
             if (newsManager != null)
+            {
                 newsManager.OnNewsPublished += HandleNewsPublished;
+                newsManager.OnNewsResolved += HandleNewsResolved;
+            }
         }
 
         private void UnsubscribeFromNewsManager()
         {
             if (newsManager != null)
+            {
                 newsManager.OnNewsPublished -= HandleNewsPublished;
+                newsManager.OnNewsResolved -= HandleNewsResolved;
+            }
+        }
+
+        /// <summary>
+        /// The event a news item announced has started, so the item drops out of the list.
+        /// If its details panel is open it would be showing something that is no longer
+        /// news, so it closes.
+        /// </summary>
+        private void HandleNewsResolved(NewsItem news)
+        {
+            if (shownNews == news)
+            {
+                shownNews = null;
+                CloseNewsDetails();
+            }
+
+            if (!isActiveAndEnabled)
+                return;
+
+            if (currentMode == ContentMode.News)
+                RefreshNewsList();
+            else
+                UpdateCounts();
         }
 
         private void HandleNewsPublished(NewsItem news)
@@ -235,6 +264,7 @@ namespace AntiqueTradingSimulator.UI
         public void ShowNewsMode()
         {
             currentMode = ContentMode.News;
+            shownNews = null;
 
             SetActive(newsContent, true);
             SetActive(activeEventsContent, false);
@@ -252,6 +282,7 @@ namespace AntiqueTradingSimulator.UI
         public void ShowActiveEventsMode()
         {
             currentMode = ContentMode.ActiveEvents;
+            shownNews = null;
 
             SetActive(newsContent, false);
             SetActive(activeEventsContent, true);
@@ -314,6 +345,11 @@ namespace AntiqueTradingSimulator.UI
             {
                 NewsItem news = publishedNews[i];
 
+                // Resolved news announced an event that has already started — it is history
+                // now (the calendar still shows it), so it leaves the list.
+                if (news.Resolved)
+                    continue;
+
                 // Only news the player actually has access to (same rule as NewsManager uses).
                 if (!NewsPresentation.CanSee(news, accessLevel) || !MatchesCurrentFilter(news))
                     continue;
@@ -342,8 +378,6 @@ namespace AntiqueTradingSimulator.UI
             {
                 GameObject child = newsListContainer.GetChild(i).gameObject;
 
-                // Destroy happens at the end of the frame; hide first so the layout
-                // doesn't show old and new rows together for one frame.
                 child.SetActive(false);
                 Destroy(child);
             }
@@ -360,7 +394,10 @@ namespace AntiqueTradingSimulator.UI
 
             // Panel is active now, so it can fill its texts.
             if (newsDetailsUI != null && currentMode == ContentMode.News)
+            {
                 newsDetailsUI.ShowNews(news);
+                shownNews = news;
+            }
         }
 
         private bool MatchesCurrentFilter(NewsItem news)
@@ -401,6 +438,8 @@ namespace AntiqueTradingSimulator.UI
 
         public void CloseNewsDetails()
         {
+            shownNews = null;
+
             SetActive(newsDetails, false);
             SetActive(eventDetails, false);
 
@@ -594,7 +633,6 @@ namespace AntiqueTradingSimulator.UI
         // COUNTS & ACCESS LEVEL
         // =====================================================
 
-        /// <summary>Updates "News (N)", "Active Events (N)" and the filter chips from what the player can see.</summary>
         private void UpdateCounts()
         {
             int all = 0, official = 0, rumours = 0, leaked = 0;
@@ -605,7 +643,8 @@ namespace AntiqueTradingSimulator.UI
 
                 foreach (NewsItem news in newsManager.PublishedNews)
                 {
-                    if (!NewsPresentation.CanSee(news, accessLevel))
+                    // Same rule as RefreshNewsList, so the counts match the rows on screen.
+                    if (news.Resolved || !NewsPresentation.CanSee(news, accessLevel))
                         continue;
 
                     all++;

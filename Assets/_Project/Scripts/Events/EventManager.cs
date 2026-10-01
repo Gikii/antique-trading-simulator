@@ -31,9 +31,10 @@ namespace AntiqueTradingSimulator.Events
 
         public event Action<ActiveEvent> OnEventTriggered;
         public event Action<ActiveEvent> OnEventEnded;
-        public event Action<EventDefinition, int> OnEventScheduled;
+
+        public event Action<ScheduledEvent> OnEventScheduled;
         /// <summary>Fired when a Player event rolls its FailureChance and fails — its effects never apply.</summary>
-        public event Action<EventDefinition, int> OnEventFailed;
+        public event Action<ScheduledEvent> OnEventFailed;
 
         void Awake()
         {
@@ -101,11 +102,11 @@ namespace AntiqueTradingSimulator.Events
                 if (definition.EventType == EventType.Player && UnityEngine.Random.value < definition.FailureChance)
                 {
                     Debug.Log($"EventManager: player event failed — {definition.DisplayName} did not occur (Day {day}).");
-                    OnEventFailed?.Invoke(definition, day);
+                    OnEventFailed?.Invoke(scheduled);
                     continue;
                 }
 
-                var active = new ActiveEvent(definition, day);
+                var active = new ActiveEvent(definition, day, scheduled.InstanceId);
                 active.Begin(BuildContext(day));
 
                 _activeEvents.Add(active);
@@ -124,10 +125,6 @@ namespace AntiqueTradingSimulator.Events
                 return false;
             }
 
-            // Different event types don't interfere with each other (a Minor and a Player event can
-            // share a day), but non-player types are still limited to one of their own type per day
-            // (e.g. only one Minor event per day). Player-created events are never blocked by what's
-            // already on the calendar that day, including other Player events.
             if (definition.EventType != EventType.Player &&
                 _scheduledEvents.Any(s => s.EventType == definition.EventType && s.TriggerDay == triggerDay))
             {
@@ -135,10 +132,11 @@ namespace AntiqueTradingSimulator.Events
                 return false;
             }
 
-            _scheduledEvents.Add(new ScheduledEvent(triggerDay, definition));
+            var scheduled = new ScheduledEvent(triggerDay, definition);
+            _scheduledEvents.Add(scheduled);
 
             Debug.Log($"EventManager: event scheduled — {definition.name} (Day {triggerDay})");
-            OnEventScheduled?.Invoke(definition, triggerDay);
+            OnEventScheduled?.Invoke(scheduled);
             return true;
         }
 
