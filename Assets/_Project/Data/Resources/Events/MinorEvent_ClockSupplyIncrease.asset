@@ -10,33 +10,36 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
-  m_Name: NewEvent
+  m_Name: MinorEvent_ClockSupplyIncrease
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
-  id: 1
-  DisplayName: sdfgsgdgsdg
-  Description: 
-  DurationDays: 5
-  MinLeadDays: 1
-  MaxLeadDays: 5
+  id: 2
+  DisplayName: Clock Collector's Estate Sale
+  EventType: 1
+  Description: A minor antique clock collector has passed away and his estate is
+    selling the clocks collected over his life. More clocks may appear at the market.
+  DurationDays: 3
+  MinLeadDays: 3
+  MaxLeadDays: 7
+  PlayerSelectsLeadTime: 1
+  FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
-  OfficialCredibility: 1
-  CreateRumour: 0
+  OfficialAnnouncementDaysBefore: 1
+  CreateRumour: 1
   RumorCredibility: 0.5
-  CreateLeak: 0
-  LeakDaysBefore: 0
+  CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
-  - rid: 5782432427038736453
+  - rid: 5782432427038736451
   references:
     version: 2
     RefIds:
-    - rid: 5782432427038736453
-      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+    - rid: 5782432427038736451
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
         AntiqueType: 1
         Country: 0
         Century: 0
-        tempDemandChange: 1
-        permDemandChange: 0
+        tempSupplyChange: 1
+        permSupplyChange: 0

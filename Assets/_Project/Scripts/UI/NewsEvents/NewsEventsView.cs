@@ -72,6 +72,16 @@ namespace AntiqueTradingSimulator.UI
         private DetailsPanelUI newsDetailsUI;
         private DetailsPanelUI eventDetailsUI;
 
+        // The news item currently shown in the details panel, so the panel can be closed
+        // if that item stops being news.
+        private NewsItem shownNews;
+
+        /// <summary>
+        /// Today, or a day so early that nothing counts as started — without a TimeManager the
+        /// view cannot tell what is in the past, and showing every item beats hiding every item.
+        /// </summary>
+        private int CurrentDayOrNone => timeManager != null ? timeManager.CurrentDay : int.MinValue;
+
 
         // =====================================================
         // UNITY LIFECYCLE
@@ -111,12 +121,14 @@ namespace AntiqueTradingSimulator.UI
         {
             SubscribeToEventManager();
             SubscribeToNewsManager();
+            SubscribeToTimeManager();
         }
 
         private void OnDestroy()
         {
             UnsubscribeFromEventManager();
             UnsubscribeFromNewsManager();
+            UnsubscribeFromTimeManager();
         }
 
         protected override void OnShown()
@@ -181,6 +193,40 @@ namespace AntiqueTradingSimulator.UI
                 newsManager.OnNewsPublished -= HandleNewsPublished;
         }
 
+        // =====================================================
+        // CLOCK SUBSCRIPTION
+        // =====================================================
+
+        private void SubscribeToTimeManager()
+        {
+            if (timeManager != null)
+                timeManager.OnDayChanged += HandleDayChanged;
+        }
+
+        private void UnsubscribeFromTimeManager()
+        {
+            if (timeManager != null)
+                timeManager.OnDayChanged -= HandleDayChanged;
+        }
+
+        /// <summary>
+        /// A new day can push announced events into the past, which drops their news out of
+        /// the list. If the open details panel is showing one of those, it closes.
+        /// </summary>
+        private void HandleDayChanged(int newDay)
+        {
+            if (shownNews != null && shownNews.EventStarted(newDay))
+                CloseNewsDetails();
+
+            if (!isActiveAndEnabled)
+                return;
+
+            if (currentMode == ContentMode.News)
+                RefreshNewsList();
+            else
+                UpdateCounts();
+        }
+
         private void HandleNewsPublished(NewsItem news)
         {
             // Hidden view doesn't need to rebuild – OnShown refreshes it anyway.
@@ -235,6 +281,7 @@ namespace AntiqueTradingSimulator.UI
         public void ShowNewsMode()
         {
             currentMode = ContentMode.News;
+            shownNews = null;
 
             SetActive(newsContent, true);
             SetActive(activeEventsContent, false);
@@ -252,6 +299,7 @@ namespace AntiqueTradingSimulator.UI
         public void ShowActiveEventsMode()
         {
             currentMode = ContentMode.ActiveEvents;
+            shownNews = null;
 
             SetActive(newsContent, false);
             SetActive(activeEventsContent, true);
@@ -309,12 +357,15 @@ namespace AntiqueTradingSimulator.UI
             // Newest first (PublishedNews is stored in publishing order).
             var publishedNews = newsManager.PublishedNews;
             InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
+            int currentDay = CurrentDayOrNone;
 
             for (int i = publishedNews.Count - 1; i >= 0; i--)
             {
                 NewsItem news = publishedNews[i];
 
-                // Only news the player actually has access to (same rule as NewsManager uses).
+                if (news.EventStarted(currentDay))
+                    continue;
+
                 if (!NewsPresentation.CanSee(news, accessLevel) || !MatchesCurrentFilter(news))
                     continue;
 
@@ -360,7 +411,10 @@ namespace AntiqueTradingSimulator.UI
 
             // Panel is active now, so it can fill its texts.
             if (newsDetailsUI != null && currentMode == ContentMode.News)
+            {
                 newsDetailsUI.ShowNews(news);
+                shownNews = news;
+            }
         }
 
         private bool MatchesCurrentFilter(NewsItem news)
@@ -401,6 +455,8 @@ namespace AntiqueTradingSimulator.UI
 
         public void CloseNewsDetails()
         {
+            shownNews = null;
+
             SetActive(newsDetails, false);
             SetActive(eventDetails, false);
 
@@ -602,10 +658,12 @@ namespace AntiqueTradingSimulator.UI
             if (newsManager != null)
             {
                 InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
+                int currentDay = CurrentDayOrNone;
 
                 foreach (NewsItem news in newsManager.PublishedNews)
                 {
-                    if (!NewsPresentation.CanSee(news, accessLevel))
+                    // Same rule as RefreshNewsList, so the counts match the rows on screen.
+                    if (news.EventStarted(currentDay) || !NewsPresentation.CanSee(news, accessLevel))
                         continue;
 
                     all++;
