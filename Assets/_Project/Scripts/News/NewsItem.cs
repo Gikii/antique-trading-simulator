@@ -12,6 +12,7 @@ namespace AntiqueTradingSimulator.News
         public int DayPublished { get; }
         public int EventTriggerDay { get; }
         public InfoAccessLevel RequiredAccessLevel { get; }
+        public bool EventStarted(int currentDay) => currentDay >= EventTriggerDay;
 
         public NewsItem(List<NewsEventData> newsData, NewsType type, float credibility, int dayPublished, InfoAccessLevel requiredAccessLevel, int eventTriggerDay)
         {
