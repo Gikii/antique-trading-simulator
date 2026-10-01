@@ -1,4 +1,5 @@
-﻿using AntiqueTradingSimulator.Contracts;
+﻿using System.Collections.Generic;
+using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Market;
 using UnityEngine;
 
@@ -37,6 +38,21 @@ namespace AntiqueTradingSimulator.Agents
                 return false;
 
             return Inventory.CommitToContract(contractId);
+        }
+
+        public bool FulfillContract(string contractId, IEnumerable<string> listingIds)
+        {
+            if (string.IsNullOrEmpty(contractId) || contractManager == null)
+                return false;
+
+            if (!Inventory.IsCommittedToContract(contractId))
+                return false;
+
+            if (!contractManager.FulfillContract(contractId, Antique.PlayerOwnerId, Inventory, listingIds))
+                return false;
+
+            Inventory.ReleaseCommittedContract(contractId);
+            return true;
         }
     }
 }

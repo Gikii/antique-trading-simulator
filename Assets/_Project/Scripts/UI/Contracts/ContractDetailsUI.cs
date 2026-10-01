@@ -33,14 +33,21 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button acceptButton;
 
         [Header("My Contracts tab only")]
+
+        [SerializeField] private GameObject fulfillButtonContainer;
+        [SerializeField] private Button fulfillButton;
+        [SerializeField] private TMP_Text fulfillButtonLabel;
         [SerializeField] private GameObject myContractsContent;
 
         [Header("Empty state")]
         [SerializeField] private GameObject noSelectionState;
         [SerializeField] private GameObject detailsContent;
 
+        private const string DefaultFulfillLabel = "Fulfill Contract";
+
         private Contract _contract;
         private Action<Contract> _onAccept;
+        private Action<Contract> _onFulfill;
 
         private void Awake()
         {
@@ -50,12 +57,16 @@ namespace AntiqueTradingSimulator.UI
             if (acceptButton != null)
                 acceptButton.onClick.AddListener(HandleAcceptClicked);
 
+            if (fulfillButton != null)
+                fulfillButton.onClick.AddListener(HandleFulfillClicked);
+
             ShowEmptyState();
         }
 
-        public void Initialize(Action<Contract> onAccept)
+        public void Initialize(Action<Contract> onAccept, Action<Contract> onFulfill = null)
         {
             _onAccept = onAccept;
+            _onFulfill = onFulfill;
         }
 
         public void SetMode(ContractsTab tab)
@@ -63,11 +74,15 @@ namespace AntiqueTradingSimulator.UI
             if (acceptButtonContainer != null)
                 acceptButtonContainer.SetActive(tab == ContractsTab.Available);
 
+            if (fulfillButtonContainer != null)
+                fulfillButtonContainer.SetActive(tab == ContractsTab.Mine);
+
             if (myContractsContent != null)
                 myContractsContent.SetActive(tab == ContractsTab.Mine);
         }
 
-        public void Show(Contract contract, ContractsTab tab, bool canAccept)
+
+        public void Show(Contract contract, ContractsTab tab, bool canAccept, bool canFulfill = false, string fulfillLabel = null)
         {
             if (contract == null)
             {
@@ -81,7 +96,7 @@ namespace AntiqueTradingSimulator.UI
             if (noSelectionState != null) noSelectionState.SetActive(false);
 
             if (nameText != null)
-                nameText.text = string.Empty; // no name generation yet
+                nameText.text = string.Empty;
 
             var req = contract.Requirement;
 
@@ -117,6 +132,12 @@ namespace AntiqueTradingSimulator.UI
 
             if (acceptButton != null)
                 acceptButton.interactable = canAccept;
+
+            if (fulfillButtonLabel != null)
+                fulfillButtonLabel.text = string.IsNullOrEmpty(fulfillLabel) ? DefaultFulfillLabel : fulfillLabel;
+
+            if (fulfillButton != null)
+                fulfillButton.interactable = canFulfill;
         }
 
         public void ShowEmptyState()
@@ -130,6 +151,12 @@ namespace AntiqueTradingSimulator.UI
         {
             if (_contract == null) return;
             _onAccept?.Invoke(_contract);
+        }
+
+        private void HandleFulfillClicked()
+        {
+            if (_contract == null) return;
+            _onFulfill?.Invoke(_contract);
         }
     }
 }

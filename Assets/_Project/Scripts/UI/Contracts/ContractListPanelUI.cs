@@ -52,7 +52,7 @@ namespace AntiqueTradingSimulator.UI
         private const int ItemsPerPage = 6;
 
         [Header("Empty state")]
-        [SerializeField] private GameObject emptyStateLabel; // optional — shown when the filtered list has 0 results
+        [SerializeField] private GameObject emptyStateLabel;
 
         private ContractTypeFilter _typeFilter = ContractTypeFilter.All;
         private ContractAttributeFilter _attributeFilter = ContractAttributeFilter.All;
