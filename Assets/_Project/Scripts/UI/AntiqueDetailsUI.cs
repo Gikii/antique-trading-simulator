@@ -53,6 +53,7 @@ namespace AntiqueTradingSimulator.UI
         // panel is hidden. Fading it out via CanvasGroup instead keeps the
         // GameObject active, so its column stays reserved.
         [SerializeField] private CanvasGroup canvasGroup;
+        [SerializeField] private GameObject transactionHistoryPanel;
         // Temporary placeholder until unique items carry real, meaningful History
         // text — swap this back to antique.History once that content exists.
         private const string PlaceholderHistoryText =
@@ -81,6 +82,9 @@ namespace AntiqueTradingSimulator.UI
 
         private void SetVisible(bool visible)
         {
+            if (transactionHistoryPanel != null)
+                transactionHistoryPanel.SetActive(!visible);
+
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = visible ? 1f : 0f;

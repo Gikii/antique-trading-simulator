@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_ClockSupplyTempIncrease
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 2
+  DisplayName: Clock Collector's Estate Sale
+  EventType: 1
+  Description: A minor antique clock collector has passed away and his estate is
+    selling the clocks collected over his life. More clocks may appear at the market.
+  DurationDays: 3
+  MinLeadDays: 3
+  MaxLeadDays: 7
+  PlayerSelectsLeadTime: 1
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementDaysBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 5782432427038736451
+  references:
+    version: 2
+    RefIds:
+    - rid: 5782432427038736451
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 1
+        Country: 0
+        Century: 0
+        tempSupplyChange: 1
+        permSupplyChange: 0
