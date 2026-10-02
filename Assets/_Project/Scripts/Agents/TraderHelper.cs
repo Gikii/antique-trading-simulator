@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Economy;
+using System.Reflection;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Agents
@@ -12,8 +13,15 @@ namespace AntiqueTradingSimulator.Agents
         {
             if (!HasMarket(market, traderName)) return false;
 
+            var listing = market.GetById(listingId);
+            string antiqueName = listing != null ? listing.Name : null;
+            float price = listing != null ? listing.SalePrice : 0f;
+
             bool success = inventory.Buy(market, listingId, currentDay);
             LogResult(traderName, "buy", listingId, success, inventory.Cash);
+            if (success) {
+                market.Feed.AddPurchase(traderName, antiqueName, price);
+            }
             return success;
         }
 

@@ -33,6 +33,7 @@ namespace AntiqueTradingSimulator.Market
         public IReadOnlyList<Antique> Listings => _listings;
         public IReadOnlyDictionary<string, AntiqueMarketState> TypeStates => _typeStates;
 
+        public MarketFeed Feed { get; } = new MarketFeed();
         public Market(IReadOnlyList<TraderInventory> inventories = null)
         {
             _inventories = inventories ?? new List<TraderInventory>();
@@ -105,6 +106,7 @@ namespace AntiqueTradingSimulator.Market
             listing.MarketListedOnDay = currentDay;
             RecalculatePrice(listing);
             _listings.Add(listing);
+            Feed.AddListing(listing.Name, listing.SalePrice);
         }
 
         public Antique GetById(string listingId)
