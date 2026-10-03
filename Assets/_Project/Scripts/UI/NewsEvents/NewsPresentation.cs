@@ -46,6 +46,10 @@ namespace AntiqueTradingSimulator.UI
             if (item.NewsData == null || item.NewsData.Count == 0)
                 return "Market information";
 
+            if (item.Type == NewsType.Official)
+                return $"{item.OfficialName} official announcement";
+
+
             NewsEventData data = item.NewsData[0];
             string subject = GetSubject(data);
 
