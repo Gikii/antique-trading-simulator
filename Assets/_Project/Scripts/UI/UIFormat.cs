@@ -1,4 +1,5 @@
 using System.Globalization;
+using AntiqueTradingSimulator.Core;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.UI
@@ -12,6 +13,7 @@ namespace AntiqueTradingSimulator.UI
         public static readonly Color PositiveColor = NewsPresentation.OfficialColor;
         public static readonly Color NegativeColor = NewsPresentation.EventColor;
         public static readonly Color MutedColor = new Color32(0xB8, 0xB8, 0xB8, 0xFF);
+        public static readonly Color InTransitColor = new Color32(0x7F, 0xB3, 0xD5, 0xFF);
 
         private static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo
         {
@@ -39,6 +41,37 @@ namespace AntiqueTradingSimulator.UI
             string sign = percent > 0.05f ? "+" : "";
             return sign + percent.ToString("0.0", CultureInfo.InvariantCulture) + "%";
         }
+
+        private static TimeManager _timeManager;
+
+        private static TimeManager GameClock
+        {
+            get
+            {
+                if (_timeManager == null)
+                    _timeManager = Object.FindFirstObjectByType<TimeManager>();
+                return _timeManager;
+            }
+        }
+
+        /// <summary>"7 October" for a game day, or "day 37" without a TimeManager.</summary>
+        public static string GameDate(int day) =>
+            GameClock != null ? TimeManager.FormatDayMonth(GameClock.DayToDate(day)) : $"day {day}";
+
+        /// <summary>"arrives 7 October (in 2 days)" / "arrives tomorrow" / "arriving today".</summary>
+        public static string ArrivalLabel(int arrivalDay)
+        {
+            int today = GameClock != null ? GameClock.CurrentDay : arrivalDay;
+            int daysLeft = arrivalDay - today;
+
+            if (daysLeft <= 0) return "arriving today";
+            if (daysLeft == 1) return $"arrives tomorrow ({GameDate(arrivalDay)})";
+            return $"arrives {GameDate(arrivalDay)} (in {Days(daysLeft)})";
+        }
+
+        /// <summary>"1 day" / "5 days"</summary>
+        public static string Days(int days) =>
+            days == 1 ? "1 day" : $"{days} days";
 
         public static string Percent(float ratio) =>
             Mathf.RoundToInt(ratio * 100f).ToString(CultureInfo.InvariantCulture) + "%";

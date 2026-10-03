@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Economy;
+using AntiqueTradingSimulator.Logistics;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -26,6 +27,12 @@ namespace AntiqueTradingSimulator.Market
 
         public static float ListingFee(float askingPrice) => Mathf.Max(0f, askingPrice) * ListingFeeRate;
         public static float ListingProceeds(float askingPrice) => Mathf.Max(0f, askingPrice) - ListingFee(askingPrice);
+
+        // Where anonymous sellers of newly generated listings are located, relative to the
+        // buyer. Determines transport cost and time (TransportManager). Sum doesn't need to be 1.
+        public const float LocalListingWeight = 0.30f;
+        public const float DomesticListingWeight = 0.45f;
+        public const float InternationalListingWeight = 0.25f;
 
         /// <summary>Raised when an owner-set listing is bought: antique, seller inventory, price paid, proceeds for the seller.</summary>
         public event System.Action<Antique, TraderInventory, float, float> OnOwnerListingSold;
@@ -75,8 +82,19 @@ namespace AntiqueTradingSimulator.Market
 
 
             var listing = new Antique(definitionId, condition, priceFactor);
+            listing.ShippingZone = RollShippingZone();
             AddListing(listing, currentDay);
             return listing;
+        }
+
+        private static ShippingZone RollShippingZone()
+        {
+            float total = LocalListingWeight + DomesticListingWeight + InternationalListingWeight;
+            float roll = Random.value * total;
+
+            if (roll < LocalListingWeight) return ShippingZone.Local;
+            if (roll < LocalListingWeight + DomesticListingWeight) return ShippingZone.Domestic;
+            return ShippingZone.International;
         }
 
         private string PickWeightedDefinitionId()
@@ -217,6 +235,7 @@ namespace AntiqueTradingSimulator.Market
             }
 
             antique.AskingPrice = askingPrice;
+            antique.ShippingZone = ShippingZone.Domestic; // ships from the owner's warehouse
             ApplySellPressure(antique.DefinitionId);
             AddListing(antique, currentDay);
             // The extra supply lowers this type's value everywhere, the listed item included.
@@ -272,6 +291,8 @@ namespace AntiqueTradingSimulator.Market
             // market listing again until someone else buys it.
             listing.OwnerId = "";
             listing.AskingPrice = 0f;
+            listing.ShippingZone = ShippingZone.Domestic;
+            listing.MarkArrived();
 
             ApplySellPressure(listing.DefinitionId);
             AddListing(listing, currentDay);

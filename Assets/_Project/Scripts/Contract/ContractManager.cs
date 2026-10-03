@@ -259,6 +259,12 @@ namespace AntiqueTradingSimulator.Contracts
                     return false;
                 }
 
+                if (listing.IsInTransit)
+                {
+                    Debug.LogWarning($"ContractManager: listing {listingId} is still in transit (arrives day {listing.ArrivalDay}) — it can be handed in once delivered.");
+                    return false;
+                }
+
                 if (!contract.Requirement.IsSatisfiedBy(listing))
                 {
                     Debug.LogWarning($"ContractManager: listing {listingId} does not match contract {contract.ContractId}'s requirement ({contract.Requirement}).");

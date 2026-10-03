@@ -40,8 +40,17 @@ namespace AntiqueTradingSimulator.UI
             if (_antique == null)
                 return;
 
+            // Short marker only — the row is narrow; the arrival date is in the hover tooltip.
             if (nameText != null)
-                nameText.text = _antique.Name;
+                nameText.text = _antique.IsInTransit
+                    ? $"{_antique.Name}  {UIFormat.Colorize("• in transit", UIFormat.InTransitColor)}"
+                    : _antique.Name;
+
+            var tooltip = GetComponent<TooltipTrigger>();
+            if (_antique.IsInTransit)
+                TooltipTrigger.On(this).Text = $"In transit — {UIFormat.ArrivalLabel(_antique.ArrivalDay)}.";
+            else if (tooltip != null)
+                tooltip.Text = "";
 
             if (conditionText != null)
             {

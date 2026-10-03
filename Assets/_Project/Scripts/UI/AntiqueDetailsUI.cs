@@ -1,4 +1,5 @@
 ﻿using AntiqueTradingSimulator.Agents;
+using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
 using TMPro;
 using UnityEngine;
@@ -31,6 +32,10 @@ namespace AntiqueTradingSimulator.UI
         [Header("Price")]
         [SerializeField] private TMP_Text currentPriceText;
 
+        [Header("Shipping")]
+        [Tooltip("e.g. \"Ships from International · 5 days, ~120 € (Standard)\". Optional.")]
+        [SerializeField] private TMP_Text shippingText;
+
 
         [Header("Debug / Additional")]
         [SerializeField] private TMP_Text listingIdText;
@@ -41,6 +46,9 @@ namespace AntiqueTradingSimulator.UI
 
         [Header("Dependencies")]
         [SerializeField] private PlayerTrader playerTrader;
+        [SerializeField] private TransportManager transportManager;
+        [Tooltip("Confirmation modal opened by Buy. If missing, Buy purchases directly with Standard transport.")]
+        [SerializeField] private BuyModalUI buyModal;
 
         [Header("History (unique items only)")]
         [SerializeField] private TMP_Text historyText;
@@ -67,6 +75,15 @@ namespace AntiqueTradingSimulator.UI
         {
             if (playerTrader == null)
                 playerTrader = FindFirstObjectByType<PlayerTrader>();
+
+            if (transportManager == null)
+                transportManager = FindFirstObjectByType<TransportManager>();
+
+            if (buyModal == null)
+                buyModal = FindFirstObjectByType<BuyModalUI>(FindObjectsInactive.Include);
+
+            if (buyModal != null)
+                buyModal.Bought += HandleBought;
 
             if (canvasGroup == null)
                 canvasGroup = GetComponent<CanvasGroup>();
@@ -137,6 +154,9 @@ namespace AntiqueTradingSimulator.UI
             if (basePriceText != null)
                 basePriceText.text = $"{antique.BasePrice:F2} €";
 
+            if (shippingText != null)
+                shippingText.text = ShippingLabel(antique);
+
             if (listingIdText != null)
                 listingIdText.text = $"ID: {antique.Id}";
 
@@ -165,10 +185,44 @@ namespace AntiqueTradingSimulator.UI
             SetVisible(false);
         }
 
+        private void OnDestroy()
+        {
+            if (buyModal != null)
+                buyModal.Bought -= HandleBought;
+        }
+
+        private string ShippingLabel(Antique antique)
+        {
+            string zone = $"Ships from {antique.ShippingZone.ToDisplayString()}";
+            if (transportManager == null)
+                return zone;
+
+            TransportQuote quote = transportManager.Quote(antique, TransportOption.Standard);
+            return quote != null
+                ? $"{zone} · {UIFormat.Days(quote.DurationDays)}, ~{UIFormat.Money(quote.Cost)} (Standard)"
+                : zone;
+        }
+
+        private void HandleBought(Antique antique)
+        {
+            if (marketView != null)
+                marketView.RefreshListings();
+
+            Debug.Log($"AntiqueDetailsUI: Bought antique {antique.Id}.");
+            Hide();
+        }
+
         private void BuyCurrentAntique()
         {
             if (_currentAntique == null)
                 return;
+
+            // Normal path: confirm (and pick transport) in the modal; HandleBought finishes up.
+            if (buyModal != null)
+            {
+                buyModal.Open(_currentAntique);
+                return;
+            }
 
             if (playerTrader == null)
             {

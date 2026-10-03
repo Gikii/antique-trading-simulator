@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
 
 namespace AntiqueTradingSimulator.UI
@@ -18,6 +19,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text conditionText;
         [SerializeField] private TMP_Text sellerText;
         [SerializeField] private TMP_Text priceText;
+        [Tooltip("Where the item ships from, e.g. \"International\". Optional.")]
+        [SerializeField] private TMP_Text shippingText;
         [SerializeField] private Button showDetailsButton;
 
         [Header("New listing badge")]
@@ -36,6 +39,9 @@ namespace AntiqueTradingSimulator.UI
             conditionText.text = $"Condition: {listing.Condition:P0}";
             sellerText.text = SellerLabel(listing);
             priceText.text = $"{listing.SalePrice:F2} €";
+
+            if (shippingText != null)
+                shippingText.text = $"Ships from: {listing.ShippingZone.ToDisplayString()}";
 
             if (newBadge != null)
                 newBadge.SetActive(listing.MarketListedOnDay == currentDay);

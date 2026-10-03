@@ -94,7 +94,9 @@ namespace AntiqueTradingSimulator.UI
             gameObject.SetActive(false);
         }
 
-        public static List<Antique> EligibleAntiques(TraderInventory inventory, Contract contract)
+        /// <param name="includeInTransit">Also return matching antiques still on their way (listed last).
+        /// They can't be handed in yet — the modal shows them disabled; counts should leave them out.</param>
+        public static List<Antique> EligibleAntiques(TraderInventory inventory, Contract contract, bool includeInTransit = false)
         {
             if (inventory == null || contract == null)
                 return new List<Antique>();
@@ -103,8 +105,10 @@ namespace AntiqueTradingSimulator.UI
                 .Where(a => a != null)
                 .Where(a => contract.Requirement.IsSatisfiedBy(a))
                 .Where(a => !a.IsListedForSale)
+                .Where(a => includeInTransit || !a.IsInTransit)
                 .Where(a => !a.IsReservedForContract || a.ReservedForContractId == contract.ContractId)
-                .OrderByDescending(a => a.ReservedForContractId == contract.ContractId)
+                .OrderBy(a => a.IsInTransit)
+                .ThenByDescending(a => a.ReservedForContractId == contract.ContractId)
                 .ThenBy(a => a.CurrentPrice)
                 .ToList();
         }
@@ -157,6 +161,7 @@ namespace AntiqueTradingSimulator.UI
             {
                 "Pick exactly as many antiques as the contract asks for — they are handed over the moment you confirm.",
                 "Antiques currently listed on the market can't be handed in; cancel the listing first.",
+                "Antiques still in transit are shown greyed out — they can be handed in once they arrive.",
                 "The payout is the same whichever matching antiques you choose, so handing in your cheapest ones is usually best.",
             };
 
@@ -189,7 +194,7 @@ namespace AntiqueTradingSimulator.UI
             ClearRows();
             _selectedListingIds.Clear();
 
-            List<Antique> eligible = EligibleAntiques(Inventory, _contract);
+            List<Antique> eligible = EligibleAntiques(Inventory, _contract, includeInTransit: true);
 
             if (emptyStateLabel != null)
                 emptyStateLabel.SetActive(eligible.Count == 0);
@@ -214,12 +219,15 @@ namespace AntiqueTradingSimulator.UI
                 }
 
                 bool preselect = antique.ReservedForContractId == _contract.ContractId
+                                 && !antique.IsInTransit
                                  && _selectedListingIds.Count < RequiredQuantity;
 
                 if (preselect && !_selectedListingIds.Contains(antique.Id))
                     _selectedListingIds.Add(antique.Id);
 
                 row.Setup(antique, preselect, HandleRowToggled);
+                if (antique.IsInTransit)
+                    row.SetInTransit();
                 _rows.Add(row);
             }
         }

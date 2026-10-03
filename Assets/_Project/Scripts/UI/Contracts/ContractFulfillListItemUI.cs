@@ -46,12 +46,14 @@ namespace AntiqueTradingSimulator.UI
                 return;
 
             if (nameText != null)
-                nameText.text = _antique.Name;
+                nameText.text = _antique.IsInTransit
+                    ? $"{_antique.Name}  {UIFormat.Colorize("• in transit", UIFormat.InTransitColor)}"
+                    : _antique.Name;
 
             if (conditionText != null)
             {
                 string condition = UIFormat.ConditionLabel(_antique.Condition);
-                if (_antique.IsReservedForContract)
+                if (_antique.IsReservedForContract && !_antique.IsInTransit)
                     condition += UIFormat.Colorize("  • reserved for this contract", UIFormat.MutedColor);
                 conditionText.text = condition;
             }
@@ -88,6 +90,21 @@ namespace AntiqueTradingSimulator.UI
         {
             if (toggle != null)
                 toggle.interactable = interactable;
+        }
+
+        /// <summary>Shows the row greyed out and unselectable, with a hover explanation.</summary>
+        public void SetInTransit()
+        {
+            SetSelected(false);
+            SetInteractable(false);
+
+            var group = GetComponent<CanvasGroup>();
+            if (group == null) group = gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 0.5f;
+
+            TooltipTrigger.On(this).Text = _antique != null
+                ? $"In transit — {UIFormat.ArrivalLabel(_antique.ArrivalDay)}. It can be handed in once it arrives."
+                : "";
         }
 
         private void HandleToggled(bool isOn)

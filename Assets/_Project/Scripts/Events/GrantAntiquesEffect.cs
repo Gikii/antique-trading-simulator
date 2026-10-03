@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Economy;
+using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
 using AntiqueTradingSimulator.News;
 using System;
@@ -40,6 +41,13 @@ namespace AntiqueTradingSimulator.Events
         [Range(Antique.MinCondition, Antique.MaxCondition)]
         public float Quality = Antique.MaxCondition;
 
+        [Header("Delivery")]
+        [Tooltip("If true, granted antiques are shipped to the player for free (InTransit until they arrive). " +
+                 "If false, they appear in the warehouse immediately.")]
+        public bool DeliverViaTransport = true;
+        public ShippingZone DeliveryZone = ShippingZone.International;
+        public TransportOption DeliveryOption = TransportOption.Standard;
+
         public override void Apply(EventContext context)
         {
             var playerInventory = context.PlayerInventory;
@@ -53,10 +61,12 @@ namespace AntiqueTradingSimulator.Events
             int max = Mathf.Max(min, MaxCount);
             int count = UnityEngine.Random.Range(min, max + 1);
 
+            var transport = DeliverViaTransport ? context.Transport : null;
+
             int granted = 0;
             for (int i = 0; i < count; i++)
             {
-                if (GrantOne(playerInventory, context.CurrentDay))
+                if (GrantOne(playerInventory, context.CurrentDay, transport))
                     granted++;
             }
 
@@ -85,11 +95,14 @@ namespace AntiqueTradingSimulator.Events
                 RandomizeCountry = RandomizeCountry,
                 Country = Country,
                 RandomizeQuality = RandomizeQuality,
-                Quality = Quality
+                Quality = Quality,
+                DeliverViaTransport = DeliverViaTransport,
+                DeliveryZone = DeliveryZone,
+                DeliveryOption = DeliveryOption
             };
         }
 
-        private bool GrantOne(TraderInventory playerInventory, int currentDay)
+        private bool GrantOne(TraderInventory playerInventory, int currentDay, TransportManager transport)
         {
             AntiqueDefinition definition = PickDefinition();
             if (definition == null) return false;
@@ -101,7 +114,15 @@ namespace AntiqueTradingSimulator.Events
             float priceFactor = UnityEngine.Random.Range(Antique.MinPriceFactor, Antique.MaxPriceFactor);
 
             var antique = new Antique(definition.Id, condition, priceFactor, ownerId: Antique.PlayerOwnerId);
-            return playerInventory.GrantHolding(antique, currentDay);
+            antique.ShippingZone = DeliveryZone;
+
+            // Free shipping; may overflow the warehouse on purpose (see TraderInventory.GrantHolding).
+            TransportQuote quote = transport != null ? transport.Quote(antique, DeliveryOption, free: true) : null;
+            if (!playerInventory.GrantHolding(antique, currentDay, quote)) return false;
+
+            if (quote != null)
+                transport.Dispatch(antique, playerInventory, quote, "Player");
+            return true;
         }
 
         private AntiqueDefinition PickDefinition()
