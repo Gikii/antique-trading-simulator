@@ -174,7 +174,7 @@ namespace AntiqueTradingSimulator.News
                 _ => InfoAccessLevel.LocalPress
             };
 
-            Publish(new NewsItem(newsData, definition.DisplayName, type, credibility, day, accessLevel, eventTriggerDay));
+            Publish(new NewsItem(newsData, definition.DisplayName, definition.Description, type, credibility, day, accessLevel, eventTriggerDay));
         }
 
 

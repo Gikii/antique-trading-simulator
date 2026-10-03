@@ -93,7 +93,7 @@ namespace AntiqueTradingSimulator.UI
 
             SetText(titleText, NewsPresentation.GetTitle(news));
             SetType(NewsPresentation.TypeLabel(news.Type), NewsPresentation.TypeColor(news.Type));
-            SetText(descriptionText, NewsPresentation.GetDescription(news));
+            SetText(descriptionText, NewsPresentation.GetNewsDescription(news));
 
             SetRowValue(expectedDateRow,
                 $"{NewsPresentation.RelativeDays(news.EventTriggerDay - today)}\n" +
@@ -108,15 +108,14 @@ namespace AntiqueTradingSimulator.UI
         private void RenderEvent(ActiveEvent activeEvent)
         {
             EventDefinition definition = activeEvent.Definition;
-            string eventName = definition != null ? definition.DisplayName : "Unknown event";
             List<NewsEventData> effects = BuildEventEffects(definition);
 
             int today = timeManager != null ? timeManager.CurrentDay : activeEvent.StartDay;
             int lastDay = activeEvent.EndDay - 1; // EndDay is exclusive
 
-            SetText(titleText, eventName);
+            SetText(titleText, definition != null ? definition.DisplayName : "Unknown event");
             SetType("Event", NewsPresentation.EventColor);
-            SetText(descriptionText, NewsPresentation.GetEventDescription(eventName, effects));
+            SetText(descriptionText, NewsPresentation.GetEventDescription(definition, effects));
 
             if (timeRemainingRow != null)
             {
