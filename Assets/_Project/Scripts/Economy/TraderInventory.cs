@@ -1,3 +1,4 @@
+using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
 using System;
 using System.Collections.Generic;
@@ -38,6 +39,81 @@ namespace AntiqueTradingSimulator.Economy
         public IReadOnlyList<PricePoint> ValueHistory => _valueHistory;
 
         public float TotalHoldingsValue => _holdings.Values.Sum(h => h.CurrentPrice);
+
+        // ---------------------------------------------------------------- warehouse
+
+        // Null = unlimited storage (NPCs). The player gets one from PlayerTrader.
+        public Warehouse Warehouse { get; private set; }
+
+        /// <summary>Fired when the warehouse is attached or upgraded.</summary>
+        public event Action OnWarehouseChanged;
+
+        /// <summary>(amount charged) — daily warehouse upkeep was deducted.</summary>
+        public event Action<float> OnWarehouseUpkeepCharged;
+
+        // Every owned antique takes a slot: stored, in transit (space reserved at
+        // purchase) and listed on the market (still physically in the warehouse).
+        public int UsedSlots => _holdings.Count;
+        public bool HasWarehouseLimit => Warehouse != null;
+        public int Capacity => Warehouse != null ? Warehouse.Capacity : int.MaxValue;
+        public int FreeSlots => Mathf.Max(0, Capacity - UsedSlots);
+        public bool HasFreeSlot => UsedSlots < Capacity;
+
+        // Possible after an event reward overflows the warehouse — buying is blocked
+        // until enough items are sold.
+        public bool IsOverCapacity => UsedSlots > Capacity;
+
+        public void AttachWarehouse(Warehouse warehouse)
+        {
+            Warehouse = warehouse;
+            OnWarehouseChanged?.Invoke();
+        }
+
+        public bool TryUpgradeWarehouseCapacity()
+        {
+            if (Warehouse == null || !Warehouse.CanUpgradeCapacity) return false;
+
+            float cost = Warehouse.NextCapacityUpgradeCost;
+            if (cost > Cash) return false;
+
+            RemoveCash(cost);
+            Warehouse.RaiseCapacityLevel();
+            OnWarehouseChanged?.Invoke();
+            return true;
+        }
+
+        public bool TryUpgradeWarehouseSecurity()
+        {
+            if (Warehouse == null || !Warehouse.CanUpgradeSecurity) return false;
+
+            float cost = Warehouse.NextSecurityUpgradeCost;
+            if (cost > Cash) return false;
+
+            RemoveCash(cost);
+            Warehouse.RaiseSecurityLevel();
+            OnWarehouseChanged?.Invoke();
+            return true;
+        }
+
+        /// <summary>
+        /// Deducts one day of warehouse upkeep. Returns the amount that was due.
+        /// Cash is clamped at 0 for now (no debt mechanic yet).
+        /// </summary>
+        public float ChargeWarehouseUpkeep()
+        {
+            if (Warehouse == null) return 0f;
+
+            float upkeep = Warehouse.CalculateDailyUpkeep(UsedSlots);
+            if (upkeep <= 0f) return 0f;
+
+            RemoveCash(upkeep);
+            OnWarehouseUpkeepCharged?.Invoke(upkeep);
+            return upkeep;
+        }
+
+        public List<Antique> GetAvailableHoldings() => _holdings.Values.Where(h => h.IsAvailable).ToList();
+
+        public List<Antique> GetInTransitHoldings() => _holdings.Values.Where(h => h.IsInTransit).ToList();
 
         public TraderInventory(float startingCash = 0f)
         {
@@ -89,7 +165,10 @@ namespace AntiqueTradingSimulator.Economy
         /// is never added to Market.Listings, so it never appears for sale and its
         /// MarketListedOnDay stays -1 until the owner lists it themselves.
         /// </summary>
-        public bool GrantHolding(Antique antique, int currentDay = -1)
+        /// <param name="transport">If given, the antique arrives via TransportManager (InTransit until
+        /// the quote's ArrivalDay); the caller dispatches the shipment. Grants ignore warehouse
+        /// capacity on purpose — a reward may overflow the warehouse (see IsOverCapacity).</param>
+        public bool GrantHolding(Antique antique, int currentDay = -1, TransportQuote transport = null)
         {
             if (antique == null) return false;
 
@@ -97,13 +176,22 @@ namespace AntiqueTradingSimulator.Economy
             if (currentDay >= 0 && !antique.HasPurchaseRecord)
                 antique.RecordAcquisition(0f, currentDay);
 
+            if (transport != null)
+                antique.MarkInTransit(transport.ArrivalDay);
+
             _holdings[antique.Id] = antique;
 
             OnHoldingChanged?.Invoke(antique.Id, antique);
             return true;
         }
 
-        public bool Buy(Market.Market market, string listingId, int currentDay = -1)
+        /// <summary>
+        /// Buys a listing off the market. With a transport quote the shipping cost is paid
+        /// together with the price and the antique enters the holdings as InTransit — the
+        /// caller then hands the same quote to TransportManager.Dispatch. Without a quote
+        /// (no TransportManager in the scene) the antique is available immediately.
+        /// </summary>
+        public bool Buy(Market.Market market, string listingId, int currentDay = -1, TransportQuote transport = null)
         {
             var listing = market.GetById(listingId);
             if (listing == null) return false;
@@ -111,13 +199,26 @@ namespace AntiqueTradingSimulator.Economy
             // Can't buy your own listing — cancel it instead.
             if (Owns(listingId)) return false;
 
-            float cost = listing.SalePrice;
+            if (!HasFreeSlot)
+            {
+                Debug.Log($"TraderInventory: cannot buy {listing.Name} — warehouse full ({UsedSlots}/{Capacity}).");
+                return false;
+            }
+
+            float price = listing.SalePrice;
+            float shippingCost = transport != null ? transport.Cost : 0f;
+            float cost = price + shippingCost;
             if (cost > Cash) return false;
 
             if (!market.Buy(listingId)) return false;
 
             Cash -= cost;
+            // Cost basis includes shipping, so "profit" everywhere (UI, NPC sell targets)
+            // is already net of transport — as the design doc requires.
             listing.RecordAcquisition(cost, currentDay);
+            listing.TransportCost = shippingCost;
+            if (transport != null)
+                listing.MarkInTransit(transport.ArrivalDay);
             _holdings[listing.Id] = listing;
 
             OnCashChanged?.Invoke(Cash);
@@ -128,6 +229,12 @@ namespace AntiqueTradingSimulator.Economy
         public bool Sell(Market.Market market, string listingId, int currentDay)
         {
             if (!_holdings.TryGetValue(listingId, out var listing)) return false;
+
+            if (listing.IsInTransit)
+            {
+                Debug.LogWarning($"TraderInventory: refused to sell {listingId} — still in transit (arrives day {listing.ArrivalDay}).");
+                return false;
+            }
 
             if (listing.IsReservedForContract)
             {
@@ -151,6 +258,24 @@ namespace AntiqueTradingSimulator.Economy
             return true;
         }
 
+        /// <summary>Called by TransportManager when a shipment reaches this trader.</summary>
+        public bool CompleteDelivery(string listingId)
+        {
+            if (!_holdings.TryGetValue(listingId, out var antique)) return false;
+
+            antique.MarkArrived();
+            OnHoldingChanged?.Invoke(listingId, antique);
+            return true;
+        }
+
+        /// <summary>Re-raises OnHoldingChanged for a holding whose data changed outside this class
+        /// (e.g. a transport delay moved its ArrivalDay).</summary>
+        public void NotifyHoldingUpdated(string listingId)
+        {
+            if (_holdings.TryGetValue(listingId, out var antique))
+                OnHoldingChanged?.Invoke(listingId, antique);
+        }
+
         public bool RemoveHolding(string listingId)
         {
             if (!_holdings.Remove(listingId)) return false;
@@ -168,7 +293,7 @@ namespace AntiqueTradingSimulator.Economy
         {
             if (market == null || askingPrice <= 0f) return false;
             if (!_holdings.TryGetValue(listingId, out var antique)) return false;
-            if (antique.IsListedForSale || antique.IsReservedForContract) return false;
+            if (antique.IsListedForSale || antique.IsReservedForContract || antique.IsInTransit) return false;
 
             if (!market.ListForSale(antique, askingPrice, currentDay)) return false;
 

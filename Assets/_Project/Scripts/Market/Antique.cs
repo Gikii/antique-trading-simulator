@@ -1,3 +1,4 @@
+using AntiqueTradingSimulator.Logistics;
 using System;
 using UnityEngine;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
@@ -61,6 +62,10 @@ namespace AntiqueTradingSimulator.Market
         // Items received for free (event rewards) keep PurchasePrice = 0.
         public float PurchasePrice = 0f;
         public int PurchasedOnDay = -1;
+
+        // Part of PurchasePrice that was paid for transport (0 if none). PurchasePrice
+        // stays the full cost basis; this is only kept so the UI can break it down.
+        public float TransportCost = 0f;
         public bool HasPurchaseRecord => PurchasedOnDay >= 0;
 
         public void RecordAcquisition(float price, int day)
@@ -73,6 +78,7 @@ namespace AntiqueTradingSimulator.Market
         {
             PurchasePrice = 0f;
             PurchasedOnDay = -1;
+            TransportCost = 0f;
         }
 
         // Price asked by the owner while the antique is listed on the market by them
@@ -86,6 +92,39 @@ namespace AntiqueTradingSimulator.Market
 
         public string ReservedForContractId = null;
         public bool IsReservedForContract => ReservedForContractId != null;
+
+        // --- Logistics ---
+
+        // How far this item travels to whoever buys it. Rolled for anonymous market
+        // listings; owner-made listings (player/NPC) ship Domestic.
+        public ShippingZone ShippingZone = ShippingZone.Domestic;
+
+        // InTransit = owned (counts toward collection value, takes a warehouse slot),
+        // but cannot be sold, listed or handed in for a contract until it arrives.
+        // It CAN be reserved for a contract while still on the way.
+        public AntiqueStatus Status = AntiqueStatus.Available;
+        public int ArrivalDay = -1;
+
+        public bool IsInTransit => Status == AntiqueStatus.InTransit;
+        public bool IsAvailable => Status == AntiqueStatus.Available;
+
+        public void MarkInTransit(int arrivalDay)
+        {
+            Status = AntiqueStatus.InTransit;
+            ArrivalDay = arrivalDay;
+        }
+
+        public void MarkArrived()
+        {
+            Status = AntiqueStatus.Available;
+            ArrivalDay = -1;
+        }
+
+        public void AppendHistory(string entry)
+        {
+            if (string.IsNullOrWhiteSpace(entry)) return;
+            History = string.IsNullOrWhiteSpace(History) ? entry : $"{History}\n{entry}";
+        }
 
 
         [NonSerialized]

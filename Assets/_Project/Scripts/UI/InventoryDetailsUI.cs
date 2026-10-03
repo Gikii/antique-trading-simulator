@@ -38,6 +38,9 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Image antiqueImage;
 
         [Header("Antique Info")]
+        [Tooltip("Where the antique is: \"In your warehouse\" / \"In transit — arrives …\". Optional — " +
+                 "if empty, the status is appended to the Owner line instead.")]
+        [SerializeField] private TMP_Text statusText;
         [SerializeField] private TMP_Text categoryText;
         [SerializeField] private TMP_Text periodText;
         [SerializeField] private TMP_Text originText;
@@ -87,6 +90,8 @@ namespace AntiqueTradingSimulator.UI
 
         private Antique _currentAntique;
         private InventoryView _inventoryView;
+        private TooltipTrigger _listTooltip;
+        private TooltipTrigger _sellTooltip;
 
         private Market.Market CurrentMarket => economyManager != null ? economyManager.Market : null;
         private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
@@ -121,6 +126,10 @@ namespace AntiqueTradingSimulator.UI
             if (listOnMarketButton != null)
                 listOnMarketButton.onClick.AddListener(ToggleMarketListing);
 
+            // Explain on hover why an action is disabled (text set in RefreshActions).
+            _listTooltip = TooltipTrigger.On(listOnMarketButton);
+            _sellTooltip = TooltipTrigger.On(sellNowButton);
+
             // Auctions don't exist yet — keep the button visible so the layout is final,
             // but not clickable.
             if (placeOnAuctionButton != null)
@@ -145,7 +154,16 @@ namespace AntiqueTradingSimulator.UI
             SetText(originText, antique.Country.ToDisplayString());
             SetText(conditionText, $"{UIFormat.ConditionLabel(antique.Condition)} ({UIFormat.Percent(antique.Condition)})");
 
-            SetText(ownerText, $"Owner: {OwnerLabel(antique)}");
+            string status = StatusLabel(antique);
+            if (statusText != null)
+            {
+                SetText(statusText, status);
+                SetText(ownerText, $"Owner: {OwnerLabel(antique)}");
+            }
+            else
+            {
+                SetText(ownerText, $"Owner: {OwnerLabel(antique)} · {status}");
+            }
             SetText(itemIdText, $"Item ID: {ShortId(antique.Id)}");
             SetText(rarityText, antique.IsLimitedEdition
                 ? $"Rarity: limited edition {antique.RarityLabel}"
@@ -210,12 +228,16 @@ namespace AntiqueTradingSimulator.UI
             }
             else
             {
-                SetText(purchasePriceText, $"Purchase price: {UIFormat.Money(antique.PurchasePrice)}");
+                // PurchasePrice is the full cost basis (price + transport) — show the item price alone here.
+                float itemPrice = antique.PurchasePrice - antique.TransportCost;
+                SetText(purchasePriceText, $"Purchase price: {UIFormat.Money(itemPrice)}");
                 SetText(purchaseDateText, $"Purchased: {FormatDay(antique.PurchasedOnDay)}");
             }
 
-            // Transport/renovation costs will be added once those systems exist.
-            SetText(costsText, UIFormat.Colorize("Transport & renovation: —", UIFormat.MutedColor));
+            // Renovation will join this line once that system exists.
+            SetText(costsText, antique.TransportCost > 0f
+                ? $"Transport: {UIFormat.Money(antique.TransportCost)}"
+                : UIFormat.Colorize("Transport: —", UIFormat.MutedColor));
             SetText(investmentValueText, $"Current value: {UIFormat.Money(antique.CurrentPrice)}");
 
             float profit = CollectionAnalytics.Profit(antique);
@@ -333,14 +355,32 @@ namespace AntiqueTradingSimulator.UI
         {
             bool reserved = antique.IsReservedForContract;
             bool listed = antique.IsListedForSale;
+            bool inTransit = antique.IsInTransit;
+
+            string transitReason = inTransit
+                ? $"In transit — {UIFormat.ArrivalLabel(antique.ArrivalDay)}. It can't be sold or listed until it reaches your warehouse."
+                : "";
 
             // List on market <-> Cancel listing
             if (listOnMarketButton != null)
-                listOnMarketButton.interactable = listed || (!reserved && listOnMarketModal != null);
+                listOnMarketButton.interactable = listed || (!reserved && !inTransit && listOnMarketModal != null);
+
+            if (_listTooltip != null)
+                _listTooltip.Text = inTransit ? transitReason
+                    : reserved && !listed ? "Reserved for a contract — release it before listing." : "";
+
+            if (_sellTooltip != null)
+                _sellTooltip.Text = inTransit ? transitReason
+                    : reserved ? "Reserved for a contract."
+                    : listed ? "Listed on the market — cancel the listing first." : "";
 
             if (listOnMarketLabel != null)
             {
-                if (listed)
+                if (inTransit)
+                {
+                    listOnMarketLabel.text = "List on market\n<size=70%>In transit</size>";
+                }
+                else if (listed)
                 {
                     string since = antique.MarketListedOnDay >= 0 ? $" since day {antique.MarketListedOnDay}" : "";
                     listOnMarketLabel.text = $"Cancel listing\n<size=70%>Listed for {UIFormat.Money(antique.AskingPrice)}{since}</size>";
@@ -356,10 +396,16 @@ namespace AntiqueTradingSimulator.UI
             if (sellNowButton == null)
                 return;
 
-            sellNowButton.interactable = !reserved && !listed;
+            sellNowButton.interactable = !reserved && !listed && !inTransit;
 
             if (sellNowLabel == null)
                 return;
+
+            if (inTransit)
+            {
+                sellNowLabel.text = $"Sell now\n<size=70%>Arrives {UIFormat.GameDate(antique.ArrivalDay)}</size>";
+                return;
+            }
 
             if (reserved)
             {
@@ -428,6 +474,11 @@ namespace AntiqueTradingSimulator.UI
 
             return $"{TimeManager.FormatLong(timeManager.DayToDate(day))} (day {day})";
         }
+
+        private static string StatusLabel(Antique antique) =>
+            antique.IsInTransit
+                ? UIFormat.Colorize($"In transit — {UIFormat.ArrivalLabel(antique.ArrivalDay)}", UIFormat.InTransitColor)
+                : "In your warehouse";
 
         private static string OwnerLabel(Antique antique)
         {

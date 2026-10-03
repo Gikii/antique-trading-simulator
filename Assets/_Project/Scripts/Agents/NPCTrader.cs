@@ -1,6 +1,7 @@
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Events;
+using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
 using AntiqueTradingSimulator.News;
 using System;
@@ -29,6 +30,10 @@ namespace AntiqueTradingSimulator.Agents
 
         private readonly EconomyManager _economyManager;
         private readonly ContractManager _contractManager;
+        private readonly TransportManager _transportManager;
+
+        // NPCs always ship with the standard service.
+        private const TransportOption NpcTransportOption = TransportOption.Standard;
         private NpcBehaviorProfile _profileCache;
         public NpcBehaviorProfile Profile => _profileCache ??= NpcProfileDatabase.GetById(ProfileId);
 
@@ -52,7 +57,8 @@ namespace AntiqueTradingSimulator.Agents
         private readonly List<string> _committedContractIds = new();
         public IReadOnlyList<string> CommittedContractIds => _committedContractIds;
 
-        public NPCTrader(string traderName, string profileId, float startingCash, EconomyManager economyManager, ContractManager contractManager = null)
+        public NPCTrader(string traderName, string profileId, float startingCash, EconomyManager economyManager,
+            ContractManager contractManager = null, TransportManager transportManager = null)
         {
             Id = Guid.NewGuid().ToString("N");
             TraderName = traderName;
@@ -60,6 +66,7 @@ namespace AntiqueTradingSimulator.Agents
             Inventory = new TraderInventory(startingCash);
             _economyManager = economyManager;
             _contractManager = contractManager;
+            _transportManager = transportManager;
         }
 
         public void ReceiveNews(NewsItem news)
@@ -150,19 +157,19 @@ namespace AntiqueTradingSimulator.Agents
                         foreach (var listing in listings)
                         {
                             if (budget <= 0f) break;
-                            float price = listing.SalePrice;
-                            if (!IsAcceptablePrice(listing, profile) || price > budget) continue;
+                            float totalCost = EstimateTotalCost(listing);
+                            if (!IsAcceptablePrice(listing, profile) || totalCost > budget) continue;
 
-                            if (TryBuy(listing, currentDay)) budget -= price;
+                            if (TryBuy(listing, currentDay)) budget -= totalCost;
                         }
                     }
                     else
                     {
                         var holdings = eventEffect.targetScope switch
                         {
-                            TargetScope.AntiqueType => Inventory.Holdings.Values.Where(h => h.Definition.Type == eventEffect.AntiqueType && !h.IsReservedForContract).ToList(),
-                            TargetScope.Country => Inventory.Holdings.Values.Where(h => h.Definition.Country == eventEffect.Country && !h.IsReservedForContract).ToList(),
-                            TargetScope.Century => Inventory.Holdings.Values.Where(h => h.Definition.Century == eventEffect.Century && !h.IsReservedForContract).ToList()
+                            TargetScope.AntiqueType => Inventory.Holdings.Values.Where(h => h.Definition.Type == eventEffect.AntiqueType && !h.IsReservedForContract && h.IsAvailable).ToList(),
+                            TargetScope.Country => Inventory.Holdings.Values.Where(h => h.Definition.Country == eventEffect.Country && !h.IsReservedForContract && h.IsAvailable).ToList(),
+                            TargetScope.Century => Inventory.Holdings.Values.Where(h => h.Definition.Century == eventEffect.Century && !h.IsReservedForContract && h.IsAvailable).ToList()
 
                         };
                         foreach (var holding in holdings)
@@ -188,10 +195,10 @@ namespace AntiqueTradingSimulator.Agents
             {
                 if (budget <= 0f) break;
                 if (!IsInterestedIn(listing.Definition, profile)) continue;
-                float price = listing.SalePrice;
-                if (!IsAcceptablePrice(listing, profile) || price > budget) continue;
+                float totalCost = EstimateTotalCost(listing);
+                if (!IsAcceptablePrice(listing, profile) || totalCost > budget) continue;
 
-                if (TryBuy(listing, currentDay)) budget -= price;
+                if (TryBuy(listing, currentDay)) budget -= totalCost;
             }
         }
 
@@ -204,6 +211,7 @@ namespace AntiqueTradingSimulator.Agents
                 var listing = Inventory.GetHolding(listingId);
                 if (listing == null) { _acquisitions.Remove(listingId); continue; }
                 if (listing.IsReservedForContract) continue; // being gathered for a contract — not for sale
+                if (listing.IsInTransit) continue;           // can't sell what hasn't arrived yet
 
                 var acquisition = _acquisitions[listingId];
                 if (currentDay - acquisition.Day < profile.MinHoldingDaysBeforeSell) continue;
@@ -253,12 +261,14 @@ namespace AntiqueTradingSimulator.Agents
                     foreach (var listing in candidates)
                     {
                         if (needed <= 0 || budget <= 0f) break;
-                        float price = listing.SalePrice;
-                        if (!IsAcceptablePrice(listing, profile) || price > budget) continue;
+                        float totalCost = EstimateTotalCost(listing);
+                        if (!IsAcceptablePrice(listing, profile) || totalCost > budget) continue;
 
                         if (TryBuy(listing, currentDay))
                         {
-                            budget -= price;
+                            // Reserved right away, even while still in transit — it's
+                            // handed in once it arrives (TryFulfillContract).
+                            budget -= totalCost;
                             Inventory.ReserveForContract(listing.Id, contractId);
                             needed--;
                         }
@@ -275,6 +285,7 @@ namespace AntiqueTradingSimulator.Agents
         private void TryFulfillContract(Contract contract)
         {
             var listingIds = Inventory.GetReservedForContract(contract.ContractId)
+                .Where(a => a.IsAvailable) // items still in transit can't be handed in yet
                 .Take(contract.Requirement.Quantity)
                 .Select(a => a.Id)
                 .ToList();
@@ -321,15 +332,19 @@ namespace AntiqueTradingSimulator.Agents
 
         private bool TryBuy(Antique listing, int currentDay)
         {
-            float price = listing.SalePrice;
             if (!BuyListing(listing.Id)) return false;
 
-            _acquisitions[listing.Id] = new Acquisition { PurchasePrice = price, Day = currentDay };
+            // PurchasePrice is the cost basis recorded by TraderInventory.Buy — price + shipping.
+            _acquisitions[listing.Id] = new Acquisition { PurchasePrice = listing.PurchasePrice, Day = currentDay };
             return true;
         }
 
+        private float EstimateTotalCost(Antique listing) =>
+            TraderHelper.EstimateTotalCost(listing, _transportManager, NpcTransportOption);
+
         public bool BuyListing(string listingId) =>
-            TraderHelper.BuyListing(Inventory, _economyManager.Market, listingId, TraderName, _economyManager.TimeManager.CurrentDay);
+            TraderHelper.BuyListing(Inventory, _economyManager.Market, listingId, TraderName, _economyManager.TimeManager.CurrentDay,
+                _transportManager, NpcTransportOption);
 
         public bool SellListing(string listingId) =>
             TraderHelper.SellListing(Inventory, _economyManager.Market, listingId, TraderName, _economyManager.TimeManager.CurrentDay);

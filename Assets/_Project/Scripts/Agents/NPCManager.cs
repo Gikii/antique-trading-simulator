@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Economy;
+using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.News;
 
 namespace AntiqueTradingSimulator.Agents
@@ -18,6 +19,7 @@ namespace AntiqueTradingSimulator.Agents
         [SerializeField] private Core.TimeManager timeManager;
         [SerializeField] private NewsManager newsManager;
         [SerializeField] private ContractManager contractManager;
+        [SerializeField] private TransportManager transportManager;
 
         [Header("Initial NPC population. One entry per NPC, referencing an NpcBehaviorProfile.Id")]
         [SerializeField] private List<string> initialProfileIds = new();
@@ -36,6 +38,7 @@ namespace AntiqueTradingSimulator.Agents
             if (timeManager == null) timeManager = FindFirstObjectByType<Core.TimeManager>();
             if (newsManager == null) newsManager = FindFirstObjectByType<NewsManager>();
             if (contractManager == null) contractManager = FindFirstObjectByType<ContractManager>();
+            if (transportManager == null) transportManager = FindFirstObjectByType<TransportManager>();
 
             SpawnInitialNPCs();
         }
@@ -57,7 +60,7 @@ namespace AntiqueTradingSimulator.Agents
 
         public NPCTrader SpawnNPC(string traderName, string profileId, float? startingCash = null)
         {
-            var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager, contractManager);
+            var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager, contractManager, transportManager);
             RegisterNPC(npc);
             Debug.Log("Created NPC Trader " + traderName);
             return npc;

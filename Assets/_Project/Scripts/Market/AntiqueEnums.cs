@@ -66,6 +66,13 @@ namespace AntiqueTradingSimulator.Market
             Poland
         }
 
+        // Physical whereabouts of an owned antique. Market listings are always Available.
+        public enum AntiqueStatus
+        {
+            Available = 0,  // in the owner's warehouse (or on the market) — can be sold, listed, handed in
+            InTransit = 1   // bought but still on its way — owned, but cannot be used yet
+        }
+
     }
 
     public static class AntiqueEnumDisplay

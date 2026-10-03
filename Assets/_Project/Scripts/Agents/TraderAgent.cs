@@ -1,5 +1,6 @@
 ﻿using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Events;
+using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.News;
 using UnityEngine;
 
@@ -16,6 +17,7 @@ namespace AntiqueTradingSimulator.Agents
     {
         [SerializeField] protected string traderName = "Trader";
         [SerializeField] protected EconomyManager economyManager;
+        [SerializeField] protected TransportManager transportManager;
         [SerializeField] protected float startingCash = 1000f;
         [SerializeField] protected InfoAccessLevel accessLevel = InfoAccessLevel.LocalPress;
 
@@ -33,6 +35,9 @@ namespace AntiqueTradingSimulator.Agents
             if (economyManager == null)
                 economyManager = FindFirstObjectByType<EconomyManager>();
 
+            if (transportManager == null)
+                transportManager = FindFirstObjectByType<TransportManager>();
+
             // Lets the market re-value this trader's holdings together with its own listings.
             if (economyManager != null)
                 economyManager.RegisterInventory(Inventory);
@@ -44,11 +49,21 @@ namespace AntiqueTradingSimulator.Agents
                 economyManager.UnregisterInventory(Inventory);
         }
 
-        public bool BuyListing(string listingId)
+        public bool BuyListing(string listingId) => BuyListing(listingId, TransportOption.Standard);
+
+        public bool BuyListing(string listingId, TransportOption option)
         {
             var market = economyManager != null ? economyManager.Market : null;
             int currentDay = economyManager != null ? economyManager.TimeManager.CurrentDay : -1;
-            return TraderHelper.BuyListing(Inventory, market, listingId, traderName, currentDay);
+            return TraderHelper.BuyListing(Inventory, market, listingId, traderName, currentDay, transportManager, option);
+        }
+
+        /// <summary>Shipping price/time for a market listing — null if there's no such listing or no TransportManager.</summary>
+        public TransportQuote QuoteTransport(string listingId, TransportOption option)
+        {
+            var market = economyManager != null ? economyManager.Market : null;
+            var listing = market?.GetById(listingId);
+            return listing != null && transportManager != null ? transportManager.Quote(listing, option) : null;
         }
 
         public bool ListOnMarket(string listingId, float askingPrice)
