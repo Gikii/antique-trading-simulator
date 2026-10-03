@@ -180,7 +180,15 @@ namespace AntiqueTradingSimulator.News
 
         private static List<NewsEventData> BuildNewsData(EventDefinition definition, NewsType type)
         {
-            var effects = definition.Effects;
+            var newsData = new List<NewsEventData>();
+            if (definition == null || definition.Effects == null) return newsData;
+
+            var effects = definition.Effects.Where(e => e != null).ToList();
+            if (effects.Count == 0)
+            {
+                Debug.LogWarning($"NewsManager: '{definition.name}' has no valid effects.");
+                return newsData;
+            }
 
             if (type == NewsType.Rumor && effects.Count > 1)
             {
@@ -195,7 +203,7 @@ namespace AntiqueTradingSimulator.News
                     partial.Add(effects[index].CreateNewsData());
                 return partial;
             }
-            var newsData = new List<NewsEventData>();
+
             foreach (EventEffect eventEffect in effects)
                 newsData.Add(eventEffect.CreateNewsData());
             return newsData;
