@@ -174,7 +174,6 @@ namespace AntiqueTradingSimulator.UI
 
             if (itemTemplate == null) return;
 
-            // Players may only create events from Player-type templates.
             List<EventDefinition> definitions = EventDatabase.GetAllByType(AntiqueTradingSimulator.Events.EventType.Player);
             int count = Mathf.Min(definitions.Count, maxVisibleTemplates);
 

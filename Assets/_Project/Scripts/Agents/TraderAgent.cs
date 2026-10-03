@@ -13,7 +13,7 @@ namespace AntiqueTradingSimulator.Agents
     /// to call it (NPC: daily decision logic, Player: UI clicks).
     /// Also implements IInformationReceiver so both Player and NPCs can be targeted by NewsManager
     /// </summary>
-    public abstract class TraderAgent : MonoBehaviour
+    public abstract class TraderAgent : MonoBehaviour, IInformationReceiver
     {
         [SerializeField] protected string traderName = "Trader";
         [SerializeField] protected EconomyManager economyManager;

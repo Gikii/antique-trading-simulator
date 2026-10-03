@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using AntiqueTradingSimulator.News;
+using AntiqueTradingSimulator.Helpers;
 using UnityEngine;
+using AntiqueTradingSimulator.Events;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -45,6 +47,10 @@ namespace AntiqueTradingSimulator.UI
         {
             if (item.NewsData == null || item.NewsData.Count == 0)
                 return "Market information";
+
+            if (item.Type == NewsType.Official)
+                return $"{item.OfficialName} official announcement";
+
 
             NewsEventData data = item.NewsData[0];
             string subject = GetSubject(data);
@@ -100,8 +106,15 @@ namespace AntiqueTradingSimulator.UI
         // Longer texts (details panel)
         // ------------------------------------------------------------------
 
-        public static string GetDescription(NewsItem item)
+        public static string GetNewsDescription(NewsItem item, bool eventHappened = false)
         {
+            if (item.Type == NewsType.Official)
+            {
+                return string.IsNullOrWhiteSpace(item.EventDescription)
+                    ? DescribeEffects(item.NewsData)
+                    : TextHelper.Resolve(item.EventDescription, future: !eventHappened);
+            }
+
             string intro = item.Type switch
             {
                 NewsType.Official => "Official sources have announced an upcoming market event.",
@@ -113,9 +126,9 @@ namespace AntiqueTradingSimulator.UI
             return intro + " " + DescribeEffects(item.NewsData);
         }
 
-        public static string GetEventDescription(string eventName, IReadOnlyList<NewsEventData> effects)
+        public static string GetEventDescription(EventDefinition definition, IReadOnlyList<NewsEventData> effects)
         {
-            return $"{eventName} is currently in progress. " + DescribeEffects(effects);
+            return $"{definition.name} is currently in progress. {definition.Description}";
         }
 
         /// <summary>"Growing interest is expected in Clock and France. Weaker demand is expected for Porcelain."</summary>
@@ -136,12 +149,12 @@ namespace AntiqueTradingSimulator.UI
             var builder = new StringBuilder();
 
             if (up.Count > 0)
-                builder.Append($"Growing interest is expected in {JoinNice(up)}.");
+                builder.Append($"Increase in prices is expected in {JoinNice(up)}.");
 
             if (down.Count > 0)
             {
                 if (builder.Length > 0) builder.Append(' ');
-                builder.Append($"Weaker demand is expected for {JoinNice(down)}.");
+                builder.Append($"Decrease in prices is expected for {JoinNice(down)}.");
             }
 
             return builder.ToString();
