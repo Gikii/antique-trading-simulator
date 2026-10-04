@@ -21,7 +21,7 @@ MonoBehaviour:
   MaxLeadDays: 9
   PlayerSelectsLeadTime: 1
   FailureChance: 0
-  CanBeFakeNews: 1
+  CanBeFakeNews: 0
   CreateOfficialNews: 0
   OfficialAnnouncementDaysBefore: 1
   CreateRumour: 0
@@ -56,3 +56,6 @@ MonoBehaviour:
         Country: 15
         RandomizeQuality: 1
         Quality: 1
+        DeliverViaTransport: 1
+        DeliveryZone: 2
+        DeliveryOption: 1

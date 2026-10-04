@@ -14,6 +14,7 @@ namespace AntiqueTradingSimulator.UI
         private TMP_Text previewText;
         private TMP_Text typeText;
         private TMP_Text dateText;
+        private Image typeDot;
 
         private NewsItem news;
 
@@ -40,6 +41,10 @@ namespace AntiqueTradingSimulator.UI
                 .Find("TypeInfo/TypeRow/TypeText")
                 ?.GetComponent<TMP_Text>();
 
+            typeDot = transform
+                .Find("TypeInfo/TypeRow/TypeDot")
+                ?.GetComponent<Image>();
+
             dateText = transform
                 .Find("TypeInfo/DateText")
                 ?.GetComponent<TMP_Text>();
@@ -58,6 +63,8 @@ namespace AntiqueTradingSimulator.UI
 
             if (dateText == null)
                 Debug.LogError("NewsListItemUI: DateText not found.", this);
+            if (typeDot == null)
+                Debug.LogError("NewsListItemUI: TypeDot not found.", this);
         }
 
         /// <param name="timeManager">Optional. When given, the date is shown as "14 May 1884" instead of "Day 23".</param>
@@ -76,6 +83,13 @@ namespace AntiqueTradingSimulator.UI
             previewText.text = NewsPresentation.GetPreview(news);
             typeText.text = NewsPresentation.TypeLabel(news.Type);
             dateText.text = NewsPresentation.FormatDay(news.DayPublished, timeManager);
+
+            Color typeColor = NewsPresentation.TypeColor(news.Type);
+
+            typeText.color = typeColor;
+
+            if (typeDot != null)
+                typeDot.color = typeColor;
 
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() =>

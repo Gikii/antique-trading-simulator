@@ -15,8 +15,8 @@ MonoBehaviour:
   id: 2
   DisplayName: Clock Collector's Estate Sale
   EventType: 1
-  Description: A minor antique clock collector has passed away and his estate is
-    selling the clocks collected over his life. More clocks may appear at the market.
+  Description: A minor antique clock collector has passed away and their estate {is|will
+    be} selling their collection. More clocks may appear at the market.
   DurationDays: 3
   MinLeadDays: 3
   MaxLeadDays: 7

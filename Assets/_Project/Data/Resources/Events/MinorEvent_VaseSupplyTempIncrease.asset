@@ -15,8 +15,8 @@ MonoBehaviour:
   id: 3488440be4764d899682183e2f8fc063
   DisplayName: Vase Collector's Estate Sale
   EventType: 1
-  Description: A minor vase collector has passed away and their estate is selling
-    their collection. More clocks may appear at the market.
+  Description: A minor vase collector has passed away and their estate {is|will be}
+    selling their collection. More clocks may appear at the market.
   DurationDays: 5
   MinLeadDays: 1
   MaxLeadDays: 5
@@ -25,9 +25,9 @@ MonoBehaviour:
   CanBeFakeNews: 1
   CreateOfficialNews: 1
   OfficialAnnouncementDaysBefore: 1
-  CreateRumour: 0
+  CreateRumour: 1
   RumorCredibility: 0.5
-  CreateLeak: 0
+  CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
   - rid: 7187487799750426691
@@ -38,7 +38,7 @@ MonoBehaviour:
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 0
+        AntiqueType: 2
         Country: 0
         Century: 0
         tempSupplyChange: 1
