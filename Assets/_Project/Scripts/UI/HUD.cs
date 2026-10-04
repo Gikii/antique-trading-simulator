@@ -8,8 +8,8 @@ namespace AntiqueTradingSimulator.UI
 {
     /// <summary>
     /// Always-visible top bar (layout built by Tools > UI > HUD > Build Top Bar).
-    /// Day, date and Cash are wired to real systems.
-    /// Wealth, Reputation, Credibility and Market Share are placeholders — those systems
+    /// Day, date, Cash and Wealth (cash + market value of owned antiques) are wired to real systems.
+    /// Reputation, Credibility and Market Share are placeholders — those systems
     /// don't exist yet, so they show "—" until they're built.
     /// Labels ("Cash", "Wealth"...) live in the layout; this script writes only the values.
     /// </summary>
@@ -44,10 +44,23 @@ namespace AntiqueTradingSimulator.UI
             if (timeManager == null) timeManager = FindFirstObjectByType<TimeManager>();
         }
 
+        private TooltipTrigger _wealthTooltip;
+
         void Start()
         {
-            playerTrader.Inventory.OnCashChanged += UpdateCash;
-            UpdateCash(playerTrader.Inventory.Cash);
+            var inventory = playerTrader.Inventory;
+            inventory.OnCashChanged += UpdateCash;
+            UpdateCash(inventory.Cash);
+
+            // Wealth moves with cash, with every bought/sold antique and with market prices.
+            if (wealthText != null)
+            {
+                wealthText.raycastTarget = true; // needed for the hover breakdown
+                _wealthTooltip = TooltipTrigger.On(wealthText);
+            }
+            inventory.OnHoldingChanged += HandleHoldingChanged;
+            inventory.OnHoldingsRevalued += UpdateWealth;
+            UpdateWealth();
 
             if (timeManager != null)
             {
@@ -56,7 +69,6 @@ namespace AntiqueTradingSimulator.UI
             }
 
             // Placeholders until the systems exist.
-            SetText(wealthText, NoValue);
             SetText(reputationText, NoValue);
             SetText(credibilityText, NoValue);
             SetText(marketShareText, NoValue);
@@ -64,8 +76,12 @@ namespace AntiqueTradingSimulator.UI
 
         void OnDestroy()
         {
-            if (playerTrader != null)
+            if (playerTrader != null && playerTrader.Inventory != null)
+            {
                 playerTrader.Inventory.OnCashChanged -= UpdateCash;
+                playerTrader.Inventory.OnHoldingChanged -= HandleHoldingChanged;
+                playerTrader.Inventory.OnHoldingsRevalued -= UpdateWealth;
+            }
 
             if (timeManager != null)
                 timeManager.OnDayChanged -= UpdateDay;
@@ -83,7 +99,32 @@ namespace AntiqueTradingSimulator.UI
             SetText(dateText, TimeManager.FormatWithWeekday(timeManager.DayToDate(day)));
         }
 
-        private void UpdateCash(float cash) => SetText(cashText, FormatMoney(cash));
+        private void UpdateCash(float cash)
+        {
+            SetText(cashText, FormatMoney(cash));
+            UpdateWealth();
+        }
+
+        private void HandleHoldingChanged(string listingId, Market.Antique antique) => UpdateWealth();
+
+        private void UpdateWealth()
+        {
+            var inventory = playerTrader != null ? playerTrader.Inventory : null;
+            if (inventory == null)
+            {
+                SetText(wealthText, NoValue);
+                return;
+            }
+
+            float antiques = inventory.TotalHoldingsValue;
+            SetText(wealthText, FormatMoney(inventory.Wealth));
+
+            if (_wealthTooltip != null)
+                _wealthTooltip.Text =
+                    $"Cash: {FormatMoney(inventory.Cash)}\n" +
+                    $"Antiques ({inventory.Holdings.Count}): {FormatMoney(antiques)}\n" +
+                    "<size=85%>Antiques at current market value, incl. items in transit.</size>";
+        }
 
         /// <summary>1000 → "1 000 €", 128450 → "128 450 €"</summary>
         public static string FormatMoney(float amount) => amount.ToString("#,0", MoneyFormat) + " €";
