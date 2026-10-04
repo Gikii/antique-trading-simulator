@@ -12,7 +12,8 @@ namespace AntiqueTradingSimulator.Core
     /// </summary>
     public class TimeManager : MonoBehaviour
     {
-        [SerializeField] private float secondsPerDay = 10f;
+        [Tooltip("Real-time seconds one game day lasts at 1x speed. 180 = 3 minutes (≈4.5 h for a 90-day campaign).")]
+        [SerializeField] private float secondsPerDay = 180f;
         [SerializeField] private float[] speedSteps = { 1f, 2f, 4f };
 
         [Header("Calendar")]
@@ -28,6 +29,8 @@ namespace AntiqueTradingSimulator.Core
 
         public event Action<int> OnDayChanged;
         public event Action<float> OnSpeedChanged;
+        /// <summary>Raised when the clock is paused or resumed (true = running).</summary>
+        public event Action<bool> OnRunningChanged;
 
         private float _timer;
         private int _speedIndex = 0;
@@ -81,19 +84,18 @@ namespace AntiqueTradingSimulator.Core
             AdvanceDay();
         }
 
-        public void Pause()
-        {
-            IsRunning = false;
-        }
+        public void Pause() => SetRunning(false);
 
-        public void Resume()
-        {
-            IsRunning = true;
-        }
+        public void Resume() => SetRunning(true);
 
-        public void ToggleRunning()
+        public void ToggleRunning() => SetRunning(!IsRunning);
+
+        private void SetRunning(bool running)
         {
-            IsRunning = !IsRunning;
+            if (IsRunning == running) return;
+
+            IsRunning = running;
+            OnRunningChanged?.Invoke(running);
         }
 
         public void CycleSpeed()

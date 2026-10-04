@@ -57,6 +57,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text mostValuableText;
         [SerializeField] private TMP_Text limitedEditionsText;
         [SerializeField] private TMP_Text averageValueText;
+        [Tooltip("Used / total warehouse slots. Optional.")]
+        [SerializeField] private TMP_Text warehouseCapacityText;
 
         [Header("Footer")]
         [SerializeField] private TMP_Text valueChangeText;
@@ -91,8 +93,9 @@ namespace AntiqueTradingSimulator.UI
 
             RefreshValueChart(inventory);
             RefreshCategories(collection);
-            RefreshStatus(collection, totalValue);
+            RefreshStatus(collection);
             RefreshHighlights(collection, totalValue);
+            RefreshWarehouseCapacity(inventory);
             RefreshFooter(collection, market);
         }
 
@@ -168,17 +171,30 @@ namespace AntiqueTradingSimulator.UI
                   .Append('\n');
         }
 
-        private void RefreshStatus(IReadOnlyCollection<Antique> collection, float totalValue)
+        private void RefreshStatus(IReadOnlyCollection<Antique> collection)
         {
             SetText(statusTitle, "Collection status");
 
-            // Everything the player owns is in the warehouse for now. Transport, renovation
-            // and auctions don't exist yet — their tiles show a placeholder until they do.
             // Listed antiques are still physically in the warehouse until a buyer takes them.
-            int listed = collection.Count(a => a.IsListedForSale);
-            string warehouseDetail = UIFormat.Money(totalValue) + (listed > 0 ? $" · {listed} listed" : "");
-            SetText(inWarehouseText, StatusTile("In warehouse", collection.Count.ToString(), warehouseDetail));
-            SetText(inTransportText, StatusTile("In transport", "—", "Coming soon"));
+            // Renovation and auctions don't exist yet — their tiles show a placeholder until they do.
+            List<Antique> stored = collection.Where(a => !a.IsInTransit).ToList();
+            List<Antique> inTransit = collection.Where(a => a.IsInTransit).ToList();
+
+            int listed = stored.Count(a => a.IsListedForSale);
+            string warehouseDetail = UIFormat.Money(CollectionAnalytics.TotalValue(stored)) + (listed > 0 ? $" · {listed} listed" : "");
+            SetText(inWarehouseText, StatusTile("In warehouse", stored.Count.ToString(), warehouseDetail));
+
+            if (inTransit.Count == 0)
+            {
+                SetText(inTransportText, StatusTile("In transport", "0", "Nothing on the way"));
+            }
+            else
+            {
+                int nextArrival = inTransit.Min(a => a.ArrivalDay);
+                string transportDetail = $"{UIFormat.Money(CollectionAnalytics.TotalValue(inTransit))} · next {UIFormat.GameDate(nextArrival)}";
+                SetText(inTransportText, StatusTile("In transport", inTransit.Count.ToString(), transportDetail));
+            }
+
             SetText(inRenovationText, StatusTile("In renovation", "—", "Coming soon"));
             SetText(onAuctionText, StatusTile("On auction", "—", "Coming soon"));
         }
@@ -201,6 +217,42 @@ namespace AntiqueTradingSimulator.UI
 
             float average = collection.Count > 0 ? totalValue / collection.Count : 0f;
             SetText(averageValueText, $"Average value\n<b>{UIFormat.Money(average)}</b>");
+        }
+
+        private void RefreshWarehouseCapacity(TraderInventory inventory)
+        {
+            if (warehouseCapacityText == null)
+                return;
+
+            var warehouse = inventory?.Warehouse;
+            if (warehouse == null)
+            {
+                SetText(warehouseCapacityText, "Warehouse\n<b>—</b>");
+                return;
+            }
+
+            int used = inventory.UsedSlots;
+            int capacity = inventory.Capacity;
+            string slots = $"{used} / {capacity}";
+            string detail;
+
+            if (inventory.IsOverCapacity)
+            {
+                slots = UIFormat.Colorize(slots, UIFormat.NegativeColor);
+                detail = UIFormat.Colorize("Over capacity — sell to buy again", UIFormat.NegativeColor);
+            }
+            else if (!inventory.HasFreeSlot)
+            {
+                slots = UIFormat.Colorize(slots, UIFormat.NegativeColor);
+                detail = UIFormat.Colorize("Full — no room for purchases", UIFormat.NegativeColor);
+            }
+            else
+            {
+                float upkeep = warehouse.CalculateDailyUpkeep(used);
+                detail = UIFormat.Colorize($"{inventory.FreeSlots} free · {UIFormat.Money(upkeep)} / day", UIFormat.MutedColor);
+            }
+
+            SetText(warehouseCapacityText, $"Warehouse\n<b>{slots}</b>\n{detail}");
         }
 
         private void RefreshFooter(IReadOnlyCollection<Antique> collection, Market.Market market)

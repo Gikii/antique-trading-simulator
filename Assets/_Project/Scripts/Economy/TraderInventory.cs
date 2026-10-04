@@ -40,6 +40,12 @@ namespace AntiqueTradingSimulator.Economy
 
         public float TotalHoldingsValue => _holdings.Values.Sum(h => h.CurrentPrice);
 
+        /// <summary>
+        /// Total worth of this trader: cash plus the market value of every owned antique
+        /// (including items in transit and items listed on the market, at market value).
+        /// </summary>
+        public float Wealth => Cash + TotalHoldingsValue;
+
         // ---------------------------------------------------------------- warehouse
 
         // Null = unlimited storage (NPCs). The player gets one from PlayerTrader.
