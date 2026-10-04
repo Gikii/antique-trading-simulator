@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Text;
-using AntiqueTradingSimulator.News;
+﻿using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Helpers;
+using AntiqueTradingSimulator.News;
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
-using AntiqueTradingSimulator.Events;
+using static UnityEditor.Progress;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -106,13 +107,13 @@ namespace AntiqueTradingSimulator.UI
         // Longer texts (details panel)
         // ------------------------------------------------------------------
 
-        public static string GetNewsDescription(NewsItem item, bool eventHappened = false)
+        public static string GetNewsDescription(NewsItem item)
         {
             if (item.Type == NewsType.Official)
             {
                 return string.IsNullOrWhiteSpace(item.EventDescription)
                     ? DescribeEffects(item.NewsData)
-                    : TextHelper.Resolve(item.EventDescription, future: !eventHappened);
+                    : TextHelper.Resolve(item.EventDescription, future: true);
             }
 
             string intro = item.Type switch
@@ -128,7 +129,7 @@ namespace AntiqueTradingSimulator.UI
 
         public static string GetEventDescription(EventDefinition definition, IReadOnlyList<NewsEventData> effects)
         {
-            return $"{definition.name} is currently in progress. {definition.Description}";
+            return $"{definition.DisplayName} is currently in progress. {TextHelper.Resolve(definition.Description, future: false)}";
         }
 
         /// <summary>"Growing interest is expected in Clock and France. Weaker demand is expected for Porcelain."</summary>
