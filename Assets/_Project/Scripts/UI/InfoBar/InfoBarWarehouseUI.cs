@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Agents;
+using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Market;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ namespace AntiqueTradingSimulator.UI
     /// <summary>
     /// WAREHOUSE tab of the InfoBar: used / total slots (with an optional fill bar that turns
     /// red when full), how many of those items are still in transit, and the daily upkeep.
+    /// The tab's action button opens Company → Development with the Warehouse upgrade selected.
     /// </summary>
     public class InfoBarWarehouseUI : MonoBehaviour
     {
@@ -44,6 +46,30 @@ namespace AntiqueTradingSimulator.UI
         {
             Bind();
             Refresh();
+            HookActionButton();
+        }
+
+        private void HookActionButton()
+        {
+            var tab = GetComponent<InfoBarTabUI>();
+            var button = tab != null ? tab.ActionButton : null;
+            if (button == null) return;
+
+            button.onClick.AddListener(OpenWarehouseUpgrades);
+
+            var tooltip = TooltipTrigger.On(button);
+            if (tooltip != null && string.IsNullOrEmpty(tooltip.Text))
+                tooltip.Text = "Manage warehouse\n<size=85%>Company → Development</size>";
+        }
+
+        private void OpenWarehouseUpgrades()
+        {
+            var viewManager = FindFirstObjectByType<ViewManager>();
+            var companyView = FindFirstObjectByType<CompanyView>(FindObjectsInactive.Include);
+            if (viewManager == null || companyView == null) return;
+
+            viewManager.ShowView(ViewType.Company);
+            companyView.OpenUpgrade(CompanyUpgradeType.Warehouse);
         }
 
         private void OnEnable()

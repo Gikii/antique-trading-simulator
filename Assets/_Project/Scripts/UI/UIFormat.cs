@@ -14,6 +14,8 @@ namespace AntiqueTradingSimulator.UI
         public static readonly Color NegativeColor = NewsPresentation.EventColor;
         public static readonly Color MutedColor = new Color32(0xB8, 0xB8, 0xB8, 0xFF);
         public static readonly Color InTransitColor = new Color32(0x7F, 0xB3, 0xD5, 0xFF);
+        /// <summary>Highlight colour of the greybox UI (active tab, player row, progress bars).</summary>
+        public static readonly Color AccentColor = new Color32(0xC9, 0x9A, 0x3C, 0xFF);
 
         private static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo
         {
@@ -75,6 +77,22 @@ namespace AntiqueTradingSimulator.UI
 
         public static string Percent(float ratio) =>
             Mathf.RoundToInt(ratio * 100f).ToString(CultureInfo.InvariantCulture) + "%";
+
+        /// <summary>"6.4%" for 0.064</summary>
+        public static string PercentOneDecimal(float ratio) =>
+            (ratio * 100f).ToString("0.0", CultureInfo.InvariantCulture) + "%";
+
+        /// <summary>"+50" / "-20" / "0"</summary>
+        public static string SignedNumber(float value)
+        {
+            int rounded = Mathf.RoundToInt(value);
+            string sign = rounded > 0 ? "+" : rounded < 0 ? "-" : "";
+            return sign + Mathf.Abs(rounded).ToString("#,0", MoneyFormat);
+        }
+
+        /// <summary>"1 250" — whole number with a space as thousands separator.</summary>
+        public static string Number(float value) =>
+            Mathf.RoundToInt(value).ToString("#,0", MoneyFormat);
 
         /// <summary>Wraps text in a TMP rich-text color tag picked by the sign of <paramref name="value"/>.</summary>
         public static string ColorBySign(string text, float value)

@@ -2,15 +2,15 @@
 using TMPro;
 using UnityEngine;
 using AntiqueTradingSimulator.Agents;
+using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Core;
 
 namespace AntiqueTradingSimulator.UI
 {
     /// <summary>
     /// Always-visible top bar (layout built by Tools > UI > HUD > Build Top Bar).
-    /// Day, date, Cash and Wealth (cash + market value of owned antiques) are wired to real systems.
-    /// Reputation, Credibility and Market Share are placeholders — those systems
-    /// don't exist yet, so they show "—" until they're built.
+    /// Day, date, Cash and Wealth (cash + market value of owned antiques) come from the
+    /// player's inventory; Reputation, Credibility and Market Share from the CompanyManager.
     /// Labels ("Cash", "Wealth"...) live in the layout; this script writes only the values.
     /// </summary>
     public class HUD : MonoBehaviour
@@ -45,6 +45,10 @@ namespace AntiqueTradingSimulator.UI
         }
 
         private TooltipTrigger _wealthTooltip;
+        private TooltipTrigger _reputationTooltip;
+        private TooltipTrigger _credibilityTooltip;
+        private TooltipTrigger _marketShareTooltip;
+        private CompanyManager _company;
 
         void Start()
         {
@@ -68,10 +72,20 @@ namespace AntiqueTradingSimulator.UI
                 UpdateDay(timeManager.CurrentDay);
             }
 
-            // Placeholders until the systems exist.
-            SetText(reputationText, NoValue);
-            SetText(credibilityText, NoValue);
-            SetText(marketShareText, NoValue);
+            _company = playerTrader.Company;
+            _reputationTooltip = AddTooltip(reputationText);
+            _credibilityTooltip = AddTooltip(credibilityText);
+            _marketShareTooltip = AddTooltip(marketShareText);
+            if (_company != null)
+                _company.OnCompanyChanged += UpdateCompany;
+            UpdateCompany();
+        }
+
+        private static TooltipTrigger AddTooltip(TMP_Text text)
+        {
+            if (text == null) return null;
+            text.raycastTarget = true; // needed for the hover text
+            return TooltipTrigger.On(text);
         }
 
         void OnDestroy()
@@ -82,6 +96,9 @@ namespace AntiqueTradingSimulator.UI
                 playerTrader.Inventory.OnHoldingChanged -= HandleHoldingChanged;
                 playerTrader.Inventory.OnHoldingsRevalued -= UpdateWealth;
             }
+
+            if (_company != null)
+                _company.OnCompanyChanged -= UpdateCompany;
 
             if (timeManager != null)
                 timeManager.OnDayChanged -= UpdateDay;
@@ -103,6 +120,47 @@ namespace AntiqueTradingSimulator.UI
         {
             SetText(cashText, FormatMoney(cash));
             UpdateWealth();
+            UpdateMarketShare(); // the player's own trades move it
+        }
+
+        private void UpdateCompany()
+        {
+            if (_company == null)
+            {
+                SetText(reputationText, NoValue);
+                SetText(credibilityText, NoValue);
+                SetText(marketShareText, NoValue);
+                return;
+            }
+
+            var reputation = _company.Reputation;
+            SetText(reputationText, UIFormat.Number(reputation.Reputation));
+            SetText(credibilityText, UIFormat.Percent(reputation.Credibility));
+
+            if (_reputationTooltip != null)
+            {
+                var next = reputation.NextTier(ReputationKind.Reputation);
+                _reputationTooltip.Text = $"{reputation.Title}\n" +
+                    (next != null
+                        ? $"<size=85%>Next: {next.Name} at {UIFormat.Number(next.MinValue)}</size>"
+                        : "<size=85%>Highest reputation level</size>");
+            }
+
+            if (_credibilityTooltip != null)
+                _credibilityTooltip.Text = $"{reputation.CurrentTier(ReputationKind.Credibility)?.Name}\n" +
+                    "<size=85%>How reliable partners consider your company.</size>";
+
+            UpdateMarketShare();
+        }
+
+        private void UpdateMarketShare()
+        {
+            if (_company == null) return;
+
+            SetText(marketShareText, UIFormat.PercentOneDecimal(_company.MarketShare()));
+            if (_marketShareTooltip != null)
+                _marketShareTooltip.Text = $"Last 7 days: {UIFormat.PercentOneDecimal(_company.MarketShare(7))}\n" +
+                    "<size=85%>Your share of all market purchases and sales.</size>";
         }
 
         private void HandleHoldingChanged(string listingId, Market.Antique antique) => UpdateWealth();

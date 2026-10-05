@@ -53,6 +53,20 @@ namespace AntiqueTradingSimulator.Contracts
         }
 
 
+        /// <summary>"3x Porcelain" — same wording as ContractDisplay.RequirementSummary.</summary>
+        public override string ToString()
+        {
+            string what = Scope switch
+            {
+                ContractAttributeScope.AntiqueType => AntiqueType.ToDisplayString(),
+                ContractAttributeScope.Country => Country.ToDisplayString(),
+                ContractAttributeScope.Century => Century.ToDisplayString(),
+                _ => "Antiques"
+            };
+
+            return $"{Quantity}x {what}";
+        }
+
         public bool IsSatisfiedBy(Antique antique)
         {
             if (antique == null) return false;

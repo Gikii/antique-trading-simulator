@@ -214,7 +214,7 @@ namespace AntiqueTradingSimulator.Market
                 return;
             }
 
-            seller.CompleteListingSale(listing, proceeds);
+            seller.CompleteListingSale(listing, proceeds, price);
             OnOwnerListingSold?.Invoke(listing, seller, price, proceeds);
         }
 

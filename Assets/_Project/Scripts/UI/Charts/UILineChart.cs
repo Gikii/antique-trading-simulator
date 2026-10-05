@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -33,6 +34,45 @@ namespace AntiqueTradingSimulator.UI.Charts
         private float _min;
         private float _max;
 
+        private bool _hasFixedRange;
+        private float _fixedMin;
+        private float _fixedMax;
+
+        /// <summary>Formats the min/max labels. Null = money ("128 450 €").</summary>
+        public Func<float, string> LabelFormatter { get; set; }
+
+        /// <summary>
+        /// Plots against a fixed value range instead of one fitted to the data (e.g. 0..1 for a
+        /// percentage, or a range shared by two charts drawn on top of each other).
+        /// </summary>
+        public void SetFixedRange(float min, float max)
+        {
+            _hasFixedRange = max > min;
+            _fixedMin = min;
+            _fixedMax = max;
+            Refresh();
+        }
+
+        public void ClearFixedRange()
+        {
+            _hasFixedRange = false;
+            Refresh();
+        }
+
+        public void SetColors(Color line, Color fill)
+        {
+            lineColor = line;
+            fillColor = fill;
+            SetVerticesDirty();
+        }
+
+        private void Refresh()
+        {
+            CalculateRange();
+            UpdateLabels();
+            SetVerticesDirty();
+        }
+
         public void SetValues(IReadOnlyList<float> values)
         {
             _values.Clear();
@@ -48,6 +88,13 @@ namespace AntiqueTradingSimulator.UI.Charts
 
         private void CalculateRange()
         {
+            if (_hasFixedRange)
+            {
+                _min = _fixedMin;
+                _max = _fixedMax;
+                return;
+            }
+
             if (_values.Count == 0)
             {
                 _min = 0f;
@@ -83,18 +130,21 @@ namespace AntiqueTradingSimulator.UI.Charts
             if (maxLabel != null)
             {
                 maxLabel.gameObject.SetActive(hasData);
-                maxLabel.text = UIFormat.Money(_max);
+                maxLabel.text = FormatLabel(_max);
             }
 
             if (minLabel != null)
             {
                 minLabel.gameObject.SetActive(hasData);
-                minLabel.text = UIFormat.Money(_min);
+                minLabel.text = FormatLabel(_min);
             }
 
             if (emptyLabel != null)
                 emptyLabel.gameObject.SetActive(!hasData);
         }
+
+        private string FormatLabel(float value) =>
+            LabelFormatter != null ? LabelFormatter(value) : UIFormat.Money(value);
 
         protected override void OnPopulateMesh(VertexHelper vh)
         {
