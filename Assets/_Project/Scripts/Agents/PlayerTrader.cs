@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
@@ -24,6 +26,15 @@ namespace AntiqueTradingSimulator.Agents
 
         public Warehouse Warehouse => Inventory.Warehouse;
 
+        /// <summary>The player's company (reputation, upgrades, statistics). Added automatically if missing.</summary>
+        public CompanyManager Company { get; private set; }
+
+        // Contract lifecycle from the player's point of view — CompanyManager turns these
+        // into statistics, reputation and credibility.
+        public event Action<Contract> OnContractAccepted;
+        public event Action<Contract> OnContractFulfilled;
+        public event Action<Contract> OnContractFailed;
+
         protected override void Awake()
         {
             base.Awake();
@@ -39,6 +50,11 @@ namespace AntiqueTradingSimulator.Agents
                 warehouseSettings = ScriptableObject.CreateInstance<WarehouseSettings>();
             }
             Inventory.AttachWarehouse(new Warehouse(warehouseSettings, startingCapacityLevel, startingSecurityLevel));
+
+            // After the warehouse is attached: CompanyManager reads it for the upgrades.
+            Company = GetComponent<CompanyManager>();
+            if (Company == null)
+                Company = gameObject.AddComponent<CompanyManager>();
         }
 
         // Start, not OnEnable: EconomyManager sets up its TimeManager in its own Awake.
@@ -47,12 +63,18 @@ namespace AntiqueTradingSimulator.Agents
             _timeManager = economyManager != null ? economyManager.TimeManager : FindFirstObjectByType<Core.TimeManager>();
             if (_timeManager != null)
                 _timeManager.OnDayChanged += HandleDayChanged;
+
+            if (contractManager != null)
+                contractManager.OnContractExpired += HandleContractExpired;
         }
 
         protected override void OnDestroy()
         {
             if (_timeManager != null)
                 _timeManager.OnDayChanged -= HandleDayChanged;
+
+            if (contractManager != null)
+                contractManager.OnContractExpired -= HandleContractExpired;
 
             base.OnDestroy();
         }
@@ -81,7 +103,11 @@ namespace AntiqueTradingSimulator.Agents
                 !contractManager.ClaimContract(contractId, Antique.PlayerOwnerId))
                 return false;
 
-            return Inventory.CommitToContract(contractId);
+            if (!Inventory.CommitToContract(contractId))
+                return false;
+
+            OnContractAccepted?.Invoke(contract);
+            return true;
         }
 
         public bool FulfillContract(string contractId, IEnumerable<string> listingIds)
@@ -92,11 +118,28 @@ namespace AntiqueTradingSimulator.Agents
             if (!Inventory.IsCommittedToContract(contractId))
                 return false;
 
+            var contract = contractManager.GetById(contractId);
             if (!contractManager.FulfillContract(contractId, Antique.PlayerOwnerId, Inventory, listingIds))
                 return false;
 
             Inventory.ReleaseCommittedContract(contractId);
+            OnContractFulfilled?.Invoke(contract);
             return true;
+        }
+
+        /// <summary>
+        /// A contract the player accepted ran out unfulfilled: drop the commitment and free
+        /// the antiques reserved for it (ContractManager only does that for claimed exclusive
+        /// contracts), then report the failure.
+        /// </summary>
+        private void HandleContractExpired(Contract contract)
+        {
+            if (contract == null || !Inventory.IsCommittedToContract(contract.ContractId))
+                return;
+
+            Inventory.ReleaseAllReservationsForContract(contract.ContractId);
+            Inventory.ReleaseCommittedContract(contract.ContractId);
+            OnContractFailed?.Invoke(contract);
         }
     }
 }

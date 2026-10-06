@@ -124,7 +124,7 @@ namespace AntiqueTradingSimulator.Contracts
 
             if (contract.Penalty > 0f)
             {
-                inventory.RemoveCash(contract.Penalty);
+                inventory.RemoveCash(contract.Penalty, LedgerCategory.Penalty, $"Penalty for failed contract ({contract.Requirement})");
                 Debug.Log($"ContractManager: {contract.ClaimedByTraderId} incurred a {contract.Penalty:F2} penalty for failing exclusive contract {contract.ContractId}.");
             }
         }
@@ -282,7 +282,7 @@ namespace AntiqueTradingSimulator.Contracts
                 inventory.RemoveHolding(listingId);
 
             contract.SetStatusFulfilled();
-            inventory.AddCash(contract.TotalReward);
+            inventory.AddCash(contract.TotalReward, LedgerCategory.Contract, $"Contract payment ({contract.Requirement})");
 
             inventory.ReleaseAllReservationsForContract(contract.ContractId);
 

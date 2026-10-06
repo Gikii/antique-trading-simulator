@@ -19,6 +19,18 @@ namespace AntiqueTradingSimulator.Economy
     {
         public float Cash { get; private set; }
 
+        /// <summary>Every cash movement of this trader, with what it was for.</summary>
+        public Ledger Ledger { get; } = new Ledger();
+
+        /// <summary>
+        /// Supplies the current game day for ledger entries made by methods that don't get
+        /// a day passed in (upkeep, contract payouts, ...). Set by EconomyManager.RegisterInventory.
+        /// </summary>
+        public Func<int> DayProvider { get; set; }
+
+        // Last day seen through a method parameter — fallback when there's no DayProvider.
+        private int _lastKnownDay;
+
         private readonly Dictionary<string, Antique> _holdings = new Dictionary<string, Antique>();
         public IReadOnlyDictionary<string, Antique> Holdings => _holdings;
 
@@ -82,7 +94,7 @@ namespace AntiqueTradingSimulator.Economy
             float cost = Warehouse.NextCapacityUpgradeCost;
             if (cost > Cash) return false;
 
-            RemoveCash(cost);
+            RemoveCash(cost, LedgerCategory.Upgrade, $"Upgraded warehouse capacity to level {Warehouse.CapacityLevel + 2}");
             Warehouse.RaiseCapacityLevel();
             OnWarehouseChanged?.Invoke();
             return true;
@@ -95,7 +107,7 @@ namespace AntiqueTradingSimulator.Economy
             float cost = Warehouse.NextSecurityUpgradeCost;
             if (cost > Cash) return false;
 
-            RemoveCash(cost);
+            RemoveCash(cost, LedgerCategory.Upgrade, $"Upgraded warehouse security to level {Warehouse.SecurityLevel + 2}");
             Warehouse.RaiseSecurityLevel();
             OnWarehouseChanged?.Invoke();
             return true;
@@ -112,7 +124,7 @@ namespace AntiqueTradingSimulator.Economy
             float upkeep = Warehouse.CalculateDailyUpkeep(UsedSlots);
             if (upkeep <= 0f) return 0f;
 
-            RemoveCash(upkeep);
+            RemoveCash(upkeep, LedgerCategory.Warehouse, "Warehouse maintenance");
             OnWarehouseUpkeepCharged?.Invoke(upkeep);
             return upkeep;
         }
@@ -219,6 +231,9 @@ namespace AntiqueTradingSimulator.Economy
             if (!market.Buy(listingId)) return false;
 
             Cash -= cost;
+            RememberDay(currentDay);
+            Record(LedgerCategory.Purchase, -price, $"Bought \"{listing.Name}\"");
+            Record(LedgerCategory.Transport, -shippingCost, $"Transport cost ({listing.Name})");
             // Cost basis includes shipping, so "profit" everywhere (UI, NPC sell targets)
             // is already net of transport — as the design doc requires.
             listing.RecordAcquisition(cost, currentDay);
@@ -258,6 +273,8 @@ namespace AntiqueTradingSimulator.Economy
             listing.ClearAcquisition();
             market.Sell(listing, currentDay);
             Cash += listing.CurrentPrice;
+            RememberDay(currentDay);
+            Record(LedgerCategory.Sale, listing.CurrentPrice, $"Sold \"{listing.Name}\" (instant sale)");
 
             OnCashChanged?.Invoke(Cash);
             OnHoldingChanged?.Invoke(listingId, null);
@@ -321,13 +338,25 @@ namespace AntiqueTradingSimulator.Economy
         /// <summary>
         /// Called by the Market when someone buys an antique this trader listed:
         /// hands the item over and pays the proceeds (price minus the market fee).
+        /// <paramref name="grossPrice"/> is the price the buyer paid; when given, the ledger
+        /// records the sale at that price and the market fee as a separate commission.
         /// </summary>
-        public void CompleteListingSale(Antique antique, float proceeds)
+        public void CompleteListingSale(Antique antique, float proceeds, float grossPrice = -1f)
         {
             if (antique == null || !_holdings.Remove(antique.Id)) return;
 
             antique.ClearAcquisition();
             Cash += Mathf.Max(0f, proceeds);
+
+            if (grossPrice > 0f)
+            {
+                Record(LedgerCategory.Sale, grossPrice, $"Sold \"{antique.Name}\" (Market)");
+                Record(LedgerCategory.Commission, -(grossPrice - Mathf.Max(0f, proceeds)), $"Market commission ({antique.Name})");
+            }
+            else
+            {
+                Record(LedgerCategory.Sale, Mathf.Max(0f, proceeds), $"Sold \"{antique.Name}\" (Market)");
+            }
 
             OnCashChanged?.Invoke(Cash);
             OnHoldingChanged?.Invoke(antique.Id, null);
@@ -365,28 +394,44 @@ namespace AntiqueTradingSimulator.Economy
         /// <summary>
         /// Adds cash not tied to a market transaction — e.g. a contract reward payout.
         /// </summary>
-        public void AddCash(float amount)
+        public void AddCash(float amount, LedgerCategory category = LedgerCategory.Other, string description = null)
         {
             if (amount <= 0f) return;
 
             Cash += amount;
+            Record(category, amount, description);
             OnCashChanged?.Invoke(Cash);
         }
 
         /// <summary>
         /// Deducts cash not tied to a market transaction — e.g. a contract penalty.
         /// Clamped so Cash never goes negative; logs if the full amount couldn't be taken.
+        /// The ledger records what was actually taken.
         /// </summary>
-        public void RemoveCash(float amount)
+        public void RemoveCash(float amount, LedgerCategory category = LedgerCategory.Other, string description = null)
         {
             if (amount <= 0f) return;
 
             if (amount > Cash)
                 Debug.LogWarning($"TraderInventory: tried to deduct {amount:F2} but only {Cash:F2} cash available — clamping to 0.");
 
+            float taken = Mathf.Min(amount, Cash);
             Cash = Mathf.Max(0f, Cash - amount);
+            Record(category, -taken, description);
             OnCashChanged?.Invoke(Cash);
         }
+
+        // ---------------------------------------------------------------- ledger helpers
+
+        private int CurrentDay => DayProvider != null ? DayProvider() : _lastKnownDay;
+
+        private void RememberDay(int day)
+        {
+            if (day >= 0) _lastKnownDay = day;
+        }
+
+        private void Record(LedgerCategory category, float amount, string description) =>
+            Ledger.Add(new LedgerEntry(CurrentDay, category, amount, description));
 
         /// <summary>
         /// Tags an owned listing as being gathered for a specific contract. Returns false if the listing isn't

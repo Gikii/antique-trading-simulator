@@ -36,10 +36,17 @@ namespace AntiqueTradingSimulator.Economy
         // of script execution order; the Market reads this same list.
         private readonly List<TraderInventory> _inventories = new List<TraderInventory>();
 
+        /// <summary>Every registered trader inventory (player and NPCs).</summary>
+        public IReadOnlyList<TraderInventory> Inventories => _inventories;
+
         public void RegisterInventory(TraderInventory inventory)
         {
             if (inventory != null && !_inventories.Contains(inventory))
                 _inventories.Add(inventory);
+
+            // Ledger entries need the game day; read lazily since this may run before our Awake.
+            if (inventory != null && inventory.DayProvider == null)
+                inventory.DayProvider = () => _timeManager != null ? _timeManager.CurrentDay : 1;
         }
 
         public void UnregisterInventory(TraderInventory inventory) => _inventories.Remove(inventory);
