@@ -378,5 +378,63 @@ namespace AntiqueTradingSimulator.Company
             result.Sort((a, b) => b.Wealth.CompareTo(a.Wealth));
             return result;
         }
+
+        // ---------------------------------------------------------------- save / load
+
+        /// <summary>
+        /// Snapshot of the company. The competition ranking and the Congress score are not saved.
+        /// </summary>
+        public CompanyState CaptureState() => new CompanyState
+        {
+            ContractsAccepted = ContractsAccepted,
+            ContractsFulfilled = ContractsFulfilled,
+            ContractsFailed = ContractsFailed,
+            PendingSalesValue = _pendingSalesValue,
+            PendingSalesCount = _pendingSalesCount,
+            History = new List<CompanySnapshot>(_history),
+            Reputation = Reputation.CaptureState(),
+            UpgradeLevels = Upgrades != null
+                ? Upgrades.CaptureState()
+                : new Dictionary<CompanyUpgradeType, int>()
+        };
+
+        /// <summary>
+        /// Replaces the company's statistics, reputation, upgrade levels and snapshot history.
+        /// Call AFTER the player's inventory and warehouse have been restored.
+        /// </summary>
+        public void RestoreState(CompanyState state)
+        {
+            if (state == null) return;
+
+            ContractsAccepted = state.ContractsAccepted;
+            ContractsFulfilled = state.ContractsFulfilled;
+            ContractsFailed = state.ContractsFailed;
+
+            _pendingSalesValue = state.PendingSalesValue;
+            _pendingSalesCount = state.PendingSalesCount;
+
+            // Through the property, so the lazy CompanyReputation exists before it is filled.
+            Reputation.RestoreState(state.Reputation);
+
+            if (state.UpgradeLevels != null && state.UpgradeLevels.Count > 0)
+            {
+                if (Upgrades != null)
+                    Upgrades.RestoreState(state.UpgradeLevels);
+                else
+                    Debug.LogWarning("CompanyManager: upgrade levels could not be restored — the player's inventory does not exist yet. Restore the company after the economy.");
+            }
+
+            _history.Clear();
+            if (state.History != null)
+            {
+                _history.AddRange(state.History);
+
+                if (_history.Count > maxSnapshotDays)
+                    _history.RemoveRange(0, _history.Count - maxSnapshotDays);
+            }
+
+            OnCompanyChanged?.Invoke();
+        }
+
     }
 }

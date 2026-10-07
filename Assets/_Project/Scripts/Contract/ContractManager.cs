@@ -49,6 +49,8 @@ namespace AntiqueTradingSimulator.Contracts
         public event Action<Contract> OnContractFulfilled;
         public event Action<Contract> OnContractExpired;
 
+        public event Action OnContractsRestored;
+
 
         void Awake()
         {
@@ -301,6 +303,83 @@ namespace AntiqueTradingSimulator.Contracts
             Debug.Log($"ContractManager: contract {contract.ContractId} claimed by {traderId}.");
             OnContractClaimed?.Invoke(contract, traderId);
             return true;
+        }
+
+        // ---------------------------------------------------------------- save / load
+
+        /// <summary>
+        /// Snapshot of every contract, plus which of them are still on the board. Both are needed:
+        /// expired contracts leave the board but stay resolvable by Id, and traders still hold
+        /// their Ids (reserved antiques, committed-contract lists).
+        /// </summary>
+        public ContractsState CaptureState()
+        {
+            var state = new ContractsState();
+
+            foreach (var contract in _contractsById.Values)
+            {
+                if (contract == null) continue;
+                state.Contracts.Add(ContractState.Capture(contract));
+            }
+
+            foreach (var contract in _contracts)
+            {
+                if (contract == null) continue;
+                state.ListedContractIds.Add(contract.ContractId);
+            }
+
+            return state;
+        }
+
+        /// <summary>
+        /// Replaces the contract board with the saved one, discarding the contracts that Start
+        /// generated for this session. Traders are not re-registered here — PlayerTrader and the
+        /// NPCs do that themselves — so this can run before or after the economy is restored.
+        /// </summary>
+        public void RestoreState(ContractsState state)
+        {
+            _contracts.Clear();
+            _contractsById.Clear();
+
+            if (state == null)
+            {
+                OnContractsRestored?.Invoke();
+                return;
+            }
+
+            if (state.Contracts != null)
+            {
+                foreach (var contractState in state.Contracts)
+                {
+                    var contract = contractState?.Restore();
+                    if (contract == null || string.IsNullOrEmpty(contract.ContractId)) continue;
+
+                    if (_contractsById.ContainsKey(contract.ContractId))
+                    {
+                        Debug.LogWarning($"ContractManager: duplicate contract Id '{contract.ContractId}' in the save — keeping the first one.");
+                        continue;
+                    }
+
+                    _contractsById.Add(contract.ContractId, contract);
+                }
+            }
+
+            if (state.ListedContractIds != null)
+            {
+                foreach (var contractId in state.ListedContractIds)
+                {
+                    if (!_contractsById.TryGetValue(contractId, out var contract))
+                    {
+                        Debug.LogWarning($"ContractManager: contract '{contractId}' was on the board but is missing from the save's contract list — skipped.");
+                        continue;
+                    }
+
+                    _contracts.Add(contract);
+                }
+            }
+
+            Debug.Log($"ContractManager: restored {_contracts.Count} listed contract(s) out of {_contractsById.Count} known.");
+            OnContractsRestored?.Invoke();
         }
 
     }

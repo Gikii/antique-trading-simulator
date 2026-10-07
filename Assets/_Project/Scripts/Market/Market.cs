@@ -371,5 +371,102 @@ namespace AntiqueTradingSimulator.Market
             foreach (var inventory in _inventories)
                 inventory.RecordValue(day);
         }
+        // ---------------------------------------------------------------- save / load
+
+        /// <summary>
+        /// Snapshot of the market. An antique listed by its owner is NOT written out here — it
+        /// belongs to that owner's inventory and only its Id is kept, so the same object comes
+        /// back in one place instead of being split into two copies on load.
+        /// </summary>
+        public MarketState CaptureState()
+        {
+            var state = new MarketState { FeedMessages = Feed.CaptureState() };
+
+            foreach (var typeState in _typeStates.Values)
+            {
+                if (typeState == null) continue;
+                state.TypeStates.Add(MarketTypeState.Capture(typeState));
+            }
+
+            foreach (var listing in _listings)
+            {
+                if (listing == null) continue;
+
+                state.ListingIds.Add(listing.Id);
+
+                // IsListedForSale means an owner set the asking price, so an inventory holds it.
+                if (!listing.IsListedForSale)
+                    state.UnownedListings.Add(AntiqueState.Capture(listing));
+            }
+
+            return state;
+        }
+
+        /// <summary>
+        /// Replaces the market with the saved state. Call after every TraderInventory has been restored
+        /// </summary>
+        public void RestoreState(MarketState state)
+        {
+            if (state == null) return;
+
+            _typeStates.Clear();
+            if (state.TypeStates != null)
+            {
+                foreach (var typeStateData in state.TypeStates)
+                {
+                    var typeState = typeStateData?.Restore();
+                    if (typeState == null || string.IsNullOrEmpty(typeState.DefinitionId)) continue;
+
+                    _typeStates[typeState.DefinitionId] = typeState;
+                }
+            }
+
+            // Unowned stock is rebuilt from the save; owned listings are looked up by Id.
+            var unownedById = new Dictionary<string, Antique>();
+            if (state.UnownedListings != null)
+            {
+                foreach (var antiqueState in state.UnownedListings)
+                {
+                    var antique = antiqueState?.Restore();
+                    if (antique == null) continue;
+
+                    unownedById[antique.Id] = antique;
+                }
+            }
+
+            _listings.Clear();
+            if (state.ListingIds != null)
+            {
+                foreach (var listingId in state.ListingIds)
+                {
+                    if (unownedById.TryGetValue(listingId, out var unowned))
+                    {
+                        _listings.Add(unowned);
+                        continue;
+                    }
+
+                    var owned = FindHeldAntique(listingId);
+                    if (owned == null)
+                    {
+                        Debug.LogWarning($"Market: listing '{listingId}' was listed by an owner, but no restored inventory holds it. Dropped from the market.");
+                        continue;
+                    }
+
+                    _listings.Add(owned);
+                }
+            }
+
+            Feed.RestoreState(state.FeedMessages);
+        }
+
+        private Antique FindHeldAntique(string listingId)
+        {
+            foreach (var inventory in _inventories)
+            {
+                var antique = inventory?.GetHolding(listingId);
+                if (antique != null) return antique;
+            }
+            return null;
+        }
     }
 }

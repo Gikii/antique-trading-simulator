@@ -42,6 +42,28 @@ namespace AntiqueTradingSimulator.Contracts
             Penalty = type == ContractType.Exclusive ? Mathf.Max(0f, penalty) : 0f;
         }
 
+        public Contract(ContractState state)
+        {
+            if (state == null)
+            {
+                Debug.LogError("Contract: restore constructor got null state.");
+                Requirement = new ContractRequirement();
+                return;
+            }
+
+            ContractId = state.ContractId;
+            Type = state.Type;
+            Requirement = state.Requirement ?? new ContractRequirement();
+            CreatedDay = state.CreatedDay;
+            DurationDays = state.DurationDays;
+            RewardPerUnit = state.RewardPerUnit;
+            Penalty = state.Penalty;
+            Status = state.Status;
+            DeliveredQuantity = state.DeliveredQuantity;
+            ClaimedByTraderId = state.ClaimedByTraderId;
+        }
+
+
         public float ReferenceValue(Market.Market market) => Requirement.AverageReferenceUnitPrice(market) * RemainingQuantity;
 
         public bool CanBeFulfilledBy(string traderId)

@@ -56,5 +56,25 @@ namespace AntiqueTradingSimulator.Market
         }
 
         private static string FormatPrice(float price) => $"{price:F0} €";
+
+        public List<string> CaptureState() => new List<string>(_messages);
+
+        /// <summary>
+        /// Replaces the feed with the saved messages. Raises OnCleared once so listeners rebuild.
+        /// </summary>
+        public void RestoreState(List<string> messages)
+        {
+            _messages.Clear();
+
+            if (messages != null)
+            {
+                _messages.AddRange(messages);
+
+                if (_messages.Count > MaxMessages)
+                    _messages.RemoveRange(MaxMessages, _messages.Count - MaxMessages);
+            }
+
+            OnCleared?.Invoke();
+        }
     }
 }

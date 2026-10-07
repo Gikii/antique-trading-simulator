@@ -140,5 +140,17 @@ namespace AntiqueTradingSimulator.Economy
                 if (entry.Category.IsTrade()) sum += Math.Abs(entry.Amount);
             return sum;
         }
+
+        // ---------------------------------------------------------------- save / load
+
+        public LedgerState CaptureState() => new LedgerState { Entries = new List<LedgerEntry>(_entries) };
+        public void RestoreState(LedgerState state)
+        {
+            _entries.Clear();
+            if (state?.Entries == null) return;
+
+            _entries.AddRange(state.Entries);
+        }
+
     }
 }

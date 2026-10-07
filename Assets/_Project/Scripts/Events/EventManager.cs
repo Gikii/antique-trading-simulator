@@ -36,6 +36,8 @@ namespace AntiqueTradingSimulator.Events
         /// <summary>Fired when a Player event rolls its FailureChance and fails — its effects never apply.</summary>
         public event Action<EventDefinition, int> OnEventFailed;
 
+        public event Action OnEventsRestored;
+
         void Awake()
         {
             if (economyManager == null) economyManager = FindFirstObjectByType<EconomyManager>();
@@ -177,5 +179,70 @@ namespace AntiqueTradingSimulator.Events
 
         }
 
+        // ---------------------------------------------------------------- save / load
+
+        public EventsState CaptureState()
+        {
+            var state = new EventsState { ScheduledEvents = new List<ScheduledEvent>(_scheduledEvents) };
+
+            foreach (var active in _activeEvents)
+            {
+                if (active == null) continue;
+                state.ActiveEvents.Add(ActiveEventState.Capture(active));
+            }
+
+            foreach (var ended in _endedEvents)
+            {
+                if (ended == null) continue;
+                state.EndedEvents.Add(ActiveEventState.Capture(ended));
+            }
+
+            return state;
+        }
+
+        public void RestoreState(EventsState state)
+        {
+            _scheduledEvents.Clear();
+            _activeEvents.Clear();
+            _endedEvents.Clear();
+
+            if (state == null)
+            {
+                OnEventsRestored?.Invoke();
+                return;
+            }
+
+            if (state.ScheduledEvents != null)
+            {
+                foreach (var scheduled in state.ScheduledEvents)
+                {
+                    if (scheduled == null) continue;
+
+                    if (scheduled.Definition == null)
+                    {
+                        Debug.LogWarning($"EventManager: scheduled event referenced EventDefinition '{scheduled.EventDefinitionId}', which no longer exists — dropped from the calendar.");
+                        continue;
+                    }
+
+                    _scheduledEvents.Add(scheduled);
+                }
+            }
+
+            RestoreInto(_activeEvents, state.ActiveEvents);
+            RestoreInto(_endedEvents, state.EndedEvents);
+
+            OnEventsRestored?.Invoke();
+        }
+
+        private static void RestoreInto(List<ActiveEvent> target, List<ActiveEventState> saved)
+        {
+            if (saved == null) return;
+
+            foreach (var activeState in saved)
+            {
+                var active = activeState?.Restore();
+                if (active != null) target.Add(active);
+            }
+        }
     }
 }

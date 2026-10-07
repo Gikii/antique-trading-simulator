@@ -25,6 +25,8 @@ namespace AntiqueTradingSimulator.Agents
         public TraderInventory Inventory { get; private set; }
         public InfoAccessLevel AccessLevel => accessLevel;
 
+        public virtual string OwnerId => traderName;
+
         protected virtual void Awake()
         {
             Inventory = new TraderInventory(startingCash);

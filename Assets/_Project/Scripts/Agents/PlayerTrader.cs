@@ -141,5 +141,24 @@ namespace AntiqueTradingSimulator.Agents
             Inventory.ReleaseCommittedContract(contract.ContractId);
             OnContractFailed?.Invoke(contract);
         }
+
+        // ---------------------------------------------------------------- save / load
+
+
+        public Func<string, WarehouseState, Warehouse> WarehouseFactory => BuildWarehouse;
+
+        private Warehouse BuildWarehouse(string ownerId, WarehouseState state)
+        {
+            if (ownerId != OwnerId || state == null) return null;
+
+            if (warehouseSettings == null)
+            {
+                Debug.LogError("PlayerTrader: cannot rebuild the warehouse from the save — no WarehouseSettings assigned.");
+                return null;
+            }
+
+            return new Warehouse(warehouseSettings, state.CapacityLevel, state.SecurityLevel);
+        }
+
     }
 }

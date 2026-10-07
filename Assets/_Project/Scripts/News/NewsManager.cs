@@ -27,6 +27,8 @@ namespace AntiqueTradingSimulator.News
         /// <summary>Raised after a news item has been published (e.g. so the UI can refresh).</summary>
         public event System.Action<NewsItem> OnNewsPublished;
 
+        public event System.Action OnNewsRestored;
+
         private readonly List<PendingNews> _pendingNews = new();
 
         private struct PendingNews
@@ -233,5 +235,84 @@ namespace AntiqueTradingSimulator.News
 
             OnNewsPublished?.Invoke(item);
         }
+
+        // ---------------------------------------------------------------- save / load
+
+        public NewsState CaptureState()
+        {
+            var state = new NewsState();
+
+            foreach (var item in _publishedNews)
+            {
+                if (item == null) continue;
+                state.PublishedNews.Add(NewsItemState.Capture(item));
+            }
+
+            foreach (var pending in _pendingNews)
+            {
+                if (pending.Definition == null)
+                {
+                    Debug.LogWarning("NewsManager: a queued news item has no EventDefinition — left out of the save.");
+                    continue;
+                }
+
+                state.PendingNews.Add(new PendingNewsState
+                {
+                    PublishDay = pending.PublishDay,
+                    EventDefinitionId = pending.Definition.Id,
+                    EventTriggerDay = pending.EventTriggerDay,
+                    Type = pending.Type
+                });
+            }
+
+            return state;
+        }
+
+        public void RestoreState(NewsState state)
+        {
+            _publishedNews.Clear();
+            _pendingNews.Clear();
+
+            if (state == null)
+            {
+                OnNewsRestored?.Invoke();
+                return;
+            }
+
+            if (state.PublishedNews != null)
+            {
+                foreach (var itemState in state.PublishedNews)
+                {
+                    var item = itemState?.Restore();
+                    if (item != null) _publishedNews.Add(item);
+                }
+            }
+
+            if (state.PendingNews != null)
+            {
+                foreach (var pendingState in state.PendingNews)
+                {
+                    if (pendingState == null) continue;
+
+                    var definition = EventDatabase.GetById(pendingState.EventDefinitionId);
+                    if (definition == null)
+                    {
+                        Debug.LogWarning($"NewsManager: queued news referenced EventDefinition '{pendingState.EventDefinitionId}', which no longer exists — dropped.");
+                        continue;
+                    }
+
+                    _pendingNews.Add(new PendingNews
+                    {
+                        PublishDay = pendingState.PublishDay,
+                        Definition = definition,
+                        EventTriggerDay = pendingState.EventTriggerDay,
+                        Type = pendingState.Type
+                    });
+                }
+            }
+
+            OnNewsRestored?.Invoke();
+        }
+
     }
 }

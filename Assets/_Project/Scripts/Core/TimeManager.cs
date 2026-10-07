@@ -32,6 +32,8 @@ namespace AntiqueTradingSimulator.Core
         /// <summary>Raised when the clock is paused or resumed (true = running).</summary>
         public event Action<bool> OnRunningChanged;
 
+        public event Action OnTimeRestored;
+
         private float _timer;
         private int _speedIndex = 0;
 
@@ -104,5 +106,35 @@ namespace AntiqueTradingSimulator.Core
             SpeedMultiplier = speedSteps[_speedIndex];
             OnSpeedChanged?.Invoke(SpeedMultiplier);
         }
+
+        // ---------------------------------------------------------------- save / load
+
+        public TimeManagerState CaptureState() => new TimeManagerState
+        {
+            CurrentDay = CurrentDay,
+            DayTimer = _timer,
+            SpeedIndex = _speedIndex,
+            IsRunning = IsRunning
+        };
+
+        public void RestoreState(TimeManagerState state)
+        {
+            if (state == null) return;
+
+            CurrentDay = Mathf.Max(1, state.CurrentDay);
+            _timer = Mathf.Clamp(state.DayTimer, 0f, secondsPerDay);
+
+            _speedIndex = speedSteps != null && speedSteps.Length > 0
+                ? Mathf.Clamp(state.SpeedIndex, 0, speedSteps.Length - 1)
+                : 0;
+            SpeedMultiplier = speedSteps != null && speedSteps.Length > 0 ? speedSteps[_speedIndex] : 1f;
+
+            IsRunning = state.IsRunning;
+
+            OnSpeedChanged?.Invoke(SpeedMultiplier);
+            OnRunningChanged?.Invoke(IsRunning);
+            OnTimeRestored?.Invoke();
+        }
+
     }
 }
