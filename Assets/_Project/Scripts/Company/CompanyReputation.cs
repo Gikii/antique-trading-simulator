@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace AntiqueTradingSimulator.Company
         public readonly float Delta;
         public readonly string Reason;
 
+        [JsonConstructor]
         public ReputationChange(int day, ReputationKind kind, float delta, string reason)
         {
             Day = day;
@@ -43,6 +45,7 @@ namespace AntiqueTradingSimulator.Company
         /// <summary>Oldest first.</summary>
         public IReadOnlyList<ReputationChange> History => _history;
 
+        [JsonIgnore]
         public ReputationSettings Settings => _settings;
 
         public event Action<ReputationChange> OnChanged;

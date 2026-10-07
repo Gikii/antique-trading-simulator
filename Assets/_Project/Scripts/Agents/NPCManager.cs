@@ -91,7 +91,7 @@ namespace AntiqueTradingSimulator.Agents
             _npcsById[npc.Id] = npc;
             newsManager?.RegisterReceiver(npc);
             contractManager?.RegisterTrader(npc.Id, npc.Inventory);
-            if (economyManager != null) economyManager.RegisterInventory(npc.Inventory);
+            if (economyManager != null) economyManager.RegisterInventory(npc.Inventory, npc.Id);
             OnNPCAdded?.Invoke(npc);
         }
 

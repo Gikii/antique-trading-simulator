@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Logistics;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Company
@@ -60,6 +61,7 @@ namespace AntiqueTradingSimulator.Company
 
         public event Action<CompanyUpgradeType> OnUpgraded;
 
+        [JsonIgnore]
         public CompanyUpgradeSettings Settings => _settings;
 
         public CompanyUpgrades(CompanyUpgradeSettings settings, TraderInventory inventory, int informationNetworkStartLevel)

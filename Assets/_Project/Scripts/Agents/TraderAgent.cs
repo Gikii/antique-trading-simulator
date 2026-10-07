@@ -42,7 +42,7 @@ namespace AntiqueTradingSimulator.Agents
 
             // Lets the market re-value this trader's holdings together with its own listings.
             if (economyManager != null)
-                economyManager.RegisterInventory(Inventory);
+                economyManager.RegisterInventory(Inventory, OwnerId);
         }
 
         protected virtual void OnDestroy()

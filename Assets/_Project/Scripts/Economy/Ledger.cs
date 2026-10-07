@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -55,6 +56,7 @@ namespace AntiqueTradingSimulator.Economy
         public readonly float Amount;
         public readonly string Description;
 
+        [JsonConstructor]
         public LedgerEntry(int day, LedgerCategory category, float amount, string description)
         {
             Day = day;

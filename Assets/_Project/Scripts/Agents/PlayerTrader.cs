@@ -26,6 +26,8 @@ namespace AntiqueTradingSimulator.Agents
 
         public Warehouse Warehouse => Inventory.Warehouse;
 
+        public override string OwnerId => Antique.PlayerOwnerId;
+
         /// <summary>The player's company (reputation, upgrades, statistics). Added automatically if missing.</summary>
         public CompanyManager Company { get; private set; }
 
