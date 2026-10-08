@@ -18,7 +18,7 @@ namespace AntiqueTradingSimulator.UI
     /// Buy stays disabled — with the reason shown — when the purchase can't go through.
     /// Confirming calls PlayerTrader.BuyListing with the selected TransportOption.
     /// </summary>
-    public class BuyModalUI : MonoBehaviour
+    public class BuyModalUI : MonoBehaviour, IModalPanel
     {
         [Header("Game systems (auto-found if empty)")]
         [SerializeField] private PlayerTrader playerTrader;
@@ -98,10 +98,15 @@ namespace AntiqueTradingSimulator.UI
             gameObject.SetActive(false);
         }
 
-        private void OnEnable() => Subscribe();
+        private void OnEnable()
+        {
+            ModalTracker.SetOpen(this);
+            Subscribe();
+        }
 
         private void OnDisable()
         {
+            ModalTracker.SetClosed(this);
             Unsubscribe();
 
             // Resume even if something else hides the modal.

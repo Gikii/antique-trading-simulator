@@ -121,6 +121,7 @@ namespace AntiqueTradingSimulator.UI
                 RefreshListings();
         }
 
+
         // Called by the Antique Type filter dropdown's onSelectionChanged.
         // Dropdown option index N corresponds directly to AntiqueType N, since
         // AntiqueType's own values already run 0..18 in declaration order.

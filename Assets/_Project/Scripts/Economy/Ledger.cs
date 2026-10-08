@@ -65,7 +65,10 @@ namespace AntiqueTradingSimulator.Economy
             Description = description ?? "";
         }
 
+        [JsonIgnore]
         public bool IsIncome => Amount > 0f;
+
+        [JsonIgnore]
         public bool IsExpense => Amount < 0f;
     }
 

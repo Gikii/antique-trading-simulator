@@ -172,7 +172,7 @@ namespace AntiqueTradingSimulator.Market
         /// Player/NPC buys a specific listing off the market — it's removed from the
         /// available listings, and its type's supply dips/demand rises slightly (buying pressure).
         /// </summary>
-        public bool Buy(string listingId, string newOwnerId = Antique.PlayerOwnerId)
+        public bool Buy(string listingId, string newOwnerId)
         {
             var listing = GetById(listingId);
 

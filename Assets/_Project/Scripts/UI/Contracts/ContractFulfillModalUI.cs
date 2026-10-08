@@ -12,7 +12,7 @@ using UnityEngine.UI;
 
 namespace AntiqueTradingSimulator.UI
 {
-    public class ContractFulfillModalUI : MonoBehaviour
+    public class ContractFulfillModalUI : MonoBehaviour, IModalPanel
     {
         [Header("Game systems (auto-found if empty)")]
         [SerializeField] private PlayerTrader playerTrader;
@@ -117,8 +117,19 @@ namespace AntiqueTradingSimulator.UI
         // Unity
         // ------------------------------------------------------------------
 
+        private void OnEnable()
+        {
+            ModalTracker.SetOpen(this);
+
+            if (contractManager != null) contractManager.OnContractsRestored += Close;
+        }
+
         private void OnDisable()
         {
+            ModalTracker.SetClosed(this);
+
+            if (contractManager != null) contractManager.OnContractsRestored -= Close;
+
             // Resume even if something else hides the modal.
             if (_pausedByModal && timeManager != null)
                 timeManager.Resume();
@@ -303,7 +314,7 @@ namespace AntiqueTradingSimulator.UI
             if (!playerTrader.FulfillContract(contract.ContractId, _selectedListingIds))
             {
                 Debug.LogWarning($"ContractFulfillModalUI: failed to fulfill contract {contract.ContractId}.");
- 
+
                 RebuildList();
                 RefreshFooter();
                 return;

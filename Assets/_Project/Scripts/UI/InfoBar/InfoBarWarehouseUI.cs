@@ -90,6 +90,7 @@ namespace AntiqueTradingSimulator.UI
             _inventory.OnHoldingChanged += HandleHoldingChanged;
             _inventory.OnWarehouseChanged += Refresh;
             _inventory.OnWarehouseUpkeepCharged += HandleUpkeepCharged;
+            _inventory.OnStateRestored += Refresh;
         }
 
         private void Unbind()
@@ -99,6 +100,7 @@ namespace AntiqueTradingSimulator.UI
             _inventory.OnHoldingChanged -= HandleHoldingChanged;
             _inventory.OnWarehouseChanged -= Refresh;
             _inventory.OnWarehouseUpkeepCharged -= HandleUpkeepCharged;
+            _inventory.OnStateRestored -= Refresh;
             _inventory = null;
         }
 

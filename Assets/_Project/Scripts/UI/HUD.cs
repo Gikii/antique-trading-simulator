@@ -64,11 +64,13 @@ namespace AntiqueTradingSimulator.UI
             }
             inventory.OnHoldingChanged += HandleHoldingChanged;
             inventory.OnHoldingsRevalued += UpdateWealth;
+            inventory.OnStateRestored += HandleStateRestored;
             UpdateWealth();
 
             if (timeManager != null)
             {
                 timeManager.OnDayChanged += UpdateDay;
+                timeManager.OnTimeRestored += HandleTimeRestored;
                 UpdateDay(timeManager.CurrentDay);
             }
 
@@ -95,6 +97,7 @@ namespace AntiqueTradingSimulator.UI
                 playerTrader.Inventory.OnCashChanged -= UpdateCash;
                 playerTrader.Inventory.OnHoldingChanged -= HandleHoldingChanged;
                 playerTrader.Inventory.OnHoldingsRevalued -= UpdateWealth;
+                playerTrader.Inventory.OnStateRestored -= HandleStateRestored;
             }
 
             if (_company != null)
@@ -102,6 +105,7 @@ namespace AntiqueTradingSimulator.UI
 
             if (timeManager != null)
                 timeManager.OnDayChanged -= UpdateDay;
+            timeManager.OnTimeRestored -= HandleTimeRestored;
         }
 
         private void UpdateDay(int day)
@@ -191,5 +195,21 @@ namespace AntiqueTradingSimulator.UI
         {
             if (text != null) text.text = value;
         }
+
+        private void HandleStateRestored()
+        {
+            var inventory = playerTrader != null ? playerTrader.Inventory : null;
+            if (inventory != null)
+                UpdateCash(inventory.Cash);
+
+            UpdateCompany();
+        }
+
+        private void HandleTimeRestored()
+        {
+            if (timeManager != null)
+                UpdateDay(timeManager.CurrentDay);
+        }
+
     }
 }

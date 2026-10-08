@@ -19,7 +19,7 @@ namespace AntiqueTradingSimulator.UI
     /// market fee. Confirming calls PlayerTrader.ListOnMarket — the antique stays in the
     /// collection until an NPC buys it or the player cancels the listing.
     /// </summary>
-    public class ListOnMarketModalUI : MonoBehaviour
+    public class ListOnMarketModalUI : MonoBehaviour, IModalPanel
     {
         // Price range suggested to the player: the item's own value over this many days.
         private const int SuggestedRangeDays = 30;
@@ -131,8 +131,21 @@ namespace AntiqueTradingSimulator.UI
         // Unity
         // ------------------------------------------------------------------
 
+        private void OnEnable()
+        {
+            ModalTracker.SetOpen(this);
+
+            var inventory = playerTrader != null ? playerTrader.Inventory : null;
+            if (inventory != null) inventory.OnStateRestored += Close;
+        }
+
         private void OnDisable()
         {
+            ModalTracker.SetClosed(this);
+
+            var inventory = playerTrader != null ? playerTrader.Inventory : null;
+            if (inventory != null) inventory.OnStateRestored -= Close;
+
             // Resume even if something else hides the modal.
             if (_pausedByModal && timeManager != null)
                 timeManager.Resume();
