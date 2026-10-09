@@ -91,8 +91,56 @@ namespace AntiqueTradingSimulator.Agents
             _npcsById[npc.Id] = npc;
             newsManager?.RegisterReceiver(npc);
             contractManager?.RegisterTrader(npc.Id, npc.Inventory);
-            if (economyManager != null) economyManager.RegisterInventory(npc.Inventory);
+            if (economyManager != null) economyManager.RegisterInventory(npc.Inventory, npc.Id);
             OnNPCAdded?.Invoke(npc);
         }
+
+        // ---------------------------------------------------------------- save / load
+
+        public NPCManagerState CaptureState()
+        {
+            var state = new NPCManagerState();
+
+            foreach (var npc in _npcs)
+            {
+                if (npc == null) continue;
+                state.Npcs.Add(npc.CaptureState());
+            }
+
+            return state;
+        }
+
+        public void RestoreState(NPCManagerState state)
+        {
+            if (state == null) return;
+
+            foreach (var npcId in new List<string>(_npcsById.Keys))
+                RemoveNPC(npcId);
+
+            if (state.Npcs == null) return;
+
+            foreach (var npcState in state.Npcs)
+            {
+                if (npcState == null) continue;
+
+                // Starting cash is set to 0. Restoring inventory sets it to the saved value.
+                var npc = new NPCTrader(npcState.TraderName, npcState.ProfileId, 0f,
+                    economyManager, contractManager, transportManager);
+
+                // Before RegisterNPC, which keys everything on the Id this restores.
+                npc.RestoreState(npcState);
+
+                if (_npcsById.ContainsKey(npc.Id))
+                {
+                    Debug.LogWarning($"NPCManager: duplicate NPC Id '{npc.Id}' in the save — keeping the first one.");
+                    continue;
+                }
+
+                RegisterNPC(npc);
+            }
+
+            Debug.Log($"NPCManager: restored {_npcs.Count} NPC trader(s) from the save.");
+        }
+
     }
 }

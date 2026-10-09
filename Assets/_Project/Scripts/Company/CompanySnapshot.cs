@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Company
@@ -17,6 +18,8 @@ namespace AntiqueTradingSimulator.Company
         public readonly float MarketShare;   // 0..1
         public readonly int ContractsFulfilled;
 
+
+        [JsonConstructor]
         public CompanySnapshot(int day, float cash, float wealth, float collectionValue, int reputation,
             float credibility, float marketShare, int contractsFulfilled)
         {

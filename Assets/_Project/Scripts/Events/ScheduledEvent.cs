@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using UnityEngine;
 
@@ -11,6 +12,8 @@ namespace AntiqueTradingSimulator.Events
         public EventType EventType;
 
         [NonSerialized] private EventDefinition _definitionCache;
+
+        [JsonIgnore]
         public EventDefinition Definition => _definitionCache ??= EventDatabase.GetById(EventDefinitionId);
 
         public ScheduledEvent() { }

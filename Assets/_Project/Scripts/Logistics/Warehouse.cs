@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using UnityEngine;
 
@@ -23,6 +24,8 @@ namespace AntiqueTradingSimulator.Logistics
 
         public int CapacityLevel => capacityLevel;
         public int SecurityLevel => securityLevel;
+
+        [JsonIgnore]
         public WarehouseSettings Settings => _settings;
 
         public Warehouse(WarehouseSettings settings, int startingCapacityLevel = 0, int startingSecurityLevel = 0)

@@ -26,6 +26,8 @@ namespace AntiqueTradingSimulator.Agents
 
         public Warehouse Warehouse => Inventory.Warehouse;
 
+        public override string OwnerId => Antique.PlayerOwnerId;
+
         /// <summary>The player's company (reputation, upgrades, statistics). Added automatically if missing.</summary>
         public CompanyManager Company { get; private set; }
 
@@ -141,5 +143,24 @@ namespace AntiqueTradingSimulator.Agents
             Inventory.ReleaseCommittedContract(contract.ContractId);
             OnContractFailed?.Invoke(contract);
         }
+
+        // ---------------------------------------------------------------- save / load
+
+
+        public Func<string, WarehouseState, Warehouse> WarehouseFactory => BuildWarehouse;
+
+        private Warehouse BuildWarehouse(string ownerId, WarehouseState state)
+        {
+            if (ownerId != OwnerId || state == null) return null;
+
+            if (warehouseSettings == null)
+            {
+                Debug.LogError("PlayerTrader: cannot rebuild the warehouse from the save — no WarehouseSettings assigned.");
+                return null;
+            }
+
+            return new Warehouse(warehouseSettings, state.CapacityLevel, state.SecurityLevel);
+        }
+
     }
 }

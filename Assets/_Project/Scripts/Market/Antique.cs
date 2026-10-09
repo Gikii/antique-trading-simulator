@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Logistics;
+using Newtonsoft.Json;
 using System;
 using UnityEngine;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
@@ -145,6 +146,7 @@ namespace AntiqueTradingSimulator.Market
 
         }
 
+        [JsonIgnore]
         public AntiqueDefinition Definition
         {
             get

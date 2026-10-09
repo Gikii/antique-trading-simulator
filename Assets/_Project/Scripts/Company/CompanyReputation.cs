@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace AntiqueTradingSimulator.Company
         public readonly float Delta;
         public readonly string Reason;
 
+        [JsonConstructor]
         public ReputationChange(int day, ReputationKind kind, float delta, string reason)
         {
             Day = day;
@@ -43,6 +45,7 @@ namespace AntiqueTradingSimulator.Company
         /// <summary>Oldest first.</summary>
         public IReadOnlyList<ReputationChange> History => _history;
 
+        [JsonIgnore]
         public ReputationSettings Settings => _settings;
 
         public event Action<ReputationChange> OnChanged;
@@ -137,5 +140,27 @@ namespace AntiqueTradingSimulator.Company
 
         /// <summary>Company title — the name of the current reputation tier.</summary>
         public string Title => CurrentTier(ReputationKind.Reputation)?.Name ?? "";
+
+        // ---------------------------------------------------------------- save / load
+
+        public ReputationState CaptureState() => new ReputationState
+        {
+            Reputation = Reputation,
+            Credibility = Credibility,
+            History = new List<ReputationChange>(_history)
+        };
+
+        public void RestoreState(ReputationState state)
+        {
+            if (state == null) return;
+
+            Reputation = Mathf.Max(0, state.Reputation);
+            Credibility = Mathf.Clamp01(state.Credibility);
+
+            _history.Clear();
+            if (state.History != null)
+                _history.AddRange(state.History);
+        }
+
     }
 }

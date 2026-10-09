@@ -59,6 +59,7 @@ namespace AntiqueTradingSimulator.UI
                 transportManager.OnShipmentDispatched += HandleShipmentChanged;
                 transportManager.OnShipmentDelivered += HandleShipmentDelivered;
                 transportManager.OnShipmentsDelayed += HandleShipmentsDelayed;
+                transportManager.OnShipmentsRestored += Refresh;
             }
 
             if (timeManager != null)
@@ -76,6 +77,7 @@ namespace AntiqueTradingSimulator.UI
                 transportManager.OnShipmentDispatched -= HandleShipmentChanged;
                 transportManager.OnShipmentDelivered -= HandleShipmentDelivered;
                 transportManager.OnShipmentsDelayed -= HandleShipmentsDelayed;
+                transportManager.OnShipmentsRestored -= Refresh;
             }
 
             if (timeManager != null)

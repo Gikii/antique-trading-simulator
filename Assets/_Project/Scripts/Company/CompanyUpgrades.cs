@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Logistics;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Company
@@ -60,6 +61,7 @@ namespace AntiqueTradingSimulator.Company
 
         public event Action<CompanyUpgradeType> OnUpgraded;
 
+        [JsonIgnore]
         public CompanyUpgradeSettings Settings => _settings;
 
         public CompanyUpgrades(CompanyUpgradeSettings settings, TraderInventory inventory, int informationNetworkStartLevel)
@@ -230,5 +232,28 @@ namespace AntiqueTradingSimulator.Company
                     yield return (type, definition?.DisplayName ?? type.ToString(), upkeep);
             }
         }
+
+        // ---------------------------------------------------------------- save / load
+        public Dictionary<CompanyUpgradeType, int> CaptureState() =>
+            new Dictionary<CompanyUpgradeType, int>(_levels);
+
+        public void RestoreState(Dictionary<CompanyUpgradeType, int> levels)
+        {
+            if (levels == null) return;
+
+            foreach (var pair in levels)
+            {
+                if (IsWarehouseType(pair.Key)) continue;
+
+                int maxLevel = Mathf.Max(0, LevelCount(pair.Key) - 1);
+                int level = Mathf.Clamp(pair.Value, 0, maxLevel);
+
+                if (level != pair.Value)
+                    Debug.LogWarning($"CompanyUpgrades: saved level {pair.Value} for {pair.Key} is outside what the settings asset defines — clamped to {level}.");
+
+                _levels[pair.Key] = level;
+            }
+        }
+
     }
 }

@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -55,6 +56,7 @@ namespace AntiqueTradingSimulator.Economy
         public readonly float Amount;
         public readonly string Description;
 
+        [JsonConstructor]
         public LedgerEntry(int day, LedgerCategory category, float amount, string description)
         {
             Day = day;
@@ -63,7 +65,10 @@ namespace AntiqueTradingSimulator.Economy
             Description = description ?? "";
         }
 
+        [JsonIgnore]
         public bool IsIncome => Amount > 0f;
+
+        [JsonIgnore]
         public bool IsExpense => Amount < 0f;
     }
 
@@ -140,5 +145,17 @@ namespace AntiqueTradingSimulator.Economy
                 if (entry.Category.IsTrade()) sum += Math.Abs(entry.Amount);
             return sum;
         }
+
+        // ---------------------------------------------------------------- save / load
+
+        public LedgerState CaptureState() => new LedgerState { Entries = new List<LedgerEntry>(_entries) };
+        public void RestoreState(LedgerState state)
+        {
+            _entries.Clear();
+            if (state?.Entries == null) return;
+
+            _entries.AddRange(state.Entries);
+        }
+
     }
 }

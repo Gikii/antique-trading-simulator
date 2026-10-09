@@ -1,4 +1,4 @@
-using Mono.Cecil;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -12,6 +12,7 @@ namespace AntiqueTradingSimulator.Events
         public int StartDay { get; }
         public int EndDay { get; }
 
+        [JsonIgnore]
         [NonSerialized] private EventDefinition _definitionCache;
         public EventDefinition Definition => _definitionCache ??= EventDatabase.GetById(EventDefinitionID);
 
@@ -25,6 +26,14 @@ namespace AntiqueTradingSimulator.Events
             StartDay = startDay;
             EndDay = startDay + Mathf.Max(1, definition.DurationDays);
         }
+
+        public ActiveEvent(string eventDefinitionId, int startDay, int endDay)
+        {
+            EventDefinitionID = eventDefinitionId;
+            StartDay = startDay;
+            EndDay = endDay;
+        }
+
 
         public void Begin(EventContext context)
         {
@@ -45,6 +54,27 @@ namespace AntiqueTradingSimulator.Events
         public bool HasExpired(int day) => day >= EndDay;
 
         public override string ToString() => $"{Definition.DisplayName} (Day {StartDay}\u2013{EndDay})";
+
+        public void RebuildEffectInstances()
+        {
+            EffectInstances.Clear();
+
+            var definition = Definition;
+            if (definition == null)
+            {
+                Debug.LogWarning($"ActiveEvent: no EventDefinition with Id '{EventDefinitionID}'. The running event cannot be reverted when it ends.");
+                return;
+            }
+
+            if (definition.Effects == null) return;
+
+            foreach (var effect in definition.Effects)
+            {
+                if (effect == null) continue;
+                EffectInstances.Add(effect.Clone());
+            }
+        }
+
     }
 
 }

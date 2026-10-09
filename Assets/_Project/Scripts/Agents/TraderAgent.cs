@@ -25,6 +25,8 @@ namespace AntiqueTradingSimulator.Agents
         public TraderInventory Inventory { get; private set; }
         public InfoAccessLevel AccessLevel => accessLevel;
 
+        public virtual string OwnerId => traderName;
+
         protected virtual void Awake()
         {
             Inventory = new TraderInventory(startingCash);
@@ -40,7 +42,7 @@ namespace AntiqueTradingSimulator.Agents
 
             // Lets the market re-value this trader's holdings together with its own listings.
             if (economyManager != null)
-                economyManager.RegisterInventory(Inventory);
+                economyManager.RegisterInventory(Inventory, OwnerId);
         }
 
         protected virtual void OnDestroy()

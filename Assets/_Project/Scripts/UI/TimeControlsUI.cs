@@ -59,6 +59,7 @@ namespace AntiqueTradingSimulator.UI
 
             timeManager.OnRunningChanged += HandleRunningChanged;
             timeManager.OnSpeedChanged += HandleSpeedChanged;
+            timeManager.OnTimeRestored += HandleTimeRestored;
             RefreshButtons();
         }
 
@@ -68,6 +69,7 @@ namespace AntiqueTradingSimulator.UI
 
             timeManager.OnRunningChanged -= HandleRunningChanged;
             timeManager.OnSpeedChanged -= HandleSpeedChanged;
+            timeManager.OnTimeRestored -= HandleTimeRestored;
         }
 
         private void Update()
@@ -98,6 +100,12 @@ namespace AntiqueTradingSimulator.UI
 
         private void HandleRunningChanged(bool running) => RefreshButtons();
         private void HandleSpeedChanged(float speed) => RefreshButtons();
+
+        private void HandleTimeRestored()
+        {
+            _lastShownSeconds = -1;
+            RefreshButtons();
+        }
 
         private static void SetTooltip(Component target, string text)
         {

@@ -12,7 +12,7 @@ namespace AntiqueTradingSimulator.UI
     /// "Sell now?" confirmation shown before an instant sale: which antique, what the player
     /// receives and how that compares to what they paid. Confirming calls PlayerTrader.SellListing.
     /// </summary>
-    public class SellNowModalUI : MonoBehaviour
+    public class SellNowModalUI : MonoBehaviour, IModalPanel
     {
         [Header("Game systems (auto-found if empty)")]
         [SerializeField] private PlayerTrader playerTrader;
@@ -86,8 +86,21 @@ namespace AntiqueTradingSimulator.UI
             gameObject.SetActive(false);
         }
 
+        private void OnEnable()
+        {
+            ModalTracker.SetOpen(this);
+
+            var inventory = playerTrader != null ? playerTrader.Inventory : null;
+            if (inventory != null) inventory.OnStateRestored += Close;
+        }
+
         private void OnDisable()
         {
+            ModalTracker.SetClosed(this);
+
+            var inventory = playerTrader != null ? playerTrader.Inventory : null;
+            if (inventory != null) inventory.OnStateRestored -= Close;
+
             // Resume even if something else hides the modal.
             if (_pausedByModal && timeManager != null)
                 timeManager.Resume();

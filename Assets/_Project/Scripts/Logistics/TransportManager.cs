@@ -59,6 +59,8 @@ namespace AntiqueTradingSimulator.Logistics
         /// <summary>Fired when in-flight shipments get pushed back (DelayShipments).</summary>
         public event Action<ShippingZone, int> OnShipmentsDelayed;
 
+        public event Action OnShipmentsRestored;
+
         private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
 
         void Awake()
@@ -227,5 +229,126 @@ namespace AntiqueTradingSimulator.Logistics
 
             OnShipmentsDelayed?.Invoke(zone, days);
         }
+
+        // ---------------------------------------------------------------- save / load
+
+        public LogisticsState CaptureState()
+        {
+            var state = new LogisticsState { ZoneDelayDays = new Dictionary<ShippingZone, int>(_zoneDelayDays) };
+
+            var ownerIdsByInventory = BuildOwnerIdLookup();
+
+            foreach (var shipment in _shipments)
+            {
+                if (shipment == null) continue;
+                state.Shipments.Add(ShipmentState.Capture(shipment, ResolveOwnerId(shipment, ownerIdsByInventory)));
+            }
+
+            foreach (var record in _deliveryLog)
+            {
+                if (record.Shipment == null) continue;
+
+                state.DeliveryLog.Add(new DeliveryRecordState
+                {
+                    Shipment = ShipmentState.Capture(record.Shipment, ResolveOwnerId(record.Shipment, ownerIdsByInventory)),
+                    Day = record.Day,
+                    ConditionLost = record.ConditionLost
+                });
+            }
+
+            return state;
+        }
+
+        /// <summary>
+        /// Call after EconomyManager.RestoreState.
+        /// </summary>
+        public void RestoreState(LogisticsState state)
+        {
+            _shipments.Clear();
+            _deliveryLog.Clear();
+            _zoneDelayDays.Clear();
+
+            if (state == null)
+            {
+                OnShipmentsRestored?.Invoke();
+                return;
+            }
+
+            if (state.ZoneDelayDays != null)
+                foreach (var pair in state.ZoneDelayDays)
+                    _zoneDelayDays[pair.Key] = pair.Value;
+
+            if (state.Shipments != null)
+            {
+                foreach (var shipmentState in state.Shipments)
+                {
+                    if (shipmentState == null) continue;
+
+                    var recipient = ResolveRecipient(shipmentState);
+                    if (recipient == null)
+                    {
+                        Debug.LogWarning($"TransportManager: '{shipmentState.AntiqueName}' was in transit to '{shipmentState.RecipientName}' ({shipmentState.RecipientOwnerId}), but that trader was not restored — shipment dropped. The antique stays marked InTransit.");
+                        continue;
+                    }
+
+                    _shipments.Add(shipmentState.Restore(recipient));
+                }
+            }
+
+            if (state.DeliveryLog != null)
+            {
+                foreach (var recordState in state.DeliveryLog)
+                {
+                    if (recordState?.Shipment == null) continue;
+
+                    // A delivered shipment with no resolvable recipient is only a log line, so it
+                    // is kept (with a null Recipient) rather than dropped.
+                    var shipment = recordState.Shipment.Restore(ResolveRecipient(recordState.Shipment));
+                    _deliveryLog.Add(new DeliveryRecord(shipment, recordState.Day, recordState.ConditionLost));
+                }
+
+                if (_deliveryLog.Count > MaxDeliveryLog)
+                    _deliveryLog.RemoveRange(0, _deliveryLog.Count - MaxDeliveryLog);
+            }
+
+            OnShipmentsRestored?.Invoke();
+        }
+
+        private Dictionary<TraderInventory, string> BuildOwnerIdLookup()
+        {
+            var lookup = new Dictionary<TraderInventory, string>();
+            if (economyManager == null) return lookup;
+
+            foreach (var pair in economyManager.InventoriesByOwnerId)
+                if (pair.Value != null)
+                    lookup[pair.Value] = pair.Key;
+
+            return lookup;
+        }
+
+        private static string ResolveOwnerId(Shipment shipment, Dictionary<TraderInventory, string> ownerIdsByInventory)
+        {
+            if (shipment.Recipient != null && ownerIdsByInventory.TryGetValue(shipment.Recipient, out string ownerId))
+                return ownerId;
+
+            Debug.LogWarning($"TransportManager: no owner Id for the recipient of '{shipment.AntiqueName}' — it registered without one, so this shipment will not survive the load.");
+            return null;
+        }
+
+        private TraderInventory ResolveRecipient(ShipmentState shipmentState)
+        {
+            if (economyManager == null) return null;
+
+            if (!string.IsNullOrEmpty(shipmentState.RecipientOwnerId) &&
+                economyManager.InventoriesByOwnerId.TryGetValue(shipmentState.RecipientOwnerId, out var byOwnerId))
+                return byOwnerId;
+
+            foreach (var inventory in economyManager.Inventories)
+                if (inventory != null && inventory.Owns(shipmentState.AntiqueId))
+                    return inventory;
+
+            return null;
+        }
+
     }
 }

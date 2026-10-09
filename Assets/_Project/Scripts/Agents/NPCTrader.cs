@@ -23,7 +23,7 @@ namespace AntiqueTradingSimulator.Agents
     [Serializable]
     public class NPCTrader : IInformationReceiver
     {
-        public string Id { get; }
+        public string Id { get; private set; }
         public string ProfileId { get; }
         public string TraderName { get; }
         public TraderInventory Inventory { get; }
@@ -364,5 +364,82 @@ namespace AntiqueTradingSimulator.Agents
             bool periodOk = profile.PreferredCenturies.Count == 0 || profile.PreferredCenturies.Contains(def.Century);
             return typeOk && countryOk && periodOk;
         }
+
+        // ---------------------------------------------------------------- save / load
+
+        public NPCTraderState CaptureState()
+        {
+            var state = new NPCTraderState
+            {
+                Id = Id,
+                ProfileId = ProfileId,
+                TraderName = TraderName,
+                CommittedContractIds = new List<string>(_committedContractIds)
+            };
+
+            foreach (var pair in _acquisitions)
+            {
+                state.Acquisitions.Add(new AcquisitionState
+                {
+                    ListingId = pair.Key,
+                    PurchasePrice = pair.Value.PurchasePrice,
+                    Day = pair.Value.Day
+                });
+            }
+
+            foreach (var pending in _pendingReactions)
+            {
+                state.PendingReactions.Add(new PendingReactionState
+                {
+                    ReactionDay = pending.ReactionDay,
+                    News = NewsItemState.Capture(pending.News)
+                });
+            }
+
+            return state;
+        }
+
+        public void RestoreState(NPCTraderState state)
+        {
+            if (state == null) return;
+
+            if (!string.IsNullOrEmpty(state.Id))
+                Id = state.Id;
+
+            if (!string.IsNullOrEmpty(state.ProfileId) && state.ProfileId != ProfileId)
+                Debug.LogWarning($"NPCTrader: '{TraderName}' was constructed with profile '{ProfileId}' but the save says '{state.ProfileId}'. Construct the NPC from the saved ProfileId.");
+
+            _acquisitions.Clear();
+            if (state.Acquisitions != null)
+            {
+                foreach (var acquisition in state.Acquisitions)
+                {
+                    if (acquisition == null || string.IsNullOrEmpty(acquisition.ListingId)) continue;
+
+                    _acquisitions[acquisition.ListingId] = new Acquisition
+                    {
+                        PurchasePrice = acquisition.PurchasePrice,
+                        Day = acquisition.Day
+                    };
+                }
+            }
+
+            _pendingReactions.Clear();
+            if (state.PendingReactions != null)
+            {
+                foreach (var pending in state.PendingReactions)
+                {
+                    var news = pending?.News?.Restore();
+                    if (news == null) continue;
+
+                    _pendingReactions.Add(new PendingReaction { News = news, ReactionDay = pending.ReactionDay });
+                }
+            }
+
+            _committedContractIds.Clear();
+            if (state.CommittedContractIds != null)
+                _committedContractIds.AddRange(state.CommittedContractIds);
+        }
+
     }
 }

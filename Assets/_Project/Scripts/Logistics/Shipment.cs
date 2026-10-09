@@ -23,8 +23,7 @@ namespace AntiqueTradingSimulator.Logistics
         public int DispatchDay;
         public int ArrivalDay;
 
-        // Runtime-only link to the owner's inventory. Will need to be re-resolved
-        // from an owner Id once save/load exists.
+        // Runtime-only link to the owner's inventory. Will need to be re-resolved from an owner Id once save/load exists.
         [NonSerialized] public TraderInventory Recipient;
 
         public int DaysRemaining(int currentDay) => Math.Max(0, ArrivalDay - currentDay);

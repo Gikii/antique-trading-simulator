@@ -1,5 +1,6 @@
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,10 +14,28 @@ namespace AntiqueTradingSimulator.Economy
     /// Market.Buy/Sell so cash and inventory only ever change together with a successful trade.
     /// Holdings are keyed by ListingId rather than definition Id, since each owned antique
     /// is a distinct individual item with its own Condition/price.
+    ///
+    /// Not serialized directly — most of its state sits in private collections behind
+    /// IReadOnly* views that no serializer can write back. Saves go through
+    /// CaptureState/RestoreState and the TraderInventoryState object.
     /// </summary>
     [Serializable]
     public class TraderInventory
     {
+        /// <summary>
+        /// Stable Id of the trader this inventory belongs to (Antique.PlayerOwnerId for the
+        /// player, NPCTrader.Id for an NPC), set by EconomyManager.RegisterInventory. It is what
+        /// gets stamped onto an antique's OwnerId when this trader buys it.
+        ///
+        /// Not saved: registration sets it again on every run, and EconomyState already keys
+        /// each inventory by the same Id.
+        /// </summary>
+        [JsonIgnore]
+        public string OwnerId { get; private set; } = "";
+
+        /// <summary>Called by EconomyManager.RegisterInventory; see <see cref="OwnerId"/>.</summary>
+        public void SetOwnerId(string ownerId) => OwnerId = ownerId ?? "";
+
         public float Cash { get; private set; }
 
         /// <summary>Every cash movement of this trader, with what it was for.</summary>
@@ -26,6 +45,7 @@ namespace AntiqueTradingSimulator.Economy
         /// Supplies the current game day for ledger entries made by methods that don't get
         /// a day passed in (upkeep, contract payouts, ...). Set by EconomyManager.RegisterInventory.
         /// </summary>
+        [JsonIgnore]
         public Func<int> DayProvider { get; set; }
 
         // Last day seen through a method parameter — fallback when there's no DayProvider.
@@ -43,6 +63,11 @@ namespace AntiqueTradingSimulator.Economy
 
         // (antique, proceeds) — an antique this trader listed on the market was bought.
         public event Action<Antique, float> OnListingSold;
+
+        /// <summary>
+        /// Raised once after a save was loaded and cash, holdings, ledger and warehouse were all replaced at once.
+        /// </summary>
+        public event Action OnStateRestored;
 
         // Daily snapshot of the total market value of all holdings — feeds the
         // "collection value over time" chart. Recorded by Market.RecordDailyPrices.
@@ -228,7 +253,12 @@ namespace AntiqueTradingSimulator.Economy
             float cost = price + shippingCost;
             if (cost > Cash) return false;
 
-            if (!market.Buy(listingId)) return false;
+            // Stamp the antique with THIS trader's Id. Market.Buy defaults the parameter to
+            // Antique.PlayerOwnerId, so omitting it recorded every NPC purchase as the player's.
+            if (string.IsNullOrEmpty(OwnerId))
+                Debug.LogWarning($"TraderInventory: buying {listing.Name} with no OwnerId — this inventory was registered without one, so the antique will be marked unowned.");
+
+            if (!market.Buy(listingId, OwnerId)) return false;
 
             Cash -= cost;
             RememberDay(currentDay);
@@ -491,5 +521,78 @@ namespace AntiqueTradingSimulator.Economy
 
         public bool ReleaseCommittedContract(string contractId) => _committedContractIds.Remove(contractId);
 
+        // ---------------------------------------------------------------- save / load
+
+        public TraderInventoryState CaptureState()
+        {
+            var state = new TraderInventoryState
+            {
+                Cash = Cash,
+                LastKnownDay = _lastKnownDay,
+                Ledger = Ledger.CaptureState(),
+                ValueHistory = new List<PricePoint>(_valueHistory),
+                CommittedContractIds = new List<string>(_committedContractIds),
+                Warehouse = Warehouse != null
+                    ? new WarehouseState
+                    {
+                        CapacityLevel = Warehouse.CapacityLevel,
+                        SecurityLevel = Warehouse.SecurityLevel
+                    }
+                    : null
+            };
+
+            foreach (var holding in _holdings.Values)
+            {
+                if (holding == null) continue;
+                state.Holdings.Add(AntiqueState.Capture(holding));
+            }
+
+            return state;
+        }
+
+        public void RestoreState(TraderInventoryState state, Func<WarehouseState, Warehouse> warehouseFactory = null)
+        {
+            if (state == null) return;
+
+            Cash = state.Cash;
+            _lastKnownDay = state.LastKnownDay;
+
+            _holdings.Clear();
+            if (state.Holdings != null)
+            {
+                foreach (var holdingState in state.Holdings)
+                {
+                    var antique = holdingState?.Restore();
+                    if (antique == null) continue;
+
+                    if (_holdings.ContainsKey(antique.Id))
+                    {
+                        Debug.LogWarning($"TraderInventory: duplicate ListingId '{antique.Id}' in the save — keeping the first one.");
+                        continue;
+                    }
+                    _holdings.Add(antique.Id, antique);
+                }
+            }
+
+            Ledger.RestoreState(state.Ledger);
+
+            _valueHistory.Clear();
+            if (state.ValueHistory != null)
+                _valueHistory.AddRange(state.ValueHistory);
+
+            _committedContractIds.Clear();
+            if (state.CommittedContractIds != null)
+                foreach (var contractId in state.CommittedContractIds)
+                    _committedContractIds.Add(contractId);
+
+            if (warehouseFactory != null)
+            {
+                Warehouse = state.Warehouse != null ? warehouseFactory(state.Warehouse) : null;
+                OnWarehouseChanged?.Invoke();
+            }
+
+            OnCashChanged?.Invoke(Cash);
+            OnStateRestored?.Invoke();
+        }
     }
 }
