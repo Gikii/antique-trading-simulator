@@ -68,10 +68,10 @@ namespace AntiqueTradingSimulator.UI
             SetText(levelText, UpgradePresentation.LevelLabel(info));
             if (levelBar != null) levelBar.Set(info.DisplayLevel, info.LevelCount);
 
-            SetText(currentEffectText, UpgradePresentation.EffectBlock("Current effect:", info.CurrentEffect, info.CurrentUpkeep));
+            SetText(currentEffectText, UpgradePresentation.EffectBlock("Current effect:", info.CurrentEffects, info.CurrentUpkeep));
             SetText(nextEffectText, info.IsMaxed
                 ? UpgradePresentation.MaxedBlock("Next level:")
-                : UpgradePresentation.EffectBlock("Next level:", info.NextEffect, info.NextUpkeep, UIFormat.PositiveColor));
+                : UpgradePresentation.EffectBlock("Next level:", info.NextEffects, info.NextUpkeep, UIFormat.PositiveColor));
 
             string requirement = UpgradePresentation.RequirementLine(info);
             SetText(costText,

@@ -67,7 +67,7 @@ namespace AntiqueTradingSimulator.UI
             float value = reputation.Value(kind);
 
             RefreshValueCard(company, value);
-            RefreshLevel(reputation, value);
+            RefreshLevel(company, value);
 
             if (changeList != null)
             {
@@ -108,9 +108,11 @@ namespace AntiqueTradingSimulator.UI
 
         // ------------------------------------------------------------------ level
 
-        private void RefreshLevel(CompanyReputation reputation, float value)
+        private void RefreshLevel(CompanyManager company, float value)
         {
+            var reputation = company.Reputation;
             var tiers = reputation.Tiers(kind);
+            int currentIndex = reputation.TierIndex(kind);
             if (tierBar != null)
                 tierBar.Set(tiers, value, i => RangeLabel(tiers, i), i => TierColor(i, tiers.Count));
 
@@ -125,7 +127,7 @@ namespace AntiqueTradingSimulator.UI
             {
                 SetText(nextHeaderText, "Highest level reached");
                 SetText(nextProgressText, $"{measure}: {FormatValue(value)}");
-                SetText(nextUnlocksText, current != null ? Bullets(current.Unlocks, UIFormat.PositiveColor) : "");
+                SetText(nextUnlocksText, current != null ? Bullets(company.UnlocksFor(kind, currentIndex), UIFormat.PositiveColor) : "");
             }
             else
             {
@@ -133,18 +135,25 @@ namespace AntiqueTradingSimulator.UI
                 SetText(nextProgressText,
                     $"{measure}: {FormatValue(value)} / {FormatValue(next.MinValue)}  " +
                     UIFormat.Colorize($"({FormatValue(next.MinValue - value)} to go)", UIFormat.MutedColor));
-                SetText(nextUnlocksText, Bullets(next.Unlocks, Color.white));
+                SetText(nextUnlocksText, Bullets(company.UnlocksFor(kind, currentIndex + 1), Color.white));
             }
         }
 
-        private static string Bullets(List<string> items, Color color)
+        // Unlocks backed by a game system in the given colour; the rest muted, marked "coming soon".
+        private static string Bullets(List<ReputationUnlock> items, Color color)
         {
             if (items == null || items.Count == 0) return "";
 
             var lines = new List<string>(items.Count);
             foreach (var item in items)
-                if (!string.IsNullOrWhiteSpace(item))
-                    lines.Add(UIFormat.Colorize("• ", UIFormat.AccentColor) + UIFormat.Colorize(item, color));
+            {
+                if (string.IsNullOrWhiteSpace(item.Text)) continue;
+
+                string text = item.Active
+                    ? UIFormat.Colorize(item.Text, color)
+                    : UIFormat.Colorize($"{item.Text} <size=80%>(coming soon)</size>", UIFormat.MutedColor);
+                lines.Add(UIFormat.Colorize("• ", UIFormat.AccentColor) + text);
+            }
             return string.Join("\n", lines);
         }
 

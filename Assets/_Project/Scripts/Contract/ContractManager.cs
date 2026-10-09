@@ -7,6 +7,48 @@ using UnityEngine;
 
 namespace AntiqueTradingSimulator.Contracts
 {
+    /// <summary>
+    /// A class of contract above the standard one (e.g. Premium, Prestige): offered by clients who
+    /// only work with dealers of a given reputation, and who pay more. Reputation gives access to
+    /// these clients — it never changes the reward of a contract the player could already take.
+    /// </summary>
+    [Serializable]
+    public class ContractClassDefinition
+    {
+        [Tooltip("Shown on the contract and in the reputation unlocks, e.g. \"Premium\".")]
+        public string Name;
+
+        [Tooltip("Who offers these contracts — shown in the reputation unlocks.")]
+        public string ClientDescription;
+
+        [Tooltip("Reputation the player needs to accept these contracts. Should match a reputation tier's minimum.")]
+        [Min(0)] public int RequiredReputation;
+
+        [Tooltip("Relative chance of generating this class once the player has unlocked it (standard contracts use Standard Contract Weight).")]
+        [Min(0f)] public float Weight = 1f;
+
+        [Min(0f)] public float MinRewardMultiplier = 1.1f;
+        [Min(0f)] public float MaxRewardMultiplier = 1.6f;
+
+        [Min(1)] public int MinQuantity = 1;
+        [Min(1)] public int MaxQuantity = 5;
+
+        public ContractClassDefinition() { }
+
+        public ContractClassDefinition(string name, string clientDescription, int requiredReputation, float weight,
+            float minRewardMultiplier, float maxRewardMultiplier, int minQuantity, int maxQuantity)
+        {
+            Name = name;
+            ClientDescription = clientDescription;
+            RequiredReputation = requiredReputation;
+            Weight = weight;
+            MinRewardMultiplier = minRewardMultiplier;
+            MaxRewardMultiplier = maxRewardMultiplier;
+            MinQuantity = minQuantity;
+            MaxQuantity = maxQuantity;
+        }
+    }
+
     public class ContractManager : MonoBehaviour
     {
         [Header("References")]
@@ -34,6 +76,22 @@ namespace AntiqueTradingSimulator.Contracts
         [SerializeField] private float exclusiveContractChance = 0.35f;
         [SerializeField] private float exclusivePenaltyFraction = 0.5f;
 
+        [Header("Reputation-gated contract classes")]
+        [Tooltip("Relative chance of a standard contract (uses the Generation/Compensation numbers above).")]
+        [Min(0f)] [SerializeField] private float standardContractWeight = 3f;
+
+        [Tooltip("Higher classes of contract. Only the player can take them, and only with enough reputation; " +
+                 "the reputation unlock lists are generated from this list.")]
+        [SerializeField] private List<ContractClassDefinition> reputationClasses = new()
+        {
+            new ContractClassDefinition("Premium", "Wealthy private collectors", 500, 1.2f, 1.3f, 1.8f, 1, 5),
+            new ContractClassDefinition("Prestige", "Museums and foundations", 1500, 0.8f, 1.6f, 2.2f, 3, 6),
+        };
+
+        [Tooltip("Weight multiplier for the lowest class the player hasn't unlocked yet, so a few locked offers " +
+                 "show what reputation leads to. 0 = generate unlocked classes only.")]
+        [Range(0f, 1f)] [SerializeField] private float lockedClassPreviewWeight = 0.3f;
+
         private readonly List<Contract> _contracts = new();
         private readonly Dictionary<string, Contract> _contractsById = new();
 
@@ -50,6 +108,15 @@ namespace AntiqueTradingSimulator.Contracts
         public event Action<Contract> OnContractExpired;
 
         public event Action OnContractsRestored;
+
+        public IReadOnlyList<ContractClassDefinition> ReputationClasses => reputationClasses;
+
+        /// <summary>
+        /// The player's current reputation — decides which contract classes get generated.
+        /// Set by CompanyManager; without it only standard contracts and a preview of the
+        /// lowest class appear.
+        /// </summary>
+        public Func<int> PlayerReputationProvider { get; set; }
 
 
         void Awake()
@@ -142,10 +209,16 @@ namespace AntiqueTradingSimulator.Contracts
             float avgReferencePrice = requirement.AverageReferenceUnitPrice(market);
             if (avgReferencePrice <= 0f) return null;
 
-            requirement.Quantity = UnityEngine.Random.Range(minQuantity, maxQuantity + 1);
+            var contractClass = PickContractClass(); // null = standard
+            int minQ = contractClass != null ? contractClass.MinQuantity : minQuantity;
+            int maxQ = contractClass != null ? Mathf.Max(contractClass.MinQuantity, contractClass.MaxQuantity) : maxQuantity;
+            float minMultiplier = contractClass != null ? contractClass.MinRewardMultiplier : minRewardMultiplier;
+            float maxMultiplier = contractClass != null ? Mathf.Max(contractClass.MinRewardMultiplier, contractClass.MaxRewardMultiplier) : maxRewardMultiplier;
+
+            requirement.Quantity = UnityEngine.Random.Range(minQ, maxQ + 1);
             int duration = UnityEngine.Random.Range(minDurationDays, maxDurationDays + 1);
 
-            float baseMultiplier = UnityEngine.Random.Range(minRewardMultiplier, maxRewardMultiplier);
+            float baseMultiplier = UnityEngine.Random.Range(minMultiplier, maxMultiplier);
             float urgencyFactor = UrgencyFactor(duration);
             float rewardPerUnit = avgReferencePrice * baseMultiplier * urgencyFactor;
 
@@ -154,13 +227,58 @@ namespace AntiqueTradingSimulator.Contracts
                 ? rewardPerUnit * requirement.Quantity * exclusivePenaltyFraction
                 : 0f;
 
-            var contract = new Contract(type, requirement, currentDay, duration, maxDurationDays, rewardPerUnit, penalty);
+            var contract = new Contract(type, requirement, currentDay, duration, maxDurationDays, rewardPerUnit, penalty,
+                contractClass != null ? contractClass.RequiredReputation : 0,
+                contractClass != null ? contractClass.Name : "");
             _contracts.Add(contract);
             _contractsById[contract.ContractId] = contract;
 
             Debug.Log($"ContractManager: generated {contract.Type} contract ({contract.ContractId}) on day {currentDay} for {requirement.Quantity} antiques at average price {requirement.AverageReferenceUnitPrice(economyManager.Market)} to be fullfilled by day {contract.DeadlineDay} with total payout {contract.TotalReward}");
             OnContractCreated?.Invoke(contract);
             return contract;
+        }
+
+        /// <summary>
+        /// Picks the class of the next contract by weight: standard, every class the player has
+        /// unlocked, and the lowest locked class at a reduced weight (a preview). Null = standard.
+        /// </summary>
+        private ContractClassDefinition PickContractClass()
+        {
+            if (reputationClasses == null || reputationClasses.Count == 0) return null;
+
+            int reputation = PlayerReputationProvider != null ? PlayerReputationProvider() : 0;
+
+            ContractClassDefinition lowestLocked = null;
+            foreach (var c in reputationClasses)
+                if (c != null && c.RequiredReputation > reputation &&
+                    (lowestLocked == null || c.RequiredReputation < lowestLocked.RequiredReputation))
+                    lowestLocked = c;
+
+            float total = standardContractWeight;
+            foreach (var c in reputationClasses)
+                total += ClassWeight(c, reputation, lowestLocked);
+
+            if (total <= 0f) return null;
+
+            float roll = UnityEngine.Random.value * total;
+            if (roll < standardContractWeight) return null;
+            roll -= standardContractWeight;
+
+            foreach (var c in reputationClasses)
+            {
+                float weight = ClassWeight(c, reputation, lowestLocked);
+                if (roll < weight) return c;
+                roll -= weight;
+            }
+
+            return null;
+        }
+
+        private float ClassWeight(ContractClassDefinition c, int reputation, ContractClassDefinition lowestLocked)
+        {
+            if (c == null) return 0f;
+            if (c.RequiredReputation <= reputation) return c.Weight;
+            return c == lowestLocked ? c.Weight * lockedClassPreviewWeight : 0f;
         }
 
         private ContractRequirement PickRequirement()

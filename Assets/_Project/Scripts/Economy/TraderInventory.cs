@@ -42,6 +42,13 @@ namespace AntiqueTradingSimulator.Economy
         public Ledger Ledger { get; } = new Ledger();
 
         /// <summary>
+        /// This trader's trading terms (market fee, transport discounts). Neutral unless
+        /// something sets them — for the player, CompanyUpgrades. Not saved: derived data.
+        /// </summary>
+        [JsonIgnore]
+        public TraderModifiers Modifiers { get; } = new TraderModifiers();
+
+        /// <summary>
         /// Supplies the current game day for ledger entries made by methods that don't get
         /// a day passed in (upkeep, contract payouts, ...). Set by EconomyManager.RegisterInventory.
         /// </summary>

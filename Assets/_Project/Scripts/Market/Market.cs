@@ -22,7 +22,9 @@ namespace AntiqueTradingSimulator.Market
         // listings. Owned by EconomyManager so traders can register before the Market exists.
         private readonly IReadOnlyList<TraderInventory> _inventories;
 
-        // Share of an owner-set asking price kept by the market when the listing sells.
+        // Base share of an owner-set asking price kept by the market when the listing sells.
+        // The rate actually charged is the seller's (TraderInventory.Modifiers.ListingFeeRate),
+        // which starts at this value; the player's can be lowered by the Staff upgrade.
         public const float ListingFeeRate = 0.05f;
 
         public static float ListingFee(float askingPrice) => Mathf.Max(0f, askingPrice) * ListingFeeRate;
@@ -195,7 +197,6 @@ namespace AntiqueTradingSimulator.Market
         private void SettleOwnerListing(Antique listing)
         {
             float price = listing.AskingPrice;
-            float proceeds = ListingProceeds(price);
             listing.AskingPrice = 0f;
 
             TraderInventory seller = null;
@@ -214,6 +215,8 @@ namespace AntiqueTradingSimulator.Market
                 return;
             }
 
+            // The seller's fee rate at the moment of the sale (the player's depends on Staff).
+            float proceeds = seller.Modifiers.ListingProceeds(price);
             seller.CompleteListingSale(listing, proceeds, price);
             OnOwnerListingSold?.Invoke(listing, seller, price, proceeds);
         }

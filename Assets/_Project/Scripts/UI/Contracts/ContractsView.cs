@@ -62,7 +62,7 @@ namespace AntiqueTradingSimulator.UI
             if (fulfillModal != null)
                 fulfillModal.Fulfilled += HandleContractFulfilledByPlayer;
 
-            if (listPanel != null) listPanel.Initialize(ShowDetails);
+            if (listPanel != null) listPanel.Initialize(ShowDetails, ReputationLockReason);
             if (detailsUI != null) detailsUI.Initialize(AcceptContract, OpenFulfillModal);
         }
 
@@ -176,15 +176,23 @@ namespace AntiqueTradingSimulator.UI
                 ? "Fulfill Contract"
                 : $"Fulfill Contract ({eligible}/{required} ready)";
 
-            detailsUI.Show(contract, _activeTab, CanPlayerAccept(contract), canFulfill, fulfillLabel);
+            string acceptBlockReason = "";
+            bool canAccept = playerTrader != null && playerTrader.CanAcceptContract(contract, out acceptBlockReason);
+
+            detailsUI.Show(contract, _activeTab, canAccept, canFulfill, fulfillLabel, acceptBlockReason);
         }
 
-        public bool CanPlayerAccept(Contract contract)
-        {
-            if (contract == null || contract.Status != ContractStatus.Active) return false;
-            if (playerTrader != null && playerTrader.Inventory.IsCommittedToContract(contract.ContractId)) return false;
+        /// <summary>Same checks as PlayerTrader.AcceptContract (state, reputation, Staff contract limit).</summary>
+        public bool CanPlayerAccept(Contract contract) =>
+            playerTrader != null && playerTrader.CanAcceptContract(contract, out _);
 
-            return contract.Type == ContractType.Open || contract.CanBeClaimed;
+        /// <summary>For the list rows: why the player's reputation is too low for a contract, or null.</summary>
+        private string ReputationLockReason(Contract contract)
+        {
+            if (contract == null || playerTrader == null || playerTrader.MeetsReputationFor(contract)) return null;
+
+            string tier = playerTrader.Company != null ? playerTrader.Company.TierNameFor(contract.RequiredReputation) : "";
+            return $"Requires {contract.RequiredReputation} reputation" + (string.IsNullOrEmpty(tier) ? "" : $" ({tier})");
         }
 
         public int EligibleAntiqueCount(Contract contract)

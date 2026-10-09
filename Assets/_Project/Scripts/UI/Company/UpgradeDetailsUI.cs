@@ -80,7 +80,7 @@ namespace AntiqueTradingSimulator.UI
             // Current level
             SetText(currentHeaderText, $"CURRENT LEVEL (Level {info.DisplayLevel})");
             _rows.Clear();
-            _rows.AddRange(UpgradePresentation.EffectRows(info.CurrentEffect));
+            _rows.AddRange(UpgradePresentation.EffectRows(info.CurrentEffects));
             _rows.Add(("Daily upkeep", UpgradePresentation.PerDay(info.CurrentUpkeep)));
             Fill(_currentPool, currentRows, _rows);
 
@@ -94,7 +94,7 @@ namespace AntiqueTradingSimulator.UI
             else
             {
                 SetText(nextHeaderText, $"NEXT LEVEL (Level {info.DisplayLevel + 1})");
-                foreach (var (label, value) in UpgradePresentation.EffectRows(info.NextEffect))
+                foreach (var (label, value) in UpgradePresentation.EffectRows(info.NextEffects))
                     _rows.Add(value.Length > 0
                         ? (label, UIFormat.Colorize(value, UIFormat.PositiveColor))
                         : (UIFormat.Colorize(label, UIFormat.PositiveColor), ""));
