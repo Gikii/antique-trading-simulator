@@ -24,7 +24,7 @@ namespace AntiqueTradingSimulator.Agents
             string antiqueName = listing != null ? listing.Name : null;
             float price = listing != null ? listing.SalePrice : 0f;
 
-            TransportQuote quote = transport != null && listing != null ? transport.Quote(listing, option) : null;
+            TransportQuote quote = transport != null && listing != null ? transport.Quote(listing, option, buyer: inventory) : null;
 
             bool success = inventory.Buy(market, listingId, currentDay, quote);
             LogResult(traderName, "buy", listingId, success, inventory.Cash);
@@ -37,10 +37,11 @@ namespace AntiqueTradingSimulator.Agents
         }
 
         /// <summary>Price + shipping for a listing with the given option — what BuyListing would charge.</summary>
-        public static float EstimateTotalCost(Market.Antique listing, TransportManager transport, TransportOption option = TransportOption.Standard)
+        public static float EstimateTotalCost(Market.Antique listing, TransportManager transport, TransportOption option = TransportOption.Standard,
+            TraderInventory buyer = null)
         {
             if (listing == null) return 0f;
-            var quote = transport != null ? transport.Quote(listing, option) : null;
+            var quote = transport != null ? transport.Quote(listing, option, buyer: buyer) : null;
             return listing.SalePrice + (quote != null ? quote.Cost : 0f);
         }
 

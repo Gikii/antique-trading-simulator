@@ -300,8 +300,10 @@ namespace AntiqueTradingSimulator.Agents
         {
             if (_contractManager == null) return;
 
+            // NPCs have no reputation, so contracts that require some are the player's alone.
             var candidates = _contractManager.OpenContracts.Where(c => !Inventory.IsCommittedToContract(c.ContractId))
                 .Concat(_contractManager.ExclusiveContracts.Where(c => c.CanBeClaimed))
+                .Where(c => !c.RequiresReputation)
                 .ToList();
             if (candidates.Count == 0) return;
 

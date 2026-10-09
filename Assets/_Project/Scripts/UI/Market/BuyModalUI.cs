@@ -226,7 +226,7 @@ namespace AntiqueTradingSimulator.UI
                     continue;
                 }
 
-                TransportQuote quote = transportManager.Quote(listing, optionUI.Option);
+                TransportQuote quote = transportManager.Quote(listing, optionUI.Option, buyer: Inventory);
                 optionUI.Show(quote, transportManager.Settings.GetDamageChance(optionUI.Option));
 
                 bool isSelected = optionUI.Option == _selectedOption;
@@ -236,7 +236,7 @@ namespace AntiqueTradingSimulator.UI
 
             // The selected option may have no button in this layout — quote it anyway.
             if (hasTransport && selected == null)
-                selected = transportManager.Quote(listing, _selectedOption);
+                selected = transportManager.Quote(listing, _selectedOption, buyer: Inventory);
 
             return selected;
         }

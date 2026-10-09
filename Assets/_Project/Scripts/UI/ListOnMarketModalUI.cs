@@ -107,6 +107,10 @@ namespace AntiqueTradingSimulator.UI
                 _pausedByModal = true;
             }
 
+            // Refreshed on every open: the Staff upgrade can change the rate between listings.
+            SetText(feeLabel, $"Market fee ({UIFormat.PercentCompact(FeeRate)})");
+            SetText(noteText, BuildNote());
+
             FillAntiqueInfo(antique);
             FillMarketInfo(antique);
 
@@ -181,8 +185,6 @@ namespace AntiqueTradingSimulator.UI
             }
 
             SetText(descriptionTitleText, "Description");
-            SetText(feeLabel, $"Market fee ({UIFormat.Percent(Market.Market.ListingFeeRate)})");
-            SetText(noteText, BuildNote());
         }
 
         private static void AddListener(Button button, UnityEngine.Events.UnityAction action)
@@ -191,13 +193,19 @@ namespace AntiqueTradingSimulator.UI
                 button.onClick.AddListener(action);
         }
 
-        private static string BuildNote()
+        // The player's own rate — lowered by the Staff upgrade, charged when the listing sells.
+        private float FeeRate =>
+            playerTrader != null && playerTrader.Inventory != null
+                ? playerTrader.Inventory.Modifiers.ListingFeeRate
+                : Market.Market.ListingFeeRate;
+
+        private string BuildNote()
         {
             var lines = new[]
             {
                 "After listing, your antique is visible on the market immediately.",
                 "It stays listed until a buyer takes it or you cancel the listing (free of charge).",
-                $"The {UIFormat.Percent(Market.Market.ListingFeeRate)} fee is only paid when it sells. While listed, it can't be sold instantly or used for contracts.",
+                $"The {UIFormat.PercentCompact(FeeRate)} fee is only paid when it sells. While listed, it can't be sold instantly or used for contracts.",
             };
 
             return string.Join("\n", lines.Select(l => "• " + l));
@@ -272,10 +280,10 @@ namespace AntiqueTradingSimulator.UI
                 return;
             }
 
-            float fee = Market.Market.ListingFee(price);
+            float fee = price * FeeRate;
             SetText(listingPriceValue, UIFormat.Money(price));
             SetText(feeValue, "-" + UIFormat.Money(fee));
-            SetText(proceedsValue, UIFormat.Colorize(UIFormat.Money(Market.Market.ListingProceeds(price)), UIFormat.PositiveColor));
+            SetText(proceedsValue, UIFormat.Colorize(UIFormat.Money(price - fee), UIFormat.PositiveColor));
             SetText(priceHintText, PriceHint(price));
             SetConfirmInteractable(_antique != null);
         }
