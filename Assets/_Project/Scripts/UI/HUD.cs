@@ -104,8 +104,10 @@ namespace AntiqueTradingSimulator.UI
                 _company.OnCompanyChanged -= UpdateCompany;
 
             if (timeManager != null)
+            {
                 timeManager.OnDayChanged -= UpdateDay;
-            timeManager.OnTimeRestored -= HandleTimeRestored;
+                timeManager.OnTimeRestored -= HandleTimeRestored;
+            }
         }
 
         private void UpdateDay(int day)

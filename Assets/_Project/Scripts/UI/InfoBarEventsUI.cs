@@ -45,7 +45,7 @@ namespace AntiqueTradingSimulator.UI
             {
                 eventManager.OnEventScheduled -= HandleScheduleChanged;
                 eventManager.OnEventTriggered -= HandleScheduleChanged;
-                eventManager.OnEventsRestored += Refresh;
+                eventManager.OnEventsRestored -= Refresh;
             }
 
             if (timeManager != null)

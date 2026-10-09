@@ -69,7 +69,24 @@ namespace AntiqueTradingSimulator.Economy
         }
 
 
-        public void UnregisterInventory(TraderInventory inventory) => _inventories.Remove(inventory);
+        /// <summary>
+        /// Removes the inventory from both lookups. Leaving it in _inventoriesByOwnerId would make
+        /// removed traders (e.g. the NPCs replaced on load) reappear in the next save.
+        /// </summary>
+        public void UnregisterInventory(TraderInventory inventory)
+        {
+            if (inventory == null) return;
+
+            _inventories.Remove(inventory);
+
+            var staleOwnerIds = new List<string>();
+            foreach (var pair in _inventoriesByOwnerId)
+                if (pair.Value == inventory)
+                    staleOwnerIds.Add(pair.Key);
+
+            foreach (var ownerId in staleOwnerIds)
+                _inventoriesByOwnerId.Remove(ownerId);
+        }
 
         private Core.TimeManager _timeManager;
         public Core.TimeManager TimeManager => _timeManager;
