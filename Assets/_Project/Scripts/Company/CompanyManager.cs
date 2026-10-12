@@ -44,6 +44,11 @@ namespace AntiqueTradingSimulator.Company
         [SerializeField] private CompanyUpgradeSettings upgradeSettings;
         [SerializeField] private ScoringSettings scoringSettings;
 
+        [Header("New game")]
+        [Tooltip("Information Network level at the start of a new game (1 = Local Press). Handy for testing " +
+                 "news access; the level is saved with the other upgrades, so a loaded game overrides this.")]
+        [Range(1, 5)] [SerializeField] private int startingInformationNetworkLevel = 1;
+
         [Header("History")]
         [Tooltip("Daily snapshots kept for charts and trends.")]
         [Min(8)] [SerializeField] private int maxSnapshotDays = 120;
@@ -52,6 +57,7 @@ namespace AntiqueTradingSimulator.Company
         private TimeManager _timeManager;
         private EconomyManager _economyManager;
         private NPCManager _npcManager;
+        private ContractManager _contractManager;
 
         private CompanyReputation _reputation;
         private CompanyUpgrades _upgrades;
@@ -93,7 +99,7 @@ namespace AntiqueTradingSimulator.Company
                 if (_upgrades == null && Player != null && Player.Inventory != null)
                 {
                     EnsureSettings();
-                    _upgrades = new CompanyUpgrades(upgradeSettings, Player.Inventory, (int)Player.AccessLevel - 1);
+                    _upgrades = new CompanyUpgrades(upgradeSettings, Player.Inventory, startingInformationNetworkLevel - 1);
                     _upgrades.OnUpgraded += HandleUpgraded;
                 }
                 return _upgrades;
@@ -143,6 +149,11 @@ namespace AntiqueTradingSimulator.Company
         private void Start()
         {
             ResolveReferences();
+            // Created now rather than on first use, so the upgrade effects (trading modifiers)
+            // are in place before the first trade.
+            _ = Upgrades;
+            if (_contractManager != null)
+                _contractManager.PlayerReputationProvider = () => Reputation.Reputation;
             Subscribe();
             RecordSnapshot();
             OnCompanyChanged?.Invoke();
@@ -157,6 +168,7 @@ namespace AntiqueTradingSimulator.Company
                     ? _economyManager.TimeManager
                     : FindFirstObjectByType<TimeManager>();
             if (_npcManager == null) _npcManager = FindFirstObjectByType<NPCManager>();
+            if (_contractManager == null) _contractManager = FindFirstObjectByType<ContractManager>();
         }
 
         private void OnDestroy()
@@ -198,6 +210,25 @@ namespace AntiqueTradingSimulator.Company
         public void AddReputation(int delta, string reason) => Reputation.AddReputation(delta, reason, CurrentDay);
 
         public void AddCredibility(float delta, string reason) => Reputation.AddCredibility(delta, reason, CurrentDay);
+
+        /// <summary>
+        /// What a reputation or credibility tier gives access to, generated from the contract
+        /// classes and upgrade requirements the game enforces, plus not-yet-implemented extras.
+        /// </summary>
+        public List<ReputationUnlock> UnlocksFor(ReputationKind kind, int tierIndex)
+        {
+            if (_contractManager == null) ResolveReferences();
+            return ReputationUnlocks.For(kind, tierIndex, Reputation.Settings, Upgrades,
+                _contractManager != null ? _contractManager.ReputationClasses : null);
+        }
+
+        /// <summary>Name of the reputation tier a given number of points falls in ("Known Dealer").</summary>
+        public string TierNameFor(int reputation)
+        {
+            var tiers = Reputation.Tiers(ReputationKind.Reputation);
+            if (tiers.Count == 0) return "";
+            return tiers[Reputation.TierIndexFor(ReputationKind.Reputation, reputation)].Name;
+        }
 
         // ---------------------------------------------------------------- upgrades API
 
@@ -435,6 +466,57 @@ namespace AntiqueTradingSimulator.Company
 
             OnCompanyChanged?.Invoke();
         }
+
+#if UNITY_EDITOR
+        // ---------------------------------------------------------------- debug (editor only)
+        // Inspector → CompanyManager → ⋮ menu, in Play mode. For testing upgrades and reputation
+        // unlocks without grinding cash and reputation first.
+
+        [ContextMenu("Debug/Add 10 000 cash")]
+        private void DebugAddCash()
+        {
+            if (Player == null || Player.Inventory == null) return;
+            Player.Inventory.AddCash(10000f, LedgerCategory.Other, "Debug cash");
+            OnCompanyChanged?.Invoke();
+        }
+
+        [ContextMenu("Debug/Add 500 reputation")]
+        private void DebugAddReputation() => AddReputation(500, "Debug");
+
+        [ContextMenu("Debug/Remove 500 reputation")]
+        private void DebugRemoveReputation() => AddReputation(-500, "Debug");
+
+        [ContextMenu("Debug/Generate 5 contracts")]
+        private void DebugGenerateContracts()
+        {
+            ResolveReferences();
+            if (_contractManager == null) return;
+            for (int i = 0; i < 5; i++)
+                _contractManager.GenerateContract(CurrentDay);
+        }
+
+        [ContextMenu("Debug/Log upgrade effects")]
+        private void DebugLogUpgradeEffects()
+        {
+            if (Player == null || Player.Inventory == null || Upgrades == null)
+            {
+                Debug.Log("CompanyManager: no player or upgrades yet (enter Play mode).");
+                return;
+            }
+
+            var m = Player.Inventory.Modifiers;
+            string levels = "";
+            foreach (var type in CompanyUpgrades.AllTypes)
+                levels += $"{type} {Upgrades.GetLevel(type) + 1}, ";
+
+            int limit = Player.MaxActiveContracts;
+            Debug.Log($"CompanyManager effects — reputation {Reputation.Reputation} ({Reputation.Title}); " +
+                      $"levels: {levels.TrimEnd(',', ' ')}; " +
+                      $"access: {Player.AccessLevel}; market fee: {m.ListingFeeRate:P1}; " +
+                      $"transport: -{m.TransportCostReduction:P0} cost, -{m.TransportDaysReduction} day(s); " +
+                      $"contracts: {Player.ActiveContractCount}/{(limit < 0 ? "unlimited" : limit.ToString())}");
+        }
+#endif
 
     }
 }

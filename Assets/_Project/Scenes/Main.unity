@@ -37039,6 +37039,25 @@ MonoBehaviour:
   maxUrgencyBonusMultiplier: 1.5
   exclusiveContractChance: 1
   exclusivePenaltyFraction: 0.5
+  standardContractWeight: 3
+  reputationClasses:
+  - Name: Premium
+    ClientDescription: Wealthy private collectors
+    RequiredReputation: 500
+    Weight: 1.2
+    MinRewardMultiplier: 1.3
+    MaxRewardMultiplier: 1.8
+    MinQuantity: 1
+    MaxQuantity: 5
+  - Name: Prestige
+    ClientDescription: Museums and foundations
+    RequiredReputation: 1500
+    Weight: 0.8
+    MinRewardMultiplier: 1.6
+    MaxRewardMultiplier: 2.2
+    MinQuantity: 3
+    MaxQuantity: 6
+  lockedClassPreviewWeight: 0.3
 --- !u!114 &398503188
 MonoBehaviour:
   m_ObjectHideFlags: 0

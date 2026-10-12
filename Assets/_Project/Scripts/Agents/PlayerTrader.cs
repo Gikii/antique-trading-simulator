@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
+using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
 using UnityEngine;
@@ -27,6 +28,19 @@ namespace AntiqueTradingSimulator.Agents
         public Warehouse Warehouse => Inventory.Warehouse;
 
         public override string OwnerId => Antique.PlayerOwnerId;
+
+        /// <summary>
+        /// Derived from the Information Network upgrade level — the only source of truth, so it is
+        /// restored together with the upgrade levels. The serialized accessLevel field is ignored.
+        /// </summary>
+        public override InfoAccessLevel AccessLevel
+        {
+            get
+            {
+                var upgrades = Company != null ? Company.Upgrades : null;
+                return upgrades != null ? upgrades.AccessLevel : InfoAccessLevel.LocalPress;
+            }
+        }
 
         /// <summary>The player's company (reputation, upgrades, statistics). Added automatically if missing.</summary>
         public CompanyManager Company { get; private set; }
@@ -92,14 +106,90 @@ namespace AntiqueTradingSimulator.Agents
 
         public bool UpgradeWarehouseSecurity() => Inventory.TryUpgradeWarehouseSecurity();
 
+        // ---------------------------------------------------------------- contracts
+
+        /// <summary>Contracts the player has accepted and not yet fulfilled or failed.</summary>
+        public int ActiveContractCount => Inventory.CommittedContractIds.Count;
+
+        /// <summary>Limit from the Staff upgrade; CompanyUpgrades.UnlimitedContracts = no limit.</summary>
+        public int MaxActiveContracts
+        {
+            get
+            {
+                var upgrades = Company != null ? Company.Upgrades : null;
+                return upgrades != null ? upgrades.MaxActiveContracts : CompanyUpgrades.UnlimitedContracts;
+            }
+        }
+
+        public bool HasFreeContractSlot => MaxActiveContracts < 0 || ActiveContractCount < MaxActiveContracts;
+
+        /// <summary>
+        /// True if the player's reputation is high enough for this contract (reputation only
+        /// gives access — it never changes the reward).
+        /// </summary>
+        public bool MeetsReputationFor(Contract contract)
+        {
+            if (contract == null || contract.RequiredReputation <= 0) return true;
+            return Company != null && Company.Reputation.Reputation >= contract.RequiredReputation;
+        }
+
+        /// <summary>
+        /// Whether the player can accept this contract now, and if not, why (for tooltips).
+        /// AcceptContract runs the same checks.
+        /// </summary>
+        public bool CanAcceptContract(Contract contract, out string reason)
+        {
+            reason = "";
+
+            if (contract == null || contract.Status != ContractStatus.Active)
+            {
+                reason = "This contract is no longer available.";
+                return false;
+            }
+
+            if (Inventory.IsCommittedToContract(contract.ContractId))
+            {
+                reason = "You have already accepted this contract.";
+                return false;
+            }
+
+            if (contract.Type == ContractType.Exclusive && !contract.CanBeClaimed)
+            {
+                reason = "Another trader has already claimed this exclusive contract.";
+                return false;
+            }
+
+            if (!MeetsReputationFor(contract))
+            {
+                string tier = Company != null ? Company.TierNameFor(contract.RequiredReputation) : "";
+                reason = $"Requires {contract.RequiredReputation} reputation" +
+                         (string.IsNullOrEmpty(tier) ? "." : $" ({tier}).") +
+                         " Complete contracts and sell antiques to grow your reputation.";
+                return false;
+            }
+
+            if (!HasFreeContractSlot)
+            {
+                reason = $"You already have {ActiveContractCount}/{MaxActiveContracts} active contracts. " +
+                         "Fulfill one or upgrade Staff to take on more.";
+                return false;
+            }
+
+            return true;
+        }
+
         public bool AcceptContract(string contractId)
         {
-            if (string.IsNullOrEmpty(contractId) || Inventory.IsCommittedToContract(contractId))
+            if (string.IsNullOrEmpty(contractId))
                 return false;
 
             var contract = contractManager != null ? contractManager.GetById(contractId) : null;
-            if (contract == null || contract.Status != ContractStatus.Active)
+            if (!CanAcceptContract(contract, out string reason))
+            {
+                if (contract != null)
+                    Debug.Log($"PlayerTrader: cannot accept contract {contractId} — {reason}");
                 return false;
+            }
 
             if (contract.Type == ContractType.Exclusive &&
                 !contractManager.ClaimContract(contractId, Antique.PlayerOwnerId))

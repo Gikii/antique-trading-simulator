@@ -27,7 +27,11 @@ namespace AntiqueTradingSimulator.UI
         private Contract _contract;
         private Action<Contract> _onClick;
 
-        public void Setup(Contract contract, int currentDay, Action<Contract> onClick)
+        /// <param name="lockReason">
+        /// Why the player can't take this contract because of reputation (shown as a tooltip and
+        /// a "Locked" badge), or null/empty when it isn't locked.
+        /// </param>
+        public void Setup(Contract contract, int currentDay, Action<Contract> onClick, string lockReason = null)
         {
             _contract = contract;
             _onClick = onClick;
@@ -51,8 +55,17 @@ namespace AntiqueTradingSimulator.UI
                 deadlineText.text = $"{daysLeft}d";
             }
 
+            bool locked = !string.IsNullOrEmpty(lockReason);
+
             if (typeBadgeText != null)
-                typeBadgeText.text = contract.Type.ToDisplayString();
+                typeBadgeText.text = locked
+                    ? UIFormat.Colorize($"{ContractDisplay.TypeLabel(contract)} · Locked", UIFormat.NegativeColor)
+                    : ContractDisplay.TypeLabel(contract);
+
+            // Row-wide tooltip, only while locked (empty text = no tooltip).
+            var tooltipTarget = selectButton != null ? (Component)selectButton : this;
+            var tooltip = locked ? TooltipTrigger.On(tooltipTarget) : tooltipTarget.GetComponent<TooltipTrigger>();
+            if (tooltip != null) tooltip.Text = locked ? lockReason : "";
 
             if (selectButton != null)
             {

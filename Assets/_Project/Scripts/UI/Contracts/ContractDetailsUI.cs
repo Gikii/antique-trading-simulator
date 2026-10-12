@@ -48,6 +48,7 @@ namespace AntiqueTradingSimulator.UI
         private Contract _contract;
         private Action<Contract> _onAccept;
         private Action<Contract> _onFulfill;
+        private TooltipTrigger _acceptTooltip;
 
         private void Awake()
         {
@@ -55,7 +56,10 @@ namespace AntiqueTradingSimulator.UI
                 timeManager = FindFirstObjectByType<TimeManager>();
 
             if (acceptButton != null)
+            {
                 acceptButton.onClick.AddListener(HandleAcceptClicked);
+                _acceptTooltip = TooltipTrigger.On(acceptButton);
+            }
 
             if (fulfillButton != null)
                 fulfillButton.onClick.AddListener(HandleFulfillClicked);
@@ -82,7 +86,9 @@ namespace AntiqueTradingSimulator.UI
         }
 
 
-        public void Show(Contract contract, ContractsTab tab, bool canAccept, bool canFulfill = false, string fulfillLabel = null)
+        /// <param name="acceptBlockReason">Shown as the Accept button's tooltip while it is disabled.</param>
+        public void Show(Contract contract, ContractsTab tab, bool canAccept, bool canFulfill = false, string fulfillLabel = null,
+            string acceptBlockReason = null)
         {
             if (contract == null)
             {
@@ -126,12 +132,15 @@ namespace AntiqueTradingSimulator.UI
                 penaltyText.text = $"Penalty: {(contract.Penalty > 0f ? $"{contract.Penalty:F0} €" : "None")}";
 
             if (contractTypeText != null)
-                contractTypeText.text = $"Type: {contract.Type.ToDisplayString()}";
+                contractTypeText.text = $"Type: {ContractDisplay.TypeLabel(contract)}";
 
             SetMode(tab);
 
             if (acceptButton != null)
                 acceptButton.interactable = canAccept;
+
+            if (_acceptTooltip != null)
+                _acceptTooltip.Text = canAccept ? "" : acceptBlockReason ?? "";
 
             if (fulfillButtonLabel != null)
                 fulfillButtonLabel.text = string.IsNullOrEmpty(fulfillLabel) ? DefaultFulfillLabel : fulfillLabel;

@@ -22,6 +22,9 @@ namespace AntiqueTradingSimulator.Contracts
         public float RewardPerUnit;
         public float Penalty;
 
+        public int RequiredReputation;
+        public string ClassName;
+
         public ContractStatus Status;
         public int DeliveredQuantity;
 
@@ -40,6 +43,8 @@ namespace AntiqueTradingSimulator.Contracts
                 DurationDays = contract.DurationDays,
                 RewardPerUnit = contract.RewardPerUnit,
                 Penalty = contract.Penalty,
+                RequiredReputation = contract.RequiredReputation,
+                ClassName = contract.ClassName,
                 Status = contract.Status,
                 DeliveredQuantity = contract.DeliveredQuantity,
                 ClaimedByTraderId = contract.ClaimedByTraderId

@@ -65,10 +65,13 @@ namespace AntiqueTradingSimulator.UI
         private int _currentDay;
         private string _selectedContractId;
         private Action<Contract> _onSelect;
+        private Func<Contract, string> _lockReason;
 
-        public void Initialize(Action<Contract> onSelect)
+        /// <param name="lockReason">Optional: why a contract is locked for the player, null/empty if it isn't.</param>
+        public void Initialize(Action<Contract> onSelect, Func<Contract, string> lockReason = null)
         {
             _onSelect = onSelect;
+            _lockReason = lockReason;
 
             if (typeFilterDropdown != null)
                 typeFilterDropdown.onValueChanged.AddListener(SetTypeFilter);
@@ -175,7 +178,7 @@ namespace AntiqueTradingSimulator.UI
                         if (rowRT != null) rowRT.sizeDelta = new Vector2(rowRT.sizeDelta.x, rowHeight);
                     }
 
-                    rowUI.Setup(contract, _currentDay, HandleRowClicked);
+                    rowUI.Setup(contract, _currentDay, HandleRowClicked, _lockReason?.Invoke(contract));
                     rowUI.SetSelected(contract.ContractId == _selectedContractId);
                     _spawnedRows.Add(rowUI);
                 }

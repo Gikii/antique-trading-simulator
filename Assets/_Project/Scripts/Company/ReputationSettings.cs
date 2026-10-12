@@ -6,8 +6,9 @@ namespace AntiqueTradingSimulator.Company
 {
     /// <summary>
     /// One step on the reputation or credibility ladder. Reputation tiers double as the
-    /// company's title ("Local Shop", "Recognised Dealer", ...). Unlocks are descriptive
-    /// for now — reputation gives access, it never changes prices.
+    /// company's title ("Local Shop", "Recognised Dealer", ...). Reputation gives access,
+    /// it never changes prices. What a tier unlocks is listed by ReputationUnlocks: contract
+    /// classes and upgrade levels automatically, then the hand-written Unlocks below.
     /// </summary>
     [Serializable]
     public class ReputationTier
@@ -20,7 +21,8 @@ namespace AntiqueTradingSimulator.Company
         [TextArea(2, 4)]
         public string Description;
 
-        [Tooltip("What reaching this tier gives access to (shown as a checklist).")]
+        [Tooltip("Unlocks no game system enforces yet — shown as \"coming soon\". Don't list contract classes " +
+                 "or upgrade levels here: those are added automatically from ContractManager and CompanyUpgradeSettings.")]
         public List<string> Unlocks = new List<string>();
 
         public ReputationTier() { }
@@ -50,23 +52,19 @@ namespace AntiqueTradingSimulator.Company
         public List<ReputationTier> ReputationTiers = new List<ReputationTier>
         {
             new ReputationTier("Local Shop", 0,
-                "A small antique shop inherited from your grandfather. Few collectors know your name yet.",
-                "Local market and contracts"),
+                "A small antique shop inherited from your grandfather. Few collectors know your name yet."),
             new ReputationTier("Local Dealer", 200,
-                "Local collectors know and visit your shop.",
-                "More contract offers", "Industry information sources"),
+                "Local collectors know and visit your shop."),
             new ReputationTier("Known Dealer", 500,
-                "Your name is known among dealers in the country.",
-                "Better contracts", "Informant network", "Larger warehouses"),
+                "Your name is known among dealers in the country."),
             new ReputationTier("Recognised Dealer", 1000,
                 "A recognised dealer with a solid reputation in the antique world.",
-                "Access to international auctions", "More prestigious contracts", "Higher chance for rare items"),
+                "Access to international auctions", "Higher chance for rare items"),
             new ReputationTier("Renowned Dealer", 1500,
-                "Collectors across Europe seek your opinion and your stock.",
-                "Expert information sources", "Exclusive contracts from museums"),
+                "Collectors across Europe seek your opinion and your stock."),
             new ReputationTier("Elite House", 2500,
                 "One of the most respected antique houses in Europe.",
-                "International information network", "Invitations to private sales"),
+                "Invitations to private sales"),
         };
 
         [Header("Credibility tiers (ascending, 0..1, first must start at 0)")]
@@ -75,8 +73,7 @@ namespace AntiqueTradingSimulator.Company
             new ReputationTier("Unreliable", 0f,
                 "Partners doubt your word and avoid long-term deals."),
             new ReputationTier("Questionable", 0.25f,
-                "Some partners hesitate to work with you.",
-                "Standard contracts"),
+                "Some partners hesitate to work with you."),
             new ReputationTier("Reliable", 0.5f,
                 "You are seen as a dependable partner.",
                 "Better contract terms", "Partners share more information"),

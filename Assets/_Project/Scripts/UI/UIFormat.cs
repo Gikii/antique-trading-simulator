@@ -82,6 +82,10 @@ namespace AntiqueTradingSimulator.UI
         public static string PercentOneDecimal(float ratio) =>
             (ratio * 100f).ToString("0.0", CultureInfo.InvariantCulture) + "%";
 
+        /// <summary>"5%" for 0.05, "4.5%" for 0.045 — one decimal only when it isn't zero.</summary>
+        public static string PercentCompact(float ratio) =>
+            (Mathf.Round(ratio * 1000f) / 10f).ToString("0.#", CultureInfo.InvariantCulture) + "%";
+
         /// <summary>"+50" / "-20" / "0"</summary>
         public static string SignedNumber(float value)
         {

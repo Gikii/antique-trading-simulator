@@ -94,23 +94,36 @@ namespace AntiqueTradingSimulator.Logistics
         /// would arrive if dispatched today. Pure — does not change any state.
         /// </summary>
         /// <param name="free">True for deliveries the recipient doesn't pay for (e.g. event rewards).</param>
-        public TransportQuote Quote(Antique antique, TransportOption option, bool free = false)
+        /// <param name="buyer">
+        /// Who receives the shipment. Their TraderInventory.Modifiers (e.g. the player's Logistics
+        /// upgrade) lower the cost and shorten the base delivery time — never below 1 day.
+        /// Event-driven zone delays are added on top and are not shortened. Null = base terms.
+        /// </param>
+        public TransportQuote Quote(Antique antique, TransportOption option, bool free = false, TraderInventory buyer = null)
         {
             if (antique == null) return null;
 
+            var modifiers = buyer?.Modifiers;
             ShippingZone zone = antique.ShippingZone;
-            int duration = settings.GetBaseDurationDays(zone, option) + GetZoneDelay(zone);
+
+            int baseDays = settings.GetBaseDurationDays(zone, option);
+            if (modifiers != null)
+                baseDays = Mathf.Max(1, baseDays - modifiers.TransportDaysReduction);
+            int duration = baseDays + GetZoneDelay(zone);
+
             float cost = free ? 0f : settings.GetCost(antique.SalePrice, zone, option);
+            if (modifiers != null)
+                cost *= 1f - modifiers.TransportCostReduction;
 
             return new TransportQuote(option, zone, cost, CurrentDay, Mathf.Max(1, duration));
         }
 
         /// <summary>Quotes every transport option for one antique — handy for a selection modal.</summary>
-        public List<TransportQuote> QuoteAllOptions(Antique antique)
+        public List<TransportQuote> QuoteAllOptions(Antique antique, TraderInventory buyer = null)
         {
             var quotes = new List<TransportQuote>();
             foreach (TransportOption option in Enum.GetValues(typeof(TransportOption)))
-                quotes.Add(Quote(antique, option));
+                quotes.Add(Quote(antique, option, buyer: buyer));
             return quotes;
         }
 

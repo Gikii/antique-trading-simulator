@@ -19,11 +19,13 @@ namespace AntiqueTradingSimulator.Agents
         [SerializeField] protected EconomyManager economyManager;
         [SerializeField] protected TransportManager transportManager;
         [SerializeField] protected float startingCash = 1000f;
+        [Tooltip("Which news this trader receives. Ignored by PlayerTrader — the player's access " +
+                 "comes from the Information Network upgrade (CompanyManager).")]
         [SerializeField] protected InfoAccessLevel accessLevel = InfoAccessLevel.LocalPress;
 
         public string TraderName => traderName;
         public TraderInventory Inventory { get; private set; }
-        public InfoAccessLevel AccessLevel => accessLevel;
+        public virtual InfoAccessLevel AccessLevel => accessLevel;
 
         public virtual string OwnerId => traderName;
 
@@ -65,7 +67,7 @@ namespace AntiqueTradingSimulator.Agents
         {
             var market = economyManager != null ? economyManager.Market : null;
             var listing = market?.GetById(listingId);
-            return listing != null && transportManager != null ? transportManager.Quote(listing, option) : null;
+            return listing != null && transportManager != null ? transportManager.Quote(listing, option, buyer: Inventory) : null;
         }
 
         public bool ListOnMarket(string listingId, float askingPrice)

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using AntiqueTradingSimulator.Company;
+using AntiqueTradingSimulator.Events;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.UI
@@ -42,7 +43,49 @@ namespace AntiqueTradingSimulator.UI
         }
 
         /// <summary>
-        /// Splits an effect text ("Capacity: 12 items\nBasic protection") into rows.
+        /// Label and value for one effect, e.g. ("Market fee", "4.5%"). This is the only place
+        /// that turns upgrade numbers into text, so the UI always shows what the game uses.
+        /// </summary>
+        public static (string label, string value) FormatEffect(UpgradeEffect effect)
+        {
+            float v = effect.Value;
+            int whole = Mathf.RoundToInt(v);
+
+            switch (effect.Stat)
+            {
+                case UpgradeStat.InfoAccessLevel:
+                    return ("Information source", NewsPresentation.AccessLevelLabel((InfoAccessLevel)whole));
+                case UpgradeStat.TransportCostReduction:
+                    return ("Transport cost", v > 0f ? "-" + UIFormat.PercentCompact(v) : "Base");
+                case UpgradeStat.TransportDaysReduction:
+                    return ("Delivery time", whole > 0 ? $"-{UIFormat.Days(whole)} (min. 1 day)" : "Base");
+                case UpgradeStat.MarketFeeRate:
+                    return ("Market fee", UIFormat.PercentCompact(v));
+                case UpgradeStat.MaxActiveContracts:
+                    return ("Max active contracts", whole < 0 ? "Unlimited" : whole.ToString());
+                case UpgradeStat.WarehouseCapacity:
+                    return ("Capacity", $"{whole} items");
+                default:
+                    return (effect.Stat.ToString(), v.ToString("0.##"));
+            }
+        }
+
+        /// <summary>Rows for one level: formatted effects first, then the note's lines.</summary>
+        public static List<(string label, string value)> EffectRows(UpgradeLevelEffects effects)
+        {
+            var rows = new List<(string, string)>();
+            if (effects == null) return rows;
+
+            if (effects.Effects != null)
+                foreach (var effect in effects.Effects)
+                    rows.Add(FormatEffect(effect));
+
+            rows.AddRange(EffectRows(effects.Note));
+            return rows;
+        }
+
+        /// <summary>
+        /// Splits a note ("Basic protection\nTheft risk: -10%") into rows.
         /// "Label: value" lines become (label, value); other lines become (line, "").
         /// </summary>
         public static List<(string label, string value)> EffectRows(string effect)
@@ -67,12 +110,12 @@ namespace AntiqueTradingSimulator.UI
         /// Multi-line rich text for a card column: small muted header, the effect lines
         /// (optionally coloured) and the daily upkeep.
         /// </summary>
-        public static string EffectBlock(string header, string effect, float upkeep, Color? color = null)
+        public static string EffectBlock(string header, UpgradeLevelEffects effects, float upkeep, Color? color = null)
         {
             var sb = new StringBuilder();
             sb.Append("<size=80%>").Append(UIFormat.Colorize(header, UIFormat.MutedColor)).Append("</size>");
 
-            foreach (var (label, value) in EffectRows(effect))
+            foreach (var (label, value) in EffectRows(effects))
             {
                 string line = value.Length > 0 ? $"{label}: {value}" : label;
                 sb.Append('\n').Append(color.HasValue ? UIFormat.Colorize(line, color.Value) : line);

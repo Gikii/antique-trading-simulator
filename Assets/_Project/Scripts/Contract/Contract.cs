@@ -20,6 +20,18 @@ namespace AntiqueTradingSimulator.Contracts
 
         public float Penalty { get; }
 
+        /// <summary>
+        /// Reputation the player needs to accept this contract (0 = anyone). Reputation only gives
+        /// access to better clients — it never changes a contract's reward. NPCs, who have no
+        /// reputation, don't take contracts that require any.
+        /// </summary>
+        public int RequiredReputation { get; }
+
+        /// <summary>Name of the contract's class ("Premium", "Prestige"), empty for a standard contract.</summary>
+        public string ClassName { get; }
+
+        public bool RequiresReputation => RequiredReputation > 0;
+
         public ContractStatus Status { get; private set; } = ContractStatus.Active;
         public int DeliveredQuantity { get; private set; }
         public int RemainingQuantity => Mathf.Max(0, Requirement.Quantity - DeliveredQuantity);
@@ -31,7 +43,8 @@ namespace AntiqueTradingSimulator.Contracts
 
         public event Action<Contract> OnContractExpired;
 
-        public Contract(ContractType type, ContractRequirement requirement, int createdDay, int durationDays, int maxDurationDays, float rewardPerUnit, float penalty)
+        public Contract(ContractType type, ContractRequirement requirement, int createdDay, int durationDays, int maxDurationDays, float rewardPerUnit, float penalty,
+            int requiredReputation = 0, string className = "")
         {
             ContractId = Guid.NewGuid().ToString("N");
             Type = type;
@@ -40,6 +53,8 @@ namespace AntiqueTradingSimulator.Contracts
             DurationDays = Mathf.Clamp(durationDays, 1, maxDurationDays);
             RewardPerUnit = Mathf.Max(0f, rewardPerUnit);
             Penalty = type == ContractType.Exclusive ? Mathf.Max(0f, penalty) : 0f;
+            RequiredReputation = Mathf.Max(0, requiredReputation);
+            ClassName = className ?? "";
         }
 
         public Contract(ContractState state)
@@ -58,6 +73,9 @@ namespace AntiqueTradingSimulator.Contracts
             DurationDays = state.DurationDays;
             RewardPerUnit = state.RewardPerUnit;
             Penalty = state.Penalty;
+            // Saves from before contract classes have neither field: 0 / null → a standard contract.
+            RequiredReputation = Mathf.Max(0, state.RequiredReputation);
+            ClassName = state.ClassName ?? "";
             Status = state.Status;
             DeliveredQuantity = state.DeliveredQuantity;
             ClaimedByTraderId = state.ClaimedByTraderId;

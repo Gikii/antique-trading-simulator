@@ -197,7 +197,8 @@ namespace AntiqueTradingSimulator.UI
             if (transportManager == null)
                 return zone;
 
-            TransportQuote quote = transportManager.Quote(antique, TransportOption.Standard);
+            TransportQuote quote = transportManager.Quote(antique, TransportOption.Standard,
+                buyer: playerTrader != null ? playerTrader.Inventory : null);
             return quote != null
                 ? $"{zone} · {UIFormat.Days(quote.DurationDays)}, ~{UIFormat.Money(quote.Cost)} (Standard)"
                 : zone;
