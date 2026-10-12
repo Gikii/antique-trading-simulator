@@ -7,6 +7,7 @@ using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Market;
 using AntiqueTradingSimulator.News;
+using AntiqueTradingSimulator.Restoration;
 using AntiqueTradingSimulator.UI.Charts;
 using TMPro;
 using UnityEngine;
@@ -29,6 +30,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private TimeManager timeManager;
         [SerializeField] private NewsManager newsManager;
+        [SerializeField] private RestorationManager restorationManager;
 
         [Header("Header")]
         [SerializeField] private TMP_Text titleText;
@@ -87,11 +89,16 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button sellNowButton;
         [SerializeField] private TMP_Text sellNowLabel;
         [SerializeField] private SellNowModalUI sellNowModal;
+        [Tooltip("Added by Tools > Antique Trading Simulator > Build Restoration.")]
+        [SerializeField] private Button restoreButton;
+        [SerializeField] private TMP_Text restoreLabel;
+        [SerializeField] private RestorationModalUI restorationModal;
 
         private Antique _currentAntique;
         private InventoryView _inventoryView;
         private TooltipTrigger _listTooltip;
         private TooltipTrigger _sellTooltip;
+        private TooltipTrigger _restoreTooltip;
 
         private Market.Market CurrentMarket => economyManager != null ? economyManager.Market : null;
         private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
@@ -109,6 +116,18 @@ namespace AntiqueTradingSimulator.UI
 
             if (newsManager == null)
                 newsManager = FindFirstObjectByType<NewsManager>();
+
+            if (restorationManager == null)
+                restorationManager = FindFirstObjectByType<RestorationManager>();
+
+            if (restorationModal == null)
+                restorationModal = FindFirstObjectByType<RestorationModalUI>(FindObjectsInactive.Include);
+
+            if (restoreButton != null)
+            {
+                restoreButton.onClick.AddListener(OpenRestorationModal);
+                _restoreTooltip = TooltipTrigger.On(restoreButton);
+            }
 
             if (closeButton != null)
                 closeButton.onClick.AddListener(Close);
@@ -154,7 +173,7 @@ namespace AntiqueTradingSimulator.UI
             SetText(originText, antique.Country.ToDisplayString());
             SetText(conditionText, $"{UIFormat.ConditionLabel(antique.Condition)} ({UIFormat.Percent(antique.Condition)})");
 
-            string status = StatusLabel(antique);
+            string status = StatusLabel(antique, restorationManager);
             if (statusText != null)
             {
                 SetText(statusText, status);
@@ -221,23 +240,27 @@ namespace AntiqueTradingSimulator.UI
                 SetText(purchasePriceText, "Purchase price: unknown");
                 SetText(purchaseDateText, "Acquired: unknown");
             }
-            else if (antique.PurchasePrice <= 0f)
+            else if (antique.PurchasePrice - antique.TransportCost - antique.RestorationCost <= 0.5f)
             {
                 SetText(purchasePriceText, "Purchase price: free (event reward)");
                 SetText(purchaseDateText, $"Acquired: {FormatDay(antique.PurchasedOnDay)}");
             }
             else
             {
-                // PurchasePrice is the full cost basis (price + transport) — show the item price alone here.
-                float itemPrice = antique.PurchasePrice - antique.TransportCost;
+                // PurchasePrice is the full cost basis (price + transport + restorations) — show the item price alone here.
+                float itemPrice = antique.PurchasePrice - antique.TransportCost - antique.RestorationCost;
                 SetText(purchasePriceText, $"Purchase price: {UIFormat.Money(itemPrice)}");
                 SetText(purchaseDateText, $"Purchased: {FormatDay(antique.PurchasedOnDay)}");
             }
 
-            // Renovation will join this line once that system exists.
-            SetText(costsText, antique.TransportCost > 0f
+            // PurchasePrice already includes transport and restorations — this line breaks them down.
+            string transport = antique.TransportCost > 0f
                 ? $"Transport: {UIFormat.Money(antique.TransportCost)}"
-                : UIFormat.Colorize("Transport: —", UIFormat.MutedColor));
+                : UIFormat.Colorize("Transport: —", UIFormat.MutedColor);
+            string restoration = antique.RestorationCost > 0f
+                ? $"Restoration: {UIFormat.Money(antique.RestorationCost)}"
+                : UIFormat.Colorize("Restoration: —", UIFormat.MutedColor);
+            SetText(costsText, $"{transport} · {restoration}");
             SetText(investmentValueText, $"Current value: {UIFormat.Money(antique.CurrentPrice)}");
 
             float profit = CollectionAnalytics.Profit(antique);
@@ -355,11 +378,17 @@ namespace AntiqueTradingSimulator.UI
         {
             bool reserved = antique.IsReservedForContract;
             bool listed = antique.IsListedForSale;
-            bool inTransit = antique.IsInTransit;
+            bool inRestoration = antique.IsInRestoration;
+            // Away from the warehouse: in transit or at a workshop — both block selling and listing.
+            bool inTransit = antique.IsInTransit || inRestoration;
 
-            string transitReason = inTransit
+            string transitReason = antique.IsInTransit
                 ? $"In transit — {UIFormat.ArrivalLabel(antique.ArrivalDay)}. It can't be sold or listed until it reaches your warehouse."
-                : "";
+                : inRestoration
+                    ? $"Being restored — {UIFormat.ReadyLabel(antique.RestorationEndDay)}. It can't be sold or listed until it's back."
+                    : "";
+
+            RefreshRestoreAction(antique);
 
             // List on market <-> Cancel listing
             if (listOnMarketButton != null)
@@ -378,7 +407,9 @@ namespace AntiqueTradingSimulator.UI
             {
                 if (inTransit)
                 {
-                    listOnMarketLabel.text = "List on market\n<size=70%>In transit</size>";
+                    listOnMarketLabel.text = inRestoration
+                        ? "List on market\n<size=70%>Being restored</size>"
+                        : "List on market\n<size=70%>In transit</size>";
                 }
                 else if (listed)
                 {
@@ -400,6 +431,12 @@ namespace AntiqueTradingSimulator.UI
 
             if (sellNowLabel == null)
                 return;
+
+            if (inRestoration)
+            {
+                sellNowLabel.text = $"Sell now\n<size=70%>Back {UIFormat.GameDate(antique.RestorationEndDay)}</size>";
+                return;
+            }
 
             if (inTransit)
             {
@@ -424,6 +461,61 @@ namespace AntiqueTradingSimulator.UI
                 : antique.CurrentPrice;
 
             sellNowLabel.text = $"Sell now\n<size=70%>Instant offer: {UIFormat.Money(offer)}</size>";
+        }
+
+        private void RefreshRestoreAction(Antique antique)
+        {
+            if (restoreButton == null)
+                return;
+
+            if (restorationManager == null)
+            {
+                restoreButton.interactable = false;
+                if (_restoreTooltip != null) _restoreTooltip.Text = "Restoration isn't set up in this scene.";
+                SetText(restoreLabel, "Restore");
+                return;
+            }
+
+            string reason = restorationManager.ItemBlockReason(antique);
+            restoreButton.interactable = reason == null && restorationModal != null;
+            if (_restoreTooltip != null) _restoreTooltip.Text = reason ?? "";
+
+            if (antique.IsInRestoration)
+            {
+                var job = restorationManager.GetJob(antique.Id);
+                string where = job != null ? $"{job.OptionName}, " : "";
+                SetText(restoreLabel, $"Restore\n<size=70%>{where}back {UIFormat.GameDate(antique.RestorationEndDay)}</size>");
+                return;
+            }
+
+            if (reason != null)
+            {
+                string shortReason =
+                    antique.IsInTransit ? "In transit" :
+                    antique.IsListedForSale ? "Cancel the listing first" :
+                    antique.IsReservedForContract ? "Reserved for a contract" :
+                    "Already in top condition";
+                SetText(restoreLabel, $"Restore\n<size=70%>{shortReason}</size>");
+                return;
+            }
+
+            float cheapest = float.MaxValue;
+            foreach (var option in restorationManager.Options)
+            {
+                var quote = restorationManager.Quote(antique, option);
+                if (quote != null && quote.TargetCondition > quote.StartCondition)
+                    cheapest = Mathf.Min(cheapest, quote.Cost);
+            }
+
+            SetText(restoreLabel, cheapest < float.MaxValue
+                ? $"Restore\n<size=70%>From {UIFormat.Money(cheapest)}</size>"
+                : "Restore");
+        }
+
+        private void OpenRestorationModal()
+        {
+            if (_currentAntique != null && restorationModal != null)
+                restorationModal.Open(_currentAntique);
         }
 
         private void ToggleMarketListing()
@@ -475,10 +567,20 @@ namespace AntiqueTradingSimulator.UI
             return $"{TimeManager.FormatLong(timeManager.DayToDate(day))} (day {day})";
         }
 
-        private static string StatusLabel(Antique antique) =>
-            antique.IsInTransit
-                ? UIFormat.Colorize($"In transit — {UIFormat.ArrivalLabel(antique.ArrivalDay)}", UIFormat.InTransitColor)
-                : "In your warehouse";
+        private static string StatusLabel(Antique antique, RestorationManager restorations)
+        {
+            if (antique.IsInTransit)
+                return UIFormat.Colorize($"In transit — {UIFormat.ArrivalLabel(antique.ArrivalDay)}", UIFormat.InTransitColor);
+
+            if (antique.IsInRestoration)
+            {
+                var job = restorations != null ? restorations.GetJob(antique.Id) : null;
+                string where = job != null ? $" at {job.OptionName}" : "";
+                return UIFormat.Colorize($"Being restored{where} — {UIFormat.ReadyLabel(antique.RestorationEndDay)}", UIFormat.InRestorationColor);
+            }
+
+            return "In your warehouse";
+        }
 
         private static string OwnerLabel(Antique antique)
         {

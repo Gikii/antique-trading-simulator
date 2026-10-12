@@ -70,7 +70,8 @@ namespace AntiqueTradingSimulator.Market
         public enum AntiqueStatus
         {
             Available = 0,  // in the owner's warehouse (or on the market) — can be sold, listed, handed in
-            InTransit = 1   // bought but still on its way — owned, but cannot be used yet
+            InTransit = 1,  // bought but still on its way — owned, but cannot be used yet
+            InRestoration = 2 // at a conservator's workshop — owned, keeps its slot, but cannot be used yet
         }
 
     }

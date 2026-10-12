@@ -14,6 +14,7 @@ namespace AntiqueTradingSimulator.UI
         public static readonly Color NegativeColor = NewsPresentation.EventColor;
         public static readonly Color MutedColor = new Color32(0xB8, 0xB8, 0xB8, 0xFF);
         public static readonly Color InTransitColor = new Color32(0x7F, 0xB3, 0xD5, 0xFF);
+        public static readonly Color InRestorationColor = new Color32(0xC3, 0xA6, 0xE0, 0xFF);
         /// <summary>Highlight colour of the greybox UI (active tab, player row, progress bars).</summary>
         public static readonly Color AccentColor = new Color32(0xC9, 0x9A, 0x3C, 0xFF);
 
@@ -69,6 +70,17 @@ namespace AntiqueTradingSimulator.UI
             if (daysLeft <= 0) return "arriving today";
             if (daysLeft == 1) return $"arrives tomorrow ({GameDate(arrivalDay)})";
             return $"arrives {GameDate(arrivalDay)} (in {Days(daysLeft)})";
+        }
+
+        /// <summary>"ready 7 October (in 2 days)" / "ready tomorrow (8 October)" / "ready today" — for restorations.</summary>
+        public static string ReadyLabel(int readyDay)
+        {
+            int today = GameClock != null ? GameClock.CurrentDay : readyDay;
+            int daysLeft = readyDay - today;
+
+            if (daysLeft <= 0) return "ready today";
+            if (daysLeft == 1) return $"ready tomorrow ({GameDate(readyDay)})";
+            return $"ready {GameDate(readyDay)} (in {Days(daysLeft)})";
         }
 
         /// <summary>"1 day" / "5 days"</summary>

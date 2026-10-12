@@ -67,6 +67,10 @@ namespace AntiqueTradingSimulator.Market
         // Part of PurchasePrice that was paid for transport (0 if none). PurchasePrice
         // stays the full cost basis; this is only kept so the UI can break it down.
         public float TransportCost = 0f;
+
+        // Part of PurchasePrice paid for restorations (0 if none) — like TransportCost, only
+        // kept so the UI can break the cost basis down.
+        public float RestorationCost = 0f;
         public bool HasPurchaseRecord => PurchasedOnDay >= 0;
 
         public void RecordAcquisition(float price, int day)
@@ -80,6 +84,22 @@ namespace AntiqueTradingSimulator.Market
             PurchasePrice = 0f;
             PurchasedOnDay = -1;
             TransportCost = 0f;
+            RestorationCost = 0f;
+        }
+
+        /// <summary>
+        /// Adds what a restoration cost to the cost basis, so profit and ROI stay net of it.
+        /// An item without an acquisition record gets one dated <paramref name="day"/>.
+        /// </summary>
+        public void AddRestorationCost(float cost, int day)
+        {
+            if (cost <= 0f) return;
+
+            if (!HasPurchaseRecord)
+                PurchasedOnDay = day;
+
+            PurchasePrice += cost;
+            RestorationCost += cost;
         }
 
         // Price asked by the owner while the antique is listed on the market by them
@@ -108,6 +128,23 @@ namespace AntiqueTradingSimulator.Market
 
         public bool IsInTransit => Status == AntiqueStatus.InTransit;
         public bool IsAvailable => Status == AntiqueStatus.Available;
+
+        // At a conservator's workshop (RestorationManager). Like InTransit: owned and counted in
+        // the collection, but it can't be sold, listed or handed in until the work is done.
+        public bool IsInRestoration => Status == AntiqueStatus.InRestoration;
+        public int RestorationEndDay = -1;
+
+        public void MarkInRestoration(int endDay)
+        {
+            Status = AntiqueStatus.InRestoration;
+            RestorationEndDay = endDay;
+        }
+
+        public void CompleteRestoration()
+        {
+            Status = AntiqueStatus.Available;
+            RestorationEndDay = -1;
+        }
 
         public void MarkInTransit(int arrivalDay)
         {

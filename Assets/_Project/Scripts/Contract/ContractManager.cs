@@ -379,6 +379,12 @@ namespace AntiqueTradingSimulator.Contracts
                     return false;
                 }
 
+                if (listing.IsInRestoration)
+                {
+                    Debug.LogWarning($"ContractManager: listing {listingId} is being restored (ready day {listing.RestorationEndDay}) — it can be handed in once the work is done.");
+                    return false;
+                }
+
                 if (listing.IsInTransit)
                 {
                     Debug.LogWarning($"ContractManager: listing {listingId} is still in transit (arrives day {listing.ArrivalDay}) — it can be handed in once delivered.");

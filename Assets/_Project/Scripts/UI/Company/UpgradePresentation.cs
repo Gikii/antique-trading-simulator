@@ -65,6 +65,10 @@ namespace AntiqueTradingSimulator.UI
                     return ("Max active contracts", whole < 0 ? "Unlimited" : whole.ToString());
                 case UpgradeStat.WarehouseCapacity:
                     return ("Capacity", $"{whole} items");
+                case UpgradeStat.RestorationCostReduction:
+                    return ("Restoration cost", v > 0f ? "-" + UIFormat.PercentCompact(v) : "Base");
+                case UpgradeStat.RestorationTimeReduction:
+                    return ("Restoration time", v > 0f ? "-" + UIFormat.PercentCompact(v) : "Base");
                 default:
                     return (effect.Stat.ToString(), v.ToString("0.##"));
             }
