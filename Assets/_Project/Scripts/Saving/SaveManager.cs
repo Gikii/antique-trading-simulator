@@ -8,6 +8,7 @@ using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.News;
+using AntiqueTradingSimulator.Restoration;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Saving
@@ -26,6 +27,7 @@ namespace AntiqueTradingSimulator.Saving
         [SerializeField] private NPCManager npcManager;
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private TransportManager transportManager;
+        [SerializeField] private RestorationManager restorationManager;
         [SerializeField] private ContractManager contractManager;
         [SerializeField] private CompanyManager companyManager;
         [SerializeField] private EventManager eventManager;
@@ -53,6 +55,7 @@ namespace AntiqueTradingSimulator.Saving
                     : FindFirstObjectByType<TimeManager>();
             if (npcManager == null) npcManager = FindFirstObjectByType<NPCManager>();
             if (transportManager == null) transportManager = FindFirstObjectByType<TransportManager>();
+            if (restorationManager == null) restorationManager = FindFirstObjectByType<RestorationManager>();
             if (contractManager == null) contractManager = FindFirstObjectByType<ContractManager>();
             if (eventManager == null) eventManager = FindFirstObjectByType<EventManager>();
             if (newsManager == null) newsManager = FindFirstObjectByType<NewsManager>();
@@ -207,6 +210,7 @@ namespace AntiqueTradingSimulator.Saving
             Npcs = npcManager != null ? npcManager.CaptureState() : null,
             Economy = economyManager != null ? economyManager.CaptureState() : null,
             Logistics = transportManager != null ? transportManager.CaptureState() : null,
+            Restoration = restorationManager != null ? restorationManager.CaptureState() : null,
             Contracts = contractManager != null ? contractManager.CaptureState() : null,
             Company = companyManager != null ? companyManager.CaptureState() : null,
             Events = eventManager != null ? eventManager.CaptureState() : null,
@@ -223,6 +227,7 @@ namespace AntiqueTradingSimulator.Saving
         /// 3. Economy  — fills those inventories, then the market (which re-links owner-set
         ///               listings to the antiques the inventories now hold).
         /// 4. Logistics— re-attaches shipments to recipients, whose holdings must already exist.
+        ///    Restoration — same for antiques at a workshop (a save without it releases none).
         /// 5. Contracts— independent of the above, but traders must be registered (steps 2-3).
         /// 6. Company  — needs the player's restored inventory and warehouse for its upgrades.
         /// 7. Events   — restored without re-applying; their effect is already in the market.
@@ -244,6 +249,11 @@ namespace AntiqueTradingSimulator.Saving
 
             if (transportManager != null) transportManager.RestoreState(state.Logistics);
             else WarnMissing("TransportManager", state.Logistics);
+
+            // Runs even when the save has no restoration state (older saves), so the manager
+            // drops this session's jobs.
+            if (restorationManager != null) restorationManager.RestoreState(state.Restoration);
+            else WarnMissing("RestorationManager", state.Restoration);
 
             if (contractManager != null) contractManager.RestoreState(state.Contracts);
             else WarnMissing("ContractManager", state.Contracts);

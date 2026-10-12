@@ -105,6 +105,7 @@ namespace AntiqueTradingSimulator.UI
                 .Where(a => a != null)
                 .Where(a => contract.Requirement.IsSatisfiedBy(a))
                 .Where(a => !a.IsListedForSale)
+                .Where(a => !a.IsInRestoration) // at the workshop — not even shown as "on the way"
                 .Where(a => includeInTransit || !a.IsInTransit)
                 .Where(a => !a.IsReservedForContract || a.ReservedForContractId == contract.ContractId)
                 .OrderBy(a => a.IsInTransit)

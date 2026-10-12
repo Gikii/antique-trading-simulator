@@ -294,6 +294,12 @@ namespace AntiqueTradingSimulator.Economy
                 return false;
             }
 
+            if (listing.IsInRestoration)
+            {
+                Debug.LogWarning($"TraderInventory: refused to sell {listingId} — being restored (ready day {listing.RestorationEndDay}).");
+                return false;
+            }
+
             if (listing.IsReservedForContract)
             {
                 Debug.LogWarning($"TraderInventory: refused to sell {listingId} — reserved for contract {listing.ReservedForContractId}.");
@@ -353,7 +359,7 @@ namespace AntiqueTradingSimulator.Economy
         {
             if (market == null || askingPrice <= 0f) return false;
             if (!_holdings.TryGetValue(listingId, out var antique)) return false;
-            if (antique.IsListedForSale || antique.IsReservedForContract || antique.IsInTransit) return false;
+            if (antique.IsListedForSale || antique.IsReservedForContract || antique.IsInTransit || antique.IsInRestoration) return false;
 
             if (!market.ListForSale(antique, askingPrice, currentDay)) return false;
 

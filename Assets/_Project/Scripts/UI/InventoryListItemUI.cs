@@ -44,11 +44,15 @@ namespace AntiqueTradingSimulator.UI
             if (nameText != null)
                 nameText.text = _antique.IsInTransit
                     ? $"{_antique.Name}  {UIFormat.Colorize("• in transit", UIFormat.InTransitColor)}"
-                    : _antique.Name;
+                    : _antique.IsInRestoration
+                        ? $"{_antique.Name}  {UIFormat.Colorize("• in restoration", UIFormat.InRestorationColor)}"
+                        : _antique.Name;
 
             var tooltip = GetComponent<TooltipTrigger>();
             if (_antique.IsInTransit)
                 TooltipTrigger.On(this).Text = $"In transit — {UIFormat.ArrivalLabel(_antique.ArrivalDay)}.";
+            else if (_antique.IsInRestoration)
+                TooltipTrigger.On(this).Text = $"Being restored — {UIFormat.ReadyLabel(_antique.RestorationEndDay)}.";
             else if (tooltip != null)
                 tooltip.Text = "";
 

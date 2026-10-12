@@ -4,6 +4,7 @@ using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Economy;
+using AntiqueTradingSimulator.Restoration;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Company
@@ -58,6 +59,7 @@ namespace AntiqueTradingSimulator.Company
         private EconomyManager _economyManager;
         private NPCManager _npcManager;
         private ContractManager _contractManager;
+        private RestorationManager _restorationManager;
 
         private CompanyReputation _reputation;
         private CompanyUpgrades _upgrades;
@@ -169,6 +171,7 @@ namespace AntiqueTradingSimulator.Company
                     : FindFirstObjectByType<TimeManager>();
             if (_npcManager == null) _npcManager = FindFirstObjectByType<NPCManager>();
             if (_contractManager == null) _contractManager = FindFirstObjectByType<ContractManager>();
+            if (_restorationManager == null) _restorationManager = FindFirstObjectByType<RestorationManager>();
         }
 
         private void OnDestroy()
@@ -213,13 +216,15 @@ namespace AntiqueTradingSimulator.Company
 
         /// <summary>
         /// What a reputation or credibility tier gives access to, generated from the contract
-        /// classes and upgrade requirements the game enforces, plus not-yet-implemented extras.
+        /// classes, restoration workshops and upgrade requirements the game enforces, plus
+        /// not-yet-implemented extras.
         /// </summary>
         public List<ReputationUnlock> UnlocksFor(ReputationKind kind, int tierIndex)
         {
-            if (_contractManager == null) ResolveReferences();
+            if (_contractManager == null || _restorationManager == null) ResolveReferences();
             return ReputationUnlocks.For(kind, tierIndex, Reputation.Settings, Upgrades,
-                _contractManager != null ? _contractManager.ReputationClasses : null);
+                _contractManager != null ? _contractManager.ReputationClasses : null,
+                _restorationManager != null ? _restorationManager.Options : null);
         }
 
         /// <summary>Name of the reputation tier a given number of points falls in ("Known Dealer").</summary>

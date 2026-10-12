@@ -168,8 +168,8 @@ namespace AntiqueTradingSimulator.Company
         }
 
         /// <summary>
-        /// Pushes Logistics and Staff values into the player's TraderInventory.Modifiers, which the
-        /// Market and TransportManager read. Called whenever the levels change.
+        /// Pushes Logistics, Staff and Conservators values into the player's TraderInventory.Modifiers,
+        /// which the Market, TransportManager and RestorationManager read. Called whenever the levels change.
         /// </summary>
         public void ApplyTradeModifiers()
         {
@@ -179,6 +179,8 @@ namespace AntiqueTradingSimulator.Company
             modifiers.ListingFeeRate = GetStat(CompanyUpgradeType.Staff, UpgradeStat.MarketFeeRate, Market.Market.ListingFeeRate);
             modifiers.TransportCostReduction = GetStat(CompanyUpgradeType.Logistics, UpgradeStat.TransportCostReduction, 0f);
             modifiers.TransportDaysReduction = Mathf.RoundToInt(GetStat(CompanyUpgradeType.Logistics, UpgradeStat.TransportDaysReduction, 0f));
+            modifiers.RestorationCostReduction = GetStat(CompanyUpgradeType.Conservators, UpgradeStat.RestorationCostReduction, 0f);
+            modifiers.RestorationTimeReduction = GetStat(CompanyUpgradeType.Conservators, UpgradeStat.RestorationTimeReduction, 0f);
         }
 
         // ---------------------------------------------------------------- info

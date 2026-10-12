@@ -176,9 +176,10 @@ namespace AntiqueTradingSimulator.UI
             SetText(statusTitle, "Collection status");
 
             // Listed antiques are still physically in the warehouse until a buyer takes them.
-            // Renovation and auctions don't exist yet — their tiles show a placeholder until they do.
-            List<Antique> stored = collection.Where(a => !a.IsInTransit).ToList();
+            // Auctions don't exist yet — their tile shows a placeholder until they do.
+            List<Antique> stored = collection.Where(a => !a.IsInTransit && !a.IsInRestoration).ToList();
             List<Antique> inTransit = collection.Where(a => a.IsInTransit).ToList();
+            List<Antique> inRestoration = collection.Where(a => a.IsInRestoration).ToList();
 
             int listed = stored.Count(a => a.IsListedForSale);
             string warehouseDetail = UIFormat.Money(CollectionAnalytics.TotalValue(stored)) + (listed > 0 ? $" · {listed} listed" : "");
@@ -195,7 +196,16 @@ namespace AntiqueTradingSimulator.UI
                 SetText(inTransportText, StatusTile("In transport", inTransit.Count.ToString(), transportDetail));
             }
 
-            SetText(inRenovationText, StatusTile("In renovation", "—", "Coming soon"));
+            if (inRestoration.Count == 0)
+            {
+                SetText(inRenovationText, StatusTile("In restoration", "0", "Nothing at a workshop"));
+            }
+            else
+            {
+                int nextReady = inRestoration.Min(a => a.RestorationEndDay);
+                string restorationDetail = $"{UIFormat.Money(CollectionAnalytics.TotalValue(inRestoration))} · next {UIFormat.GameDate(nextReady)}";
+                SetText(inRenovationText, StatusTile("In restoration", inRestoration.Count.ToString(), restorationDetail));
+            }
             SetText(onAuctionText, StatusTile("On auction", "—", "Coming soon"));
         }
 

@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using AntiqueTradingSimulator.Contracts;
+using AntiqueTradingSimulator.Restoration;
+using UnityEngine;
 
 namespace AntiqueTradingSimulator.Company
 {
@@ -22,14 +24,15 @@ namespace AntiqueTradingSimulator.Company
 
     /// <summary>
     /// Builds what a reputation or credibility tier gives access to, from the data the game
-    /// actually enforces — contract classes (ContractManager) and upgrade-level reputation
-    /// requirements (CompanyUpgradeSettings) — followed by the tier's hand-written Unlocks,
+    /// actually enforces — contract classes (ContractManager), restoration workshops
+    /// (RestorationSettings) and upgrade-level reputation requirements (CompanyUpgradeSettings) — followed by the tier's hand-written Unlocks,
     /// which describe systems that don't exist yet. Reputation gives access; it never changes prices.
     /// </summary>
     public static class ReputationUnlocks
     {
         public static List<ReputationUnlock> For(ReputationKind kind, int tierIndex, ReputationSettings settings,
-            CompanyUpgrades upgrades, IReadOnlyList<ContractClassDefinition> contractClasses)
+            CompanyUpgrades upgrades, IReadOnlyList<ContractClassDefinition> contractClasses,
+            IReadOnlyList<RestorationOption> restorationOptions = null)
         {
             var result = new List<ReputationUnlock>();
             if (settings == null) return result;
@@ -53,6 +56,11 @@ namespace AntiqueTradingSimulator.Company
                         if (c != null && InTier(c.RequiredReputation))
                             result.Add(new ReputationUnlock(ContractClassLine(c), true));
 
+                if (restorationOptions != null)
+                    foreach (var option in restorationOptions)
+                        if (option != null && InTier(option.RequiredReputation))
+                            result.Add(new ReputationUnlock(RestorationLine(option), true));
+
                 string upgradeLine = UpgradeLevelsLine(upgrades, InTier);
                 if (upgradeLine.Length > 0)
                     result.Add(new ReputationUnlock(upgradeLine, true));
@@ -72,6 +80,12 @@ namespace AntiqueTradingSimulator.Company
             string max = c.MaxRewardMultiplier.ToString("0.0#", CultureInfo.InvariantCulture);
             string client = string.IsNullOrWhiteSpace(c.ClientDescription) ? "" : $" from {c.ClientDescription.Trim().ToLowerInvariant()}";
             return $"{c.Name} contracts{client} (pay ×{min}–{max} of market value)";
+        }
+
+        private static string RestorationLine(RestorationOption option)
+        {
+            string condition = Mathf.RoundToInt(option.MaxCondition * 100f).ToString(CultureInfo.InvariantCulture);
+            return $"{option.DisplayName} restorations (up to {condition}% condition)";
         }
 
         /// <summary>"Upgrade levels: Warehouse 4, Information Network 3" for levels whose requirement falls in the tier.</summary>

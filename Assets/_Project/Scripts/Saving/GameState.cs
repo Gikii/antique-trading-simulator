@@ -6,6 +6,7 @@ using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.News;
+using AntiqueTradingSimulator.Restoration;
 
 namespace AntiqueTradingSimulator.Saving
 {
@@ -24,6 +25,8 @@ namespace AntiqueTradingSimulator.Saving
         public EconomyState Economy;
 
         public LogisticsState Logistics;
+
+        public RestorationState Restoration;
 
         public ContractsState Contracts;
 

@@ -21,6 +21,7 @@ namespace AntiqueTradingSimulator.Economy
         Upgrade,      // one-off price of a company upgrade
         Upkeep,       // daily upkeep of company upgrades (staff, experts, ...)
         Penalty,      // failed contract penalty
+        Restoration,  // conservator's fee for restoring an antique
         Other
     }
 
@@ -44,6 +45,7 @@ namespace AntiqueTradingSimulator.Economy
             LedgerCategory.Upgrade => "Upgrades",
             LedgerCategory.Upkeep => "Company Upkeep",
             LedgerCategory.Penalty => "Penalties",
+            LedgerCategory.Restoration => "Restoration",
             _ => "Other"
         };
     }

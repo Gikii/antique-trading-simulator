@@ -42,7 +42,15 @@ namespace AntiqueTradingSimulator.Company
         /// Warehouse slots. Comes from WarehouseSettings.CapacityPerLevel — CompanyUpgrades fills
         /// it in for the UI; don't author it in Levels.
         /// </summary>
-        WarehouseCapacity
+        WarehouseCapacity,
+
+        // Appended (not inserted) so values serialized in a settings asset keep their meaning.
+
+        /// <summary>Fraction taken off restoration fees (0.1 = -10%).</summary>
+        RestorationCostReduction,
+
+        /// <summary>Fraction taken off restoration time (0.1 = -10%, rounded, never below 1 day).</summary>
+        RestorationTimeReduction
     }
 
     [Serializable]
@@ -146,6 +154,8 @@ namespace AntiqueTradingSimulator.Company
         private static UpgradeEffect TransportDays(int days) => new UpgradeEffect(UpgradeStat.TransportDaysReduction, days);
         private static UpgradeEffect Fee(float rate) => new UpgradeEffect(UpgradeStat.MarketFeeRate, rate);
         private static UpgradeEffect ContractLimit(int count) => new UpgradeEffect(UpgradeStat.MaxActiveContracts, count);
+        private static UpgradeEffect RestorationCost(float reduction) => new UpgradeEffect(UpgradeStat.RestorationCostReduction, reduction);
+        private static UpgradeEffect RestorationTime(float reduction) => new UpgradeEffect(UpgradeStat.RestorationTimeReduction, reduction);
 
         public List<CompanyUpgradeDefinition> Upgrades = new List<CompanyUpgradeDefinition>
         {
@@ -195,12 +205,12 @@ namespace AntiqueTradingSimulator.Company
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.Conservators, "Conservators",
                 "Hire conservators to restore items faster and cheaper.",
-                false,
-                new CompanyUpgradeLevel(0, 0, 0, "Restoration cost: -0%\nRestoration time: -0%"),
-                new CompanyUpgradeLevel(900, 3, 0, "Restoration cost: -15%\nRestoration time: -15%"),
-                new CompanyUpgradeLevel(2200, 5, 200, "Restoration cost: -25%\nRestoration time: -25%"),
-                new CompanyUpgradeLevel(4500, 9, 500, "Restoration cost: -35%\nRestoration time: -35%"),
-                new CompanyUpgradeLevel(7500, 13, 1000, "Restoration cost: -45%\nRestoration time: -45%")),
+                true,
+                new CompanyUpgradeLevel(0, 0, 0, "", RestorationCost(0f), RestorationTime(0f)),
+                new CompanyUpgradeLevel(900, 3, 0, "", RestorationCost(0.05f), RestorationTime(0.10f)),
+                new CompanyUpgradeLevel(2200, 5, 200, "", RestorationCost(0.10f), RestorationTime(0.20f)),
+                new CompanyUpgradeLevel(4500, 9, 500, "", RestorationCost(0.15f), RestorationTime(0.30f)),
+                new CompanyUpgradeLevel(7500, 13, 1000, "", RestorationCost(0.20f), RestorationTime(0.40f))),
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.Staff, "Staff",
                 "Expand your team to handle more operations.",

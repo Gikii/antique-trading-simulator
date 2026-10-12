@@ -35,7 +35,7 @@ namespace AntiqueTradingSimulator.UI
         private static readonly LedgerCategory[] ExpenseCategories =
         {
             LedgerCategory.Purchase, LedgerCategory.Transport, LedgerCategory.Warehouse, LedgerCategory.Commission,
-            LedgerCategory.Upgrade, LedgerCategory.Upkeep, LedgerCategory.Penalty, LedgerCategory.Other
+            LedgerCategory.Upgrade, LedgerCategory.Upkeep, LedgerCategory.Penalty, LedgerCategory.Restoration, LedgerCategory.Other
         };
 
         [Header("Dependencies (found automatically if empty)")]

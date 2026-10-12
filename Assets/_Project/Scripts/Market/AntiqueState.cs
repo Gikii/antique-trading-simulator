@@ -21,6 +21,7 @@ namespace AntiqueTradingSimulator.Market
         public float PurchasePrice;
         public int PurchasedOnDay = -1;
         public float TransportCost;
+        public float RestorationCost;
 
         public float AskingPrice;
         public string ReservedForContractId;
@@ -28,6 +29,7 @@ namespace AntiqueTradingSimulator.Market
         public ShippingZone ShippingZone = ShippingZone.Domestic;
         public AntiqueStatus Status = AntiqueStatus.Available;
         public int ArrivalDay = -1;
+        public int RestorationEndDay = -1;
 
         public static AntiqueState Capture(Antique antique)
         {
@@ -47,11 +49,13 @@ namespace AntiqueTradingSimulator.Market
                 PurchasePrice = antique.PurchasePrice,
                 PurchasedOnDay = antique.PurchasedOnDay,
                 TransportCost = antique.TransportCost,
+                RestorationCost = antique.RestorationCost,
                 AskingPrice = antique.AskingPrice,
                 ReservedForContractId = antique.ReservedForContractId,
                 ShippingZone = antique.ShippingZone,
                 Status = antique.Status,
-                ArrivalDay = antique.ArrivalDay
+                ArrivalDay = antique.ArrivalDay,
+                RestorationEndDay = antique.RestorationEndDay
             };
         }
 
@@ -69,11 +73,13 @@ namespace AntiqueTradingSimulator.Market
                 PurchasePrice = this.PurchasePrice,
                 PurchasedOnDay = this.PurchasedOnDay,
                 TransportCost = this.TransportCost,
+                RestorationCost = this.RestorationCost,
                 AskingPrice = this.AskingPrice,
                 ReservedForContractId = this.ReservedForContractId,
                 ShippingZone = this.ShippingZone,
                 Status = this.Status,
-                ArrivalDay = this.ArrivalDay
+                ArrivalDay = this.ArrivalDay,
+                RestorationEndDay = this.RestorationEndDay
             };
 
             return antique;
