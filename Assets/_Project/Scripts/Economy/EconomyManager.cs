@@ -3,6 +3,7 @@ using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -31,6 +32,31 @@ namespace AntiqueTradingSimulator.Economy
         [Header("Listing spawning")]
         [SerializeField] private int initialListingCount = 6;
         [SerializeField] private int newListingsPerDay = 1;
+
+        [Tooltip("Anonymous offers are withdrawn after this many days on the market, so it keeps refreshing. 0 = never.")]
+        [Min(0)] [SerializeField] private int anonymousListingLifetimeDays = 14;
+
+        [Header("Private collectors (in-memory defaults if empty)")]
+        [Tooltip("Outside buyers for owner-set listings — see CollectorDemandSettings.")]
+        [SerializeField] private CollectorDemandSettings collectorSettings;
+
+        public CollectorDemandSettings CollectorSettings
+        {
+            get
+            {
+                if (collectorSettings == null) collectorSettings = ScriptableObject.CreateInstance<CollectorDemandSettings>();
+                return collectorSettings;
+            }
+        }
+
+        /// <summary>
+        /// Chance per day that a private collector buys this antique at the given asking price
+        /// (the same number the daily roll uses — for UI hints).
+        /// </summary>
+        public float CollectorSaleChance(Antique antique, float askingPrice) =>
+            antique == null || Market == null
+                ? 0f
+                : CollectorDemand.DailyChance(antique, askingPrice, Market.GetTypeState(antique.DefinitionId), CollectorSettings);
 
         public Market.Market Market { get; private set; }
 
@@ -120,7 +146,7 @@ namespace AntiqueTradingSimulator.Economy
 
             for (int i = 0; i < initialListingCount; i++)
             {
-                Market.GenerateListing(_timeManager.CurrentDay);
+                Market.GenerateListing(_timeManager.CurrentDay, addSupply: false);
             }
 
             Debug.Log($"EconomyManager: market initialized with {Market.Listings.Count} listings across {allDefinitions.Count} antique types.");
@@ -131,11 +157,40 @@ namespace AntiqueTradingSimulator.Economy
             Market.ApplyMeanReversion(supplyReversionRate, demandReversionRate);
             Market.RecordDailyPrices(newDay);
 
+            int expired = Market.RemoveExpiredListings(newDay, anonymousListingLifetimeDays);
+            if (expired > 0)
+                Debug.Log($"EconomyManager: {expired} old listing(s) withdrawn from the market.");
+
             for (int i = 0; i < newListingsPerDay; i++)
             {
                 var listing = Market.GenerateListing(newDay);
                 if (listing != null)
                     Debug.Log($"EconomyManager: new listing appeared — {listing}");
+            }
+
+            RollCollectorPurchases(newDay);
+        }
+
+        /// <summary>
+        /// Each owner-set listing that has been on the market for at least a day gets one roll per
+        /// day against CollectorDemand.DailyChance. Runs after the day's revaluation, so the price
+        /// ratio uses today's market value.
+        /// </summary>
+        private void RollCollectorPurchases(int day)
+        {
+            var settings = CollectorSettings;
+            if (!settings.Enabled) return;
+
+            foreach (var listing in Market.Listings.ToList())
+            {
+                if (!listing.IsListedForSale || listing.MarketListedOnDay >= day) continue;
+
+                float chance = CollectorDemand.DailyChance(listing, listing.AskingPrice, Market.GetTypeState(listing.DefinitionId), settings);
+                if (chance <= 0f || UnityEngine.Random.value >= chance) continue;
+
+                float price = listing.AskingPrice;
+                if (Market.SellToCollector(listing))
+                    Debug.Log($"EconomyManager: a private collector bought {listing.Name} for {price:F0} € (chance was {chance:P0}).");
             }
         }
 

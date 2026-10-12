@@ -1,6 +1,7 @@
 using AntiqueTradingSimulator.Market;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Economy;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,15 @@ namespace AntiqueTradingSimulator.Contracts
         public Century Century = Century.Unknown;
 
         public int Quantity;
+
+        /// <summary>
+        /// Lowest condition (0..1) an antique must have to count toward the contract. 0 = any —
+        /// also what contracts from saves made before this field existed get.
+        /// </summary>
+        public float MinCondition;
+
+        [JsonIgnore]
+        public bool HasMinCondition => MinCondition > 0f;
 
         public ContractRequirement() { }
 
@@ -70,6 +80,9 @@ namespace AntiqueTradingSimulator.Contracts
         public bool IsSatisfiedBy(Antique antique)
         {
             if (antique == null) return false;
+
+            // Small tolerance so an antique shown as "70%" meets a 70% requirement.
+            if (antique.Condition + 0.0005f < MinCondition) return false;
 
             return Scope switch
             {

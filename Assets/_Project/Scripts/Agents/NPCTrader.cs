@@ -54,8 +54,8 @@ namespace AntiqueTradingSimulator.Agents
         private readonly List<PendingReaction> _pendingReactions = new();
         private readonly Dictionary<string, Acquisition> _acquisitions = new();
 
-        private readonly List<string> _committedContractIds = new();
-        public IReadOnlyList<string> CommittedContractIds => _committedContractIds;
+        /// <summary>Contracts this NPC has taken — kept by its inventory (saved with the economy).</summary>
+        public IReadOnlyCollection<string> CommittedContractIds => Inventory.CommittedContractIds;
 
         public NPCTrader(string traderName, string profileId, float startingCash, EconomyManager economyManager,
             ContractManager contractManager = null, TransportManager transportManager = null)
@@ -118,7 +118,8 @@ namespace AntiqueTradingSimulator.Agents
 
             RemoveInactiveContracts();
             budget = PursueCommittedContracts(budget, profile, currentDay);
-            ConsiderNewContract(profile);
+            if (profile.TakesContracts)
+                budget -= ConsiderNewContract(profile, currentDay);
 
             ConsiderBuyingFromMarket(budget, profile);
         }
@@ -157,13 +158,14 @@ namespace AntiqueTradingSimulator.Agents
                         foreach (var listing in listings)
                         {
                             if (budget <= 0f) break;
+                            if (Inventory.Owns(listing.Id) || listing.Condition < profile.MinConditionToBuy) continue;
                             float totalCost = EstimateTotalCost(listing);
                             if (!IsAcceptablePrice(listing, profile) || totalCost > budget) continue;
 
                             if (TryBuy(listing, currentDay)) budget -= totalCost;
                         }
                     }
-                    else
+                    else if (!profile.NeverSells)
                     {
                         var holdings = eventEffect.targetScope switch
                         {
@@ -176,6 +178,11 @@ namespace AntiqueTradingSimulator.Agents
                         {
                             var typeState = _economyManager.Market.GetTypeState(holding.DefinitionId);
                             float sellPrice = PriceEngine.CalculatePrice(holding, typeState);
+
+                            // Bad news beats waiting for a buyer: withdraw its own listing and sell now.
+                            if (holding.IsListedForSale)
+                                Inventory.CancelListing(_economyManager.Market, holding.Id);
+
                             if (SellListing(holding.ListingId)) budget += sellPrice;
                         }
                     }
@@ -194,7 +201,9 @@ namespace AntiqueTradingSimulator.Agents
             foreach (var listing in _economyManager.Market.Listings.ToList())
             {
                 if (budget <= 0f) break;
+                if (Inventory.Owns(listing.Id)) continue; // its own listing
                 if (!IsInterestedIn(listing.Definition, profile)) continue;
+                if (listing.Condition < profile.MinConditionToBuy) continue;
                 float totalCost = EstimateTotalCost(listing);
                 if (!IsAcceptablePrice(listing, profile) || totalCost > budget) continue;
 
@@ -202,80 +211,220 @@ namespace AntiqueTradingSimulator.Agents
             }
         }
 
+        /// <summary>
+        /// Decides what to do with each antique the NPC bought: keep it, sell it, or (ListsOnMarket
+        /// profiles) put it on the market at a markup, withdrawing listings that didn't sell in
+        /// RelistAfterDays. Aims for the profit target; after PatientSellAfterDays settles for a small
+        /// profit; below the stop-loss sells at once.
+        /// </summary>
         private void ConsiderSellingHoldings(int currentDay, NpcBehaviorProfile profile)
         {
+            if (profile.NeverSells) return;
+
             Debug.Log($"{TraderName} considered selling holdings. Day {_economyManager.TimeManager.CurrentDay}");
+            var market = _economyManager.Market;
             var listingIds = new List<string>(_acquisitions.Keys);
             foreach (var listingId in listingIds)
             {
                 var listing = Inventory.GetHolding(listingId);
-                if (listing == null) { _acquisitions.Remove(listingId); continue; }
+                if (listing == null) { _acquisitions.Remove(listingId); continue; } // sold (also from a listing) or handed in
                 if (listing.IsReservedForContract) continue; // being gathered for a contract — not for sale
-                if (listing.IsInTransit) continue;           // can't sell what hasn't arrived yet
+                if (listing.IsInTransit || listing.IsInRestoration) continue; // can't sell what isn't here
+
+                // Its own listing: wait for a buyer, or withdraw it to decide again tomorrow.
+                if (listing.IsListedForSale)
+                {
+                    if (currentDay - listing.MarketListedOnDay >= profile.RelistAfterDays)
+                        Inventory.CancelListing(market, listingId);
+                    continue;
+                }
 
                 var acquisition = _acquisitions[listingId];
-                if (currentDay - acquisition.Day < profile.MinHoldingDaysBeforeSell) continue;
+                int held = currentDay - acquisition.Day;
 
-                var typeState = _economyManager.Market.GetTypeState(listing.DefinitionId);
+                var typeState = market.GetTypeState(listing.DefinitionId);
                 float estimatedValue = PriceEngine.CalculatePrice(listing, typeState);
-                if (estimatedValue < acquisition.PurchasePrice * profile.ProfitTargetMultiplier) continue;
+
+                bool stopLoss = profile.StopLossMultiplier > 0f && estimatedValue < acquisition.PurchasePrice * profile.StopLossMultiplier;
+                if (held < profile.MinHoldingDaysBeforeSell) continue;
+
+                bool patient = profile.PatientSellAfterDays > 0 && held >= profile.PatientSellAfterDays;
+                float target = patient ? Mathf.Min(profile.PatientProfitMultiplier, profile.ProfitTargetMultiplier) : profile.ProfitTargetMultiplier;
+                if (!stopLoss && estimatedValue < acquisition.PurchasePrice * target) continue;
+
+                if (profile.ListsOnMarket && !stopLoss)
+                {
+                    float askingPrice = Mathf.Max(estimatedValue * profile.ListingMarkup, acquisition.PurchasePrice * target);
+                    if (Inventory.ListForSale(market, listingId, askingPrice, currentDay))
+                        Debug.Log($"{TraderName} listed {listing.Name} for {askingPrice:F0} € (value {estimatedValue:F0} €).");
+                    continue; // the acquisition stays — it's still ours until someone buys it
+                }
+
+                if (stopLoss)
+                    Debug.Log($"{TraderName} panic-sells {listing.Name}: worth {estimatedValue:F0} €, paid {acquisition.PurchasePrice:F0} €.");
 
                 if (SellListing(listing.Id)) _acquisitions.Remove(listingId);
             }
         }
 
 
+        // ---------------------------------------------------------------- contracts
+        //
+        // The trader's inventory is the single record of which contracts it has taken
+        // (TraderInventory.CommittedContractIds) — the player uses the same one.
+        //
+        // An NPC only takes a contract it can actually finish: every missing item must be
+        // available to buy now (or already owned) and arrive in time, and the whole purchase must
+        // fit its cash. Contract purchases are paid from cash, not the daily browsing budget —
+        // the cash was checked when the contract was taken.
+
+        /// <summary>
+        /// Latest day an item may arrive and still be handed in. Contracts expire on the tick of
+        /// their deadline day and NPCs act once per tick, possibly before that day's deliveries —
+        /// so an item must arrive at least one tick earlier.
+        /// </summary>
+        private static int LatestUsefulArrivalDay(Contract contract) => contract.DeadlineDay - 2;
+
+        /// <summary>Exclusive contracts must leave at least this share of the reward as profit (they carry a penalty).</summary>
+        private const float ExclusiveMinProfitShare = 0.15f;
+
+        /// <summary>Share of cash an NPC may tie up in contract purchases at once.</summary>
+        private const float ContractCashShare = 0.5f;
+
+        private sealed class ContractPlan
+        {
+            public Contract Contract;
+            public readonly List<Antique> FromHoldings = new();
+            public readonly List<Antique> ToBuy = new();
+            public float PurchaseCost;
+            public float HoldingsValue;
+            public int Missing;
+
+            public bool IsComplete => Missing <= 0;
+            public float Profit => Contract.TotalReward - PurchaseCost - HoldingsValue;
+        }
+
         private void RemoveInactiveContracts()
         {
             if (_contractManager == null) return;
 
-            foreach (var contractId in _committedContractIds.ToList())
+            foreach (var contractId in Inventory.CommittedContractIds.ToList())
             {
                 var contract = _contractManager.GetById(contractId);
                 if (contract != null && contract.Status == ContractStatus.Active) continue;
 
+                // Fulfilled by someone else, expired or gone — free the antiques and the cash it held.
                 Inventory.ReleaseAllReservationsForContract(contractId);
-                _committedContractIds.Remove(contractId);
+                Inventory.ReleaseCommittedContract(contractId);
             }
         }
 
         /// <summary>
-        /// Buys antiques for each contract
+        /// What it would take to finish a contract from now: matching antiques the NPC already owns
+        /// (not reserved, not listed, here or arriving in time) first, then the cheapest matching
+        /// market listings that arrive in time and don't cost more than the reward per unit.
+        /// </summary>
+        private ContractPlan PlanContract(Contract contract, int currentDay)
+        {
+            var plan = new ContractPlan { Contract = contract };
+            int latestArrival = LatestUsefulArrivalDay(contract);
+
+            int needed = contract.Requirement.Quantity - Inventory.GetReservedForContract(contract.ContractId).Count;
+
+            foreach (var holding in Inventory.Holdings.Values
+                         .Where(h => !h.IsReservedForContract && !h.IsListedForSale && !h.IsInRestoration)
+                         .Where(h => h.IsAvailable || (h.IsInTransit && h.ArrivalDay <= latestArrival))
+                         .Where(h => contract.Requirement.IsSatisfiedBy(h))
+                         .OrderBy(h => h.CurrentPrice))
+            {
+                if (plan.FromHoldings.Count >= needed) break;
+                plan.FromHoldings.Add(holding);
+                plan.HoldingsValue += holding.CurrentPrice;
+            }
+
+            int toBuy = needed - plan.FromHoldings.Count;
+            if (toBuy > 0 && _economyManager.Market != null)
+            {
+                var offers = _economyManager.Market.Listings
+                    .Where(l => contract.Requirement.IsSatisfiedBy(l) && !Inventory.Owns(l.Id))
+                    .Select(l => (listing: l, quote: QuoteFor(l)))
+                    .Where(o => o.quote == null || o.quote.ArrivalDay <= latestArrival)
+                    .Select(o => (o.listing, cost: o.listing.SalePrice + (o.quote != null ? o.quote.Cost : 0f)))
+                    .Where(o => o.cost <= contract.RewardPerUnit && IsAcceptablePrice(o.listing, Profile))
+                    .OrderBy(o => o.cost);
+
+                foreach (var (listing, cost) in offers)
+                {
+                    if (plan.ToBuy.Count >= toBuy) break;
+                    plan.ToBuy.Add(listing);
+                    plan.PurchaseCost += cost;
+                }
+            }
+
+            plan.Missing = Mathf.Max(0, needed - plan.FromHoldings.Count - plan.ToBuy.Count);
+            return plan;
+        }
+
+        private TransportQuote QuoteFor(Antique listing) =>
+            _transportManager != null ? _transportManager.Quote(listing, NpcTransportOption, buyer: Inventory) : null;
+
+        /// <summary>Reserves the planned holdings and buys the planned listings. Returns what was spent.</summary>
+        private float ExecutePlan(ContractPlan plan, int currentDay)
+        {
+            string contractId = plan.Contract.ContractId;
+
+            foreach (var holding in plan.FromHoldings)
+                Inventory.ReserveForContract(holding.Id, contractId);
+
+            float spent = 0f;
+            foreach (var listing in plan.ToBuy)
+            {
+                float cost = EstimateTotalCost(listing);
+                if (cost > Inventory.Cash) break;
+                if (!TryBuy(listing, currentDay)) continue;
+
+                // Reserved right away, even while still in transit — handed in once it arrives.
+                Inventory.ReserveForContract(listing.Id, contractId);
+                spent += cost;
+            }
+            return spent;
+        }
+
+        /// <summary>
+        /// Keeps every taken contract on track: buys what is still missing (from cash) and hands the
+        /// contract in once everything has arrived. An Open contract that can no longer be finished
+        /// is dropped — that costs nothing; an Exclusive one is pursued to the end to avoid the penalty.
+        /// Returns the browsing budget left after contract purchases.
         /// </summary>
         private float PursueCommittedContracts(float budget, NpcBehaviorProfile profile, int currentDay)
         {
-            var orderedContractIds = Inventory.CommittedContractIds
-                .OrderBy(id => _contractManager.GetById(id)?.DeadlineDay ?? int.MaxValue)
+            if (_contractManager == null) return budget;
+
+            var contracts = Inventory.CommittedContractIds
+                .Select(id => _contractManager.GetById(id))
+                .Where(c => c != null && c.Status == ContractStatus.Active)
+                .OrderBy(c => c.DeadlineDay)
                 .ToList();
 
-            foreach (var contractId in orderedContractIds)
+            foreach (var contract in contracts)
             {
-                var contract = _contractManager.GetById(contractId);
-                if (contract == null || contract.Status != ContractStatus.Active) continue;
-
-                int needed = contract.Requirement.Quantity - Inventory.GetReservedForContract(contractId).Count;
-
-                if (needed > 0 && budget > 0f)
+                int reserved = Inventory.GetReservedForContract(contract.ContractId).Count;
+                if (reserved < contract.Requirement.Quantity)
                 {
-                    var candidates = _economyManager.Market.Listings.Where(l => contract.Requirement.IsSatisfiedBy(l)).ToList();
-                    foreach (var listing in candidates)
-                    {
-                        if (needed <= 0 || budget <= 0f) break;
-                        float totalCost = EstimateTotalCost(listing);
-                        if (!IsAcceptablePrice(listing, profile) || totalCost > budget) continue;
+                    var plan = PlanContract(contract, currentDay);
 
-                        if (TryBuy(listing, currentDay))
-                        {
-                            // Reserved right away, even while still in transit — it's
-                            // handed in once it arrives (TryFulfillContract).
-                            budget -= totalCost;
-                            Inventory.ReserveForContract(listing.Id, contractId);
-                            needed--;
-                        }
+                    if (!plan.IsComplete && contract.Type == ContractType.Open)
+                    {
+                        Debug.Log($"{TraderName} dropped open contract {contract.ContractId} — the missing antiques can't arrive before day {contract.DeadlineDay}.");
+                        Inventory.ReleaseAllReservationsForContract(contract.ContractId);
+                        Inventory.ReleaseCommittedContract(contract.ContractId);
+                        continue;
                     }
+
+                    budget -= ExecutePlan(plan, currentDay);
                 }
 
-                if (Inventory.GetReservedForContract(contractId).Count >= contract.Requirement.Quantity)
+                if (Inventory.GetReservedForContract(contract.ContractId).Count >= contract.Requirement.Quantity)
                     TryFulfillContract(contract);
             }
 
@@ -296,39 +445,61 @@ namespace AntiqueTradingSimulator.Agents
                 Inventory.ReleaseCommittedContract(contract.ContractId);
         }
 
-        private void ConsiderNewContract(NpcBehaviorProfile profile)
+        /// <summary>
+        /// Takes the most profitable contract the NPC can finish in time and afford, if any, and
+        /// starts on it right away (before others buy the antiques it planned on).
+        /// Returns what was spent.
+        /// </summary>
+        private float ConsiderNewContract(NpcBehaviorProfile profile, int currentDay)
         {
-            if (_contractManager == null) return;
+            if (_contractManager == null) return 0f;
 
             // NPCs have no reputation, so contracts that require some are the player's alone.
             var candidates = _contractManager.OpenContracts.Where(c => !Inventory.IsCommittedToContract(c.ContractId))
                 .Concat(_contractManager.ExclusiveContracts.Where(c => c.CanBeClaimed))
                 .Where(c => !c.RequiresReputation)
                 .ToList();
-            if (candidates.Count == 0) return;
+            if (candidates.Count == 0) return 0f;
 
+            // Cash still needed by contracts already taken (only those still running).
             var market = _economyManager.Market;
-            float cashLimit = Inventory.Cash * 0.5f;
-
             float committedValue = Inventory.CommittedContractIds
                 .Select(id => _contractManager.GetById(id))
-                .Where(c => c != null)
-                .Sum(c => c.ReferenceValue(market));
+                .Where(c => c != null && c.Status == ContractStatus.Active)
+                .Sum(c => c.Requirement.AverageReferenceUnitPrice(market) *
+                          Mathf.Max(0, c.Requirement.Quantity - Inventory.GetReservedForContract(c.ContractId).Count));
+            float cashLimit = Inventory.Cash * ContractCashShare - committedValue;
 
-            var affordable = candidates.Where(c => committedValue + c.ReferenceValue(market) <= cashLimit).ToList();
-            if (affordable.Count == 0)
+            ContractPlan best = null;
+            foreach (var contract in candidates)
             {
-                Debug.Log($"{TraderName} found no contract affordable without exceeding half of {Inventory.Cash:F2} cash ({committedValue:F2} already committed).");
-                return;
+                var plan = PlanContract(contract, currentDay);
+                if (!plan.IsComplete || plan.PurchaseCost > cashLimit) continue;
+
+                float minProfit = contract.Type == ContractType.Exclusive ? contract.TotalReward * ExclusiveMinProfitShare : 0f;
+                if (plan.Profit <= minProfit) continue;
+
+                if (best == null || plan.Profit > best.Profit)
+                    best = plan;
             }
 
-            var candidate = affordable[UnityEngine.Random.Range(0, affordable.Count)];
+            if (best == null)
+            {
+                Debug.Log($"{TraderName} found no contract it can finish in time and afford.");
+                return 0f;
+            }
 
-            if (candidate.Type == ContractType.Exclusive && !_contractManager.ClaimContract(candidate.ContractId, Id))
-                return;
+            var chosen = best.Contract;
+            if (chosen.Type == ContractType.Exclusive && !_contractManager.ClaimContract(chosen.ContractId, Id))
+                return 0f;
 
-            Inventory.CommitToContract(candidate.ContractId);
-            Debug.Log($"{TraderName} picked up {candidate.Type} contract {candidate.ContractId} — needs {candidate.Requirement.Quantity}, due day {candidate.DeadlineDay}.");
+            Inventory.CommitToContract(chosen.ContractId);
+            Debug.Log($"{TraderName} picked up {chosen.Type} contract {chosen.ContractId} — needs {chosen.Requirement.Quantity}, due day {chosen.DeadlineDay}, expected profit {best.Profit:F0}.");
+
+            float spent = ExecutePlan(best, currentDay);
+            if (Inventory.GetReservedForContract(chosen.ContractId).Count >= chosen.Requirement.Quantity)
+                TryFulfillContract(chosen);
+            return spent;
         }
 
 
@@ -351,11 +522,20 @@ namespace AntiqueTradingSimulator.Agents
         public bool SellListing(string listingId) =>
             TraderHelper.SellListing(Inventory, _economyManager.Market, listingId, TraderName, _economyManager.TimeManager.CurrentDay);
 
+        /// <summary>
+        /// The price is acceptable if it isn't more than the profile's multiplier over what the
+        /// antique is worth in its condition (reference price of its type × condition). The
+        /// listing's own price noise (PriceFactor) is what makes some offers bargains.
+        /// </summary>
         private bool IsAcceptablePrice(Antique listing, NpcBehaviorProfile profile)
         {
             var typeState = _economyManager.Market.GetTypeState(listing.DefinitionId);
-            float referencePrice = PriceEngine.CalculateReferencePrice(listing.BasePrice, typeState);
-            return listing.SalePrice <= referencePrice * profile.MaxPriceMultiplierWillingToPay;
+            float fairValue = PriceEngine.CalculateReferencePrice(listing.BasePrice, typeState) * listing.Condition;
+
+            // Collectors (ConditionPremium > 0) stretch their limit for antiques in good condition.
+            float multiplier = profile.MaxPriceMultiplierWillingToPay *
+                               (1f + profile.ConditionPremium * Mathf.Max(0f, listing.Condition - 0.5f));
+            return listing.SalePrice <= fairValue * multiplier;
         }
 
         private bool IsInterestedIn(AntiqueDefinition def, NpcBehaviorProfile profile)
@@ -376,7 +556,8 @@ namespace AntiqueTradingSimulator.Agents
                 Id = Id,
                 ProfileId = ProfileId,
                 TraderName = TraderName,
-                CommittedContractIds = new List<string>(_committedContractIds)
+                // Informational only: the inventory saves and restores the commitments (EconomyState).
+                CommittedContractIds = new List<string>(Inventory.CommittedContractIds)
             };
 
             foreach (var pair in _acquisitions)
@@ -438,9 +619,8 @@ namespace AntiqueTradingSimulator.Agents
                 }
             }
 
-            _committedContractIds.Clear();
-            if (state.CommittedContractIds != null)
-                _committedContractIds.AddRange(state.CommittedContractIds);
+            // CommittedContractIds is not restored here: the inventory restores its own commitments
+            // when the economy is loaded (after the NPCs).
         }
 
     }

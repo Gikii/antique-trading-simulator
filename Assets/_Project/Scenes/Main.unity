@@ -38311,7 +38311,7 @@ MonoBehaviour:
   supplyReversionRate: 0.05
   demandReversionRate: 0.05
   initialListingCount: 12
-  newListingsPerDay: 1
+  newListingsPerDay: 2
 --- !u!114 &398503184
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -38389,7 +38389,8 @@ MonoBehaviour:
   minRewardMultiplier: 1.1
   maxRewardMultiplier: 1.6
   maxUrgencyBonusMultiplier: 1.5
-  exclusiveContractChance: 1
+  standardMinCondition: {x: 0.6, y: 0.9}
+  exclusiveContractChance: 0.35
   exclusivePenaltyFraction: 0.5
   standardContractWeight: 3
   reputationClasses:
@@ -38401,6 +38402,7 @@ MonoBehaviour:
     MaxRewardMultiplier: 1.8
     MinQuantity: 1
     MaxQuantity: 5
+    MinConditionRange: {x: 0.7, y: 0.9}
   - Name: Prestige
     ClientDescription: Museums and foundations
     RequiredReputation: 1500
@@ -38409,6 +38411,7 @@ MonoBehaviour:
     MaxRewardMultiplier: 2.2
     MinQuantity: 3
     MaxQuantity: 6
+    MinConditionRange: {x: 0.8, y: 0.95}
   lockedClassPreviewWeight: 0.3
 --- !u!114 &398503188
 MonoBehaviour:
@@ -38443,8 +38446,12 @@ MonoBehaviour:
   contractManager: {fileID: 398503187}
   transportManager: {fileID: 0}
   initialProfileIds:
-  - 1
-  - 1
+  - museum
+  - speculator
+  - speculator
+  - investor
+  - investor
+  - novice
   defaultStartingCash: 4000
 --- !u!114 &398503190
 MonoBehaviour:
@@ -120476,7 +120483,7 @@ MonoBehaviour:
   m_MinWidth: -1
   m_MinHeight: -1
   m_PreferredWidth: -1
-  m_PreferredHeight: 22
+  m_PreferredHeight: 44
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
