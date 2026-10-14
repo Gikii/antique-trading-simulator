@@ -197,7 +197,9 @@ namespace AntiqueTradingSimulator.UI
             };
 
             SetText(subtitleText, $"{req.Quantity}x {attribute}");
-            SetText(requirementText, $"Required: {req.Quantity}x {attribute}");
+            SetText(requirementText, req.HasMinCondition
+                ? $"Required: {req.Quantity}x {attribute}, condition ≥ {UIFormat.Percent(req.MinCondition)}"
+                : $"Required: {req.Quantity}x {attribute}");
             SetText(payoutText, $"Payout: {UIFormat.Colorize(UIFormat.Money(contract.TotalReward), UIFormat.PositiveColor)}");
         }
 

@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 144da43efa968904683821ea892bd4ca, type: 3}
+  m_Name: NpcProfile_Investor
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Agents.NpcBehaviorProfile
+  id: investor
+  ProfileName: Investor
+  TraderNames:
+  - Halden Capital
+  - Morrow Collection
+  StartingCash: 5000
+  AccessLevel: 2
+  PreferredTypes: 
+  PreferredCountries: 
+  PreferredCenturies: 
+  RumorTrust: 0.2
+  LeakTrust: 0.6
+  MinReactionDelayDays: 1
+  MaxReactionDelayDays: 3
+  DailyBudgetFraction: 0.15
+  MaxPriceMultiplierWillingToPay: 0.95
+  RiskTolerance: 0.3
+  MinConditionToBuy: 0.5
+  ConditionPremium: 0
+  NeverSells: 0
+  ProfitTargetMultiplier: 1.5
+  MinHoldingDaysBeforeSell: 10
+  PatientSellAfterDays: 25
+  PatientProfitMultiplier: 1.15
+  StopLossMultiplier: 0
+  ListsOnMarket: 1
+  ListingMarkup: 1.25
+  RelistAfterDays: 10
+  TakesContracts: 1

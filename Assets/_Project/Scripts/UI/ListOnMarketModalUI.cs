@@ -284,7 +284,7 @@ namespace AntiqueTradingSimulator.UI
             SetText(listingPriceValue, UIFormat.Money(price));
             SetText(feeValue, "-" + UIFormat.Money(fee));
             SetText(proceedsValue, UIFormat.Colorize(UIFormat.Money(price - fee), UIFormat.PositiveColor));
-            SetText(priceHintText, PriceHint(price));
+            SetText(priceHintText, PriceHint(price) + "\n" + CollectorHint(price));
             SetConfirmInteractable(_antique != null);
         }
 
@@ -293,12 +293,33 @@ namespace AntiqueTradingSimulator.UI
         private string PriceHint(float price)
         {
             if (price > _rangeMax)
-                return UIFormat.Colorize("Above the recent market range — buyers may take a long time to show up.", warningColor);
+                return UIFormat.Colorize("Above the recent market range.", warningColor);
 
             if (price < _rangeMin)
-                return UIFormat.Colorize("Below the recent market range — likely to sell quickly, but you may be leaving money on the table.", warningColor);
+                return UIFormat.Colorize("Below the recent market range — you may be leaving money on the table.", warningColor);
 
             return UIFormat.Colorize("Within the recent market range.", UIFormat.MutedColor);
+        }
+
+        // Same model as the daily roll in EconomyManager, so the estimate is honest.
+        private string CollectorHint(float price)
+        {
+            if (economyManager == null || _antique == null)
+                return "";
+
+            var settings = economyManager.CollectorSettings;
+            if (!settings.Enabled)
+                return "";
+
+            float chance = economyManager.CollectorSaleChance(_antique, price);
+            if (chance <= 0f)
+                return UIFormat.Colorize(
+                    $"Too expensive for collectors (max {UIFormat.Percent(settings.MaxPriceRatio)} of value) — only traders might buy it.",
+                    warningColor);
+
+            int days = CollectorDemand.MedianDaysToSell(chance);
+            string when = days <= 1 ? "likely sells within a day" : $"usually sells within ~{UIFormat.Days(days)}";
+            return UIFormat.Colorize($"Collectors: {UIFormat.Percent(chance)} chance a day, {when}.", UIFormat.MutedColor);
         }
 
         private static Color ConditionColor(float condition)

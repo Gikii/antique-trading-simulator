@@ -28,7 +28,15 @@ namespace AntiqueTradingSimulator.UI
                 _ => "Antiques"
             };
 
-            return $"{requirement.Quantity}x {what}";
+            return requirement.HasMinCondition
+                ? $"{requirement.Quantity}x {what} · ≥{UIFormat.Percent(requirement.MinCondition)}"
+                : $"{requirement.Quantity}x {what}";
         }
+
+        /// <summary>"Condition: at least 70% (Good)", or "Condition: any".</summary>
+        public static string ConditionRequirement(ContractRequirement requirement) =>
+            requirement != null && requirement.HasMinCondition
+                ? $"Condition: at least {UIFormat.Percent(requirement.MinCondition)} ({UIFormat.ConditionLabel(requirement.MinCondition)})"
+                : "Condition: any";
     }
 }

@@ -33,11 +33,16 @@ namespace AntiqueTradingSimulator.Contracts
         [Min(1)] public int MinQuantity = 1;
         [Min(1)] public int MaxQuantity = 5;
 
+        [Tooltip("Range the required minimum condition is rolled from (0..1). The reward is based on the value " +
+                 "of an antique in exactly that condition.")]
+        public Vector2 MinConditionRange = new Vector2(0.6f, 0.9f);
+
         public ContractClassDefinition() { }
 
         public ContractClassDefinition(string name, string clientDescription, int requiredReputation, float weight,
-            float minRewardMultiplier, float maxRewardMultiplier, int minQuantity, int maxQuantity)
+            float minRewardMultiplier, float maxRewardMultiplier, int minQuantity, int maxQuantity, Vector2 minConditionRange)
         {
+            MinConditionRange = minConditionRange;
             Name = name;
             ClientDescription = clientDescription;
             RequiredReputation = requiredReputation;
@@ -71,6 +76,11 @@ namespace AntiqueTradingSimulator.Contracts
         [SerializeField] private float maxRewardMultiplier = 1.6f;
         [SerializeField] private float maxUrgencyBonusMultiplier = 1.5f;
 
+        [Header("Condition required")]
+        [Tooltip("Range the minimum condition of a standard contract is rolled from (0..1). Rewards are based on the " +
+                 "value of an antique in exactly that condition, so poor items can't be passed off at a perfect item's price.")]
+        [SerializeField] private Vector2 standardMinCondition = new Vector2(0.6f, 0.9f);
+
         [Header("Exclusive contracts")]
         [Range(0f, 1f)]
         [SerializeField] private float exclusiveContractChance = 0.35f;
@@ -84,8 +94,8 @@ namespace AntiqueTradingSimulator.Contracts
                  "the reputation unlock lists are generated from this list.")]
         [SerializeField] private List<ContractClassDefinition> reputationClasses = new()
         {
-            new ContractClassDefinition("Premium", "Wealthy private collectors", 500, 1.2f, 1.3f, 1.8f, 1, 5),
-            new ContractClassDefinition("Prestige", "Museums and foundations", 1500, 0.8f, 1.6f, 2.2f, 3, 6),
+            new ContractClassDefinition("Premium", "Wealthy private collectors", 500, 1.2f, 1.3f, 1.8f, 1, 5, new Vector2(0.7f, 0.9f)),
+            new ContractClassDefinition("Prestige", "Museums and foundations", 1500, 0.8f, 1.6f, 2.2f, 3, 6, new Vector2(0.8f, 0.95f)),
         };
 
         [Tooltip("Weight multiplier for the lowest class the player hasn't unlocked yet, so a few locked offers " +
@@ -216,11 +226,14 @@ namespace AntiqueTradingSimulator.Contracts
             float maxMultiplier = contractClass != null ? Mathf.Max(contractClass.MinRewardMultiplier, contractClass.MaxRewardMultiplier) : maxRewardMultiplier;
 
             requirement.Quantity = UnityEngine.Random.Range(minQ, maxQ + 1);
+            requirement.MinCondition = RollMinCondition(contractClass != null ? contractClass.MinConditionRange : standardMinCondition);
             int duration = UnityEngine.Random.Range(minDurationDays, maxDurationDays + 1);
 
+            // Priced against an antique in exactly the required condition — a better one is the
+            // supplier's choice, a worse one doesn't count.
             float baseMultiplier = UnityEngine.Random.Range(minMultiplier, maxMultiplier);
             float urgencyFactor = UrgencyFactor(duration);
-            float rewardPerUnit = avgReferencePrice * baseMultiplier * urgencyFactor;
+            float rewardPerUnit = avgReferencePrice * requirement.MinCondition * baseMultiplier * urgencyFactor;
 
             ContractType type = UnityEngine.Random.value < exclusiveContractChance ? ContractType.Exclusive : ContractType.Open;
             float penalty = type == ContractType.Exclusive
@@ -303,6 +316,15 @@ namespace AntiqueTradingSimulator.Contracts
                 default:
                     return null;
             }
+        }
+
+        /// <summary>Rolled within the range and rounded to 5%, clamped to what antiques can have.</summary>
+        private static float RollMinCondition(Vector2 range)
+        {
+            float min = Mathf.Min(range.x, range.y);
+            float max = Mathf.Max(range.x, range.y);
+            float rolled = Mathf.Round(UnityEngine.Random.Range(min, max) * 20f) / 20f;
+            return Mathf.Clamp(rolled, Antique.MinCondition, Antique.MaxCondition);
         }
 
         private float UrgencyFactor(int duration)

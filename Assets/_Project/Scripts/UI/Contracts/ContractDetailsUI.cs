@@ -116,7 +116,7 @@ namespace AntiqueTradingSimulator.UI
                 countryText.text = $"Country: {(req.Scope == ContractAttributeScope.Country ? req.Country.ToDisplayString() : "Any")}";
 
             if (quantityText != null)
-                quantityText.text = $"Quantity: {req.Quantity}";
+                quantityText.text = $"Quantity: {req.Quantity}\n{ContractDisplay.ConditionRequirement(req)}";
 
             if (payoutText != null)
                 payoutText.text = $"Payout: {contract.TotalReward:F0} €";

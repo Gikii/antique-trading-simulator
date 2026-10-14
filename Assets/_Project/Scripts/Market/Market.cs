@@ -73,7 +73,12 @@ namespace AntiqueTradingSimulator.Market
         /// appear), then rolls a random Condition for the new item and adds it to the
         /// market. Returns null if there are no registered types with positive supply.
         /// </summary>
-        public Antique GenerateListing(int currentDay)
+        /// <param name="addSupply">
+        /// True for offers that appear during the game: a new item for sale is more supply, like any
+        /// item put up for sale (and RemoveExpiredListings takes it back out). False for the listings
+        /// the market starts with — they are the baseline the initial supply describes.
+        /// </param>
+        public Antique GenerateListing(int currentDay, bool addSupply = true)
         {
             string definitionId = PickWeightedDefinitionId();
             if (definitionId == null)
@@ -86,6 +91,12 @@ namespace AntiqueTradingSimulator.Market
             var listing = new Antique(definitionId, condition, priceFactor);
             listing.ShippingZone = RollShippingZone();
             AddListing(listing, currentDay);
+
+            if (addSupply)
+            {
+                ApplySellPressure(definitionId);
+                RecalculatePricesForDefinition(definitionId);
+            }
             return listing;
         }
 
@@ -191,6 +202,60 @@ namespace AntiqueTradingSimulator.Market
             _listings.Remove(listing);
             ApplyBuyPressure(listing.DefinitionId);
 
+            return true;
+        }
+
+        /// <summary>
+        /// Withdraws anonymous listings (no owner, no asking price) that have been on the market for
+        /// more than <paramref name="lifetimeDays"/> days — their sellers gave up — so the market
+        /// keeps refreshing instead of filling with stale offers. Owner-set listings never expire.
+        /// The supply the offer added when it appeared is taken back out (same as cancelling a listing),
+        /// so generating and expiring offers doesn't drift prices. Returns how many were removed.
+        /// </summary>
+        public int RemoveExpiredListings(int currentDay, int lifetimeDays)
+        {
+            if (lifetimeDays <= 0) return 0;
+
+            var expired = _listings.Where(l =>
+                !l.IsListedForSale &&
+                string.IsNullOrEmpty(l.OwnerId) &&
+                l.MarketListedOnDay >= 0 &&
+                currentDay - l.MarketListedOnDay > lifetimeDays).ToList();
+
+            foreach (var listing in expired)
+            {
+                _listings.Remove(listing);
+                ApplyBuyPressure(listing.DefinitionId);
+            }
+
+            foreach (var definitionId in expired.Select(l => l.DefinitionId).Distinct())
+                RecalculatePricesForDefinition(definitionId);
+
+            return expired.Count;
+        }
+
+        /// <summary>Feed name for buyers from outside the simulated traders (CollectorDemand).</summary>
+        public const string CollectorBuyerName = "A private collector";
+
+        /// <summary>
+        /// A private collector buys an owner-set listing: the owner is paid (price minus their fee,
+        /// exactly as when a trader buys it) and the antique leaves the game with the collector.
+        /// Same buying pressure as any purchase. False if it isn't an owner-set listing on the market.
+        /// </summary>
+        public bool SellToCollector(Antique listing)
+        {
+            if (listing == null || !listing.IsListedForSale || !_listings.Contains(listing))
+                return false;
+
+            string name = listing.Name;
+            float price = listing.AskingPrice;
+
+            SettleOwnerListing(listing);
+            listing.OwnerId = "";
+            _listings.Remove(listing);
+            ApplyBuyPressure(listing.DefinitionId);
+
+            Feed.AddPurchase(CollectorBuyerName, name, price);
             return true;
         }
 

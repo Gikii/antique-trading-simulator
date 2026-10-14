@@ -46,10 +46,37 @@ namespace AntiqueTradingSimulator.Agents
         void OnEnable() { if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged; }
         void OnDisable() { if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged; }
 
+        /// <summary>
+        /// One NPC per entry of initialProfileIds. Name and starting cash come from the profile
+        /// (TraderNames, StartingCash), falling back to "Trader N" and defaultStartingCash.
+        /// </summary>
         private void SpawnInitialNPCs()
         {
+            var usesPerProfile = new Dictionary<string, int>();
+
             for (int i = 0; i < initialProfileIds.Count; i++)
-                SpawnNPC($"Trader {i + 1}", initialProfileIds[i], defaultStartingCash);
+            {
+                string profileId = initialProfileIds[i];
+                var profile = NpcProfileDatabase.GetById(profileId);
+
+                usesPerProfile.TryGetValue(profileId, out int used);
+                usesPerProfile[profileId] = used + 1;
+
+                float cash = profile != null && profile.StartingCash > 0f ? profile.StartingCash : defaultStartingCash;
+                SpawnNPC(NameFor(profile, used, i), profileId, cash);
+            }
+        }
+
+        private static string NameFor(NpcBehaviorProfile profile, int used, int index)
+        {
+            if (profile == null)
+                return $"Trader {index + 1}";
+
+            if (profile.TraderNames != null && used < profile.TraderNames.Count && !string.IsNullOrWhiteSpace(profile.TraderNames[used]))
+                return profile.TraderNames[used];
+
+            string baseName = string.IsNullOrWhiteSpace(profile.ProfileName) ? "Trader" : profile.ProfileName;
+            return $"{baseName} {used + 1}";
         }
 
         private void HandleDayChanged(int newDay)
