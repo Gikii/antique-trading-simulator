@@ -5,96 +5,82 @@ using AntiqueTradingSimulator.Events;
 
 namespace AntiqueTradingSimulator.UI
 {
-    public class InfoBarEventsUI : MonoBehaviour
+    public class InfoBarEventsUI : InfoBarListUI
     {
         [Header("Dependencies")]
         [SerializeField] private EventManager eventManager;
-        [SerializeField] private Core.TimeManager timeManager;
+        protected override string EmptyLabel => "No ongoing events";
 
-        [Header("List")]
-        [SerializeField] private RectTransform listContainer;
-        [SerializeField] private GameObject listItemPrefab;
-        [SerializeField] private int maxEvents = 3;
+        protected override bool HasAction => true;
+        protected override string ActionTooltip => "See all active events\n<size=85%>News & Events</size>";
+        protected override void OnActionClicked() => InfoBarNavigation.OpenEvents();
 
-        private readonly List<UpcomingEventListItemUI> _spawnedRows = new();
 
-        void Awake()
+        protected override void Awake()
         {
+            base.Awake();
+
             if (eventManager == null) eventManager = FindFirstObjectByType<EventManager>();
-            if (timeManager == null) timeManager = FindFirstObjectByType<Core.TimeManager>();
         }
 
-        void OnEnable()
+        protected override void SubscribeToSources()
         {
-            if (eventManager != null)
-            {
-                eventManager.OnEventScheduled += HandleScheduleChanged;
-                eventManager.OnEventTriggered += HandleScheduleChanged;
-                eventManager.OnEventsRestored += Refresh;
-            }
+            if (eventManager == null) return;
 
-            if (timeManager != null)
-                timeManager.OnDayChanged += HandleDayChanged;
-
-            Refresh();
+            eventManager.OnEventTriggered += HandleActiveEventChanged;
+            eventManager.OnEventEnded += HandleActiveEventChanged;
+            eventManager.OnEventsRestored += Refresh;
         }
 
-        void OnDisable()
+        protected override void UnsubscribeFromSources()
         {
-            if (eventManager != null)
-            {
-                eventManager.OnEventScheduled -= HandleScheduleChanged;
-                eventManager.OnEventTriggered -= HandleScheduleChanged;
-                eventManager.OnEventsRestored -= Refresh;
-            }
+            if (eventManager == null) return;
 
-            if (timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
+            eventManager.OnEventTriggered -= HandleActiveEventChanged;
+            eventManager.OnEventEnded -= HandleActiveEventChanged;
+            eventManager.OnEventsRestored -= Refresh;
         }
 
-        private void HandleScheduleChanged(EventDefinition definition, int triggerDay) => Refresh();
-        private void HandleScheduleChanged(ActiveEvent activeEvent) => Refresh();
-        private void HandleDayChanged(int day) => Refresh();
+        private void HandleActiveEventChanged(EventDefinition definition, int triggerDay) => Refresh();
+        private void HandleActiveEventChanged(ActiveEvent activeEvent) => Refresh();
 
-        public void Refresh()
+        protected override void BuildLines(List<RowData> lines)
         {
-            ClearRows();
-
-            if (eventManager == null || listContainer == null || listItemPrefab == null)
+            if (eventManager == null)
                 return;
 
-            List<ScheduledEvent> upcoming = eventManager.ScheduledEvents
-                .Where(scheduled => scheduled.Definition != null)
-                .OrderBy(scheduled => scheduled.TriggerDay)
-                .Take(maxEvents)
+            int today = CurrentDay;
+
+            List<ActiveEvent> active = eventManager.ActiveEvents
+                .Where(a => a != null && a.Definition != null)
+                .OrderByDescending(a => a.StartDay)
+                .ThenBy(a => a.EndDay)
+                .Take(Mathf.Max(1, maxRows))
                 .ToList();
 
-            foreach (ScheduledEvent scheduled in upcoming)
-            {
-                GameObject rowObject = Instantiate(listItemPrefab, listContainer);
-                UpcomingEventListItemUI row = rowObject.GetComponent<UpcomingEventListItemUI>();
-
-                if (row == null)
-                {
-                    Debug.LogError("InfoBarEventsUI: list item prefab is missing UpcomingEventListItemUI.", rowObject);
-                    Destroy(rowObject);
-                    continue;
-                }
-
-                row.Setup(scheduled.Definition.DisplayName);
-                _spawnedRows.Add(row);
-            }
+            foreach (ActiveEvent activeEvent in active)
+                lines.Add(BuildLine(activeEvent, today));
         }
 
-        private void ClearRows()
+        private RowData BuildLine(ActiveEvent activeEvent, int today)
         {
-            foreach (UpcomingEventListItemUI row in _spawnedRows)
-            {
-                if (row != null)
-                    Destroy(row.gameObject);
-            }
+            int daysLeft = activeEvent.EndDay - today;
+            string title = activeEvent.Definition.DisplayName;
 
-            _spawnedRows.Clear();
+            string tooltip = $"{title}\n" +
+                             $"Started {UIFormat.GameDate(activeEvent.StartDay)} · ends {UIFormat.GameDate(activeEvent.EndDay)}";
+
+            if (!string.IsNullOrWhiteSpace(activeEvent.Definition.Description))
+                tooltip += $"\n\n{activeEvent.Definition.Description}";
+
+            return new RowData
+            {
+                Label = title,
+                Detail = UIFormat.Colorize(
+                    NewsPresentation.DaysLeft(daysLeft).ToLowerInvariant(),
+                    daysLeft <= 1 ? UIFormat.NegativeColor : UIFormat.AccentColor),
+                Tooltip = tooltip
+            };
         }
     }
 }

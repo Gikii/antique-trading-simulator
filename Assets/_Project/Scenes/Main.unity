@@ -38312,6 +38312,8 @@ MonoBehaviour:
   demandReversionRate: 0.05
   initialListingCount: 12
   newListingsPerDay: 2
+  anonymousListingLifetimeDays: 14
+  collectorSettings: {fileID: 0}
 --- !u!114 &398503184
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -44851,6 +44853,50 @@ MonoBehaviour:
   m_FlexibleWidth: 1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
+--- !u!1 &449738763 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4449908004662375194, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
+  m_PrefabInstance: {fileID: 5813547901293553872}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &449738765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 449738763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a26b1ed4d465d94c8cca81876f4f68e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.UI.InfoBarNewsUI
+  newsManager: {fileID: 0}
+  playerTrader: {fileID: 0}
+  timeManager: {fileID: 0}
+  listContainer: {fileID: 0}
+  rowPrefab: {fileID: 0}
+  maxRows: 3
+  hideOnceEventStarted: 1
+  _subscribed: 0
+--- !u!114 &449738770
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 449738763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d368a86a24559f45a47418f694a7316, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.UI.InfoBarNewsUI
+  listContainer: {fileID: 1165304473}
+  rowPrefab: {fileID: 1839750799493848176, guid: 0cc320cf69185544b98022cd844c0e40, type: 3}
+  maxRows: 3
+  timeManager: {fileID: 0}
+  newsManager: {fileID: 0}
+  playerTrader: {fileID: 0}
+  hideOnceEventStarted: 1
 --- !u!1 &450723995
 GameObject:
   m_ObjectHideFlags: 0
@@ -115158,6 +115204,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1165105592}
   m_CullTransparentMesh: 1
+--- !u!224 &1165304473 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 6171961807948770747, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
+  m_PrefabInstance: {fileID: 5813547901293553872}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1165855090
 GameObject:
   m_ObjectHideFlags: 0
@@ -205929,6 +205980,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 37640381091881921, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
+      propertyPath: title
+      value: ACTIVE EVENTS
+      objectReference: {fileID: 0}
     - target: {fileID: 191692907112507117, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
@@ -206273,6 +206328,14 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4074069956824819570, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
+      propertyPath: rowPrefab
+      value: 
+      objectReference: {fileID: 1839750799493848176, guid: 0cc320cf69185544b98022cd844c0e40, type: 3}
+    - target: {fileID: 4074069956824819570, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
+      propertyPath: listItemPrefab
+      value: 
+      objectReference: {fileID: 2198965867525251605, guid: 0cc320cf69185544b98022cd844c0e40, type: 3}
     - target: {fileID: 5181251633162526174, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0
@@ -206602,6 +206665,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8635608682679551281, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
+      propertyPath: m_text
+      value: ACTIVE EVENTS
+      objectReference: {fileID: 0}
+    - target: {fileID: 8635608682679551281, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
@@ -206672,7 +206739,13 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4449908004662375194, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 449738765}
+    - targetCorrespondingSourceObject: {fileID: 4449908004662375194, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 449738770}
   m_SourcePrefab: {fileID: 100100000, guid: 6d346c080c1452d4781477c36f06f940, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
