@@ -22,6 +22,14 @@ namespace AntiqueTradingSimulator.UI
         NameAToZ
     }
 
+    public enum CollectionTab
+    {
+        All,
+        InTransit,
+        InRestoration,
+        ForSale
+    }
+
     public class InventoryView : UIView
     {
         [Header("Dependencies")]
@@ -73,6 +81,16 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button lastPageButton;
         [SerializeField] private TMP_Text lastPageText;
 
+        [Header("Tabs")]
+        [SerializeField] private Button collectionTabButton;
+        [SerializeField] private Button transportTabButton;
+        [SerializeField] private Button renovationTabButton;
+        [SerializeField] private Button forSaleTabButton;
+
+        [SerializeField] private Color activeTabColor = new Color32(0xC9, 0x9A, 0x3C, 0xFF);
+        [SerializeField] private Color inactiveTabColor = Color.white;
+
+
         private const int ItemsPerPage = 7;
 
         private static readonly (string Label, CollectionSortMode Mode)[] SortOptions =
@@ -96,6 +114,7 @@ namespace AntiqueTradingSimulator.UI
         private readonly List<AntiqueType?> _categoryOptions = new();
         private readonly List<Century?> _periodOptions = new();
 
+        private CollectionTab _tab = CollectionTab.All;
         private AntiqueType? _categoryFilter;
         private Century? _periodFilter;
         private int _conditionFilter = -1; // index into UIFormat.ConditionBuckets, -1 = all
@@ -125,6 +144,7 @@ namespace AntiqueTradingSimulator.UI
                 collectionSummaryUI = collectionSummary.GetComponent<CollectionSummaryUI>();
 
             SetupPaginationButtons();
+            SetupTabButtons();
             SetupFilterControls();
 
             if (inventoryDetailsUI != null)
@@ -454,6 +474,9 @@ namespace AntiqueTradingSimulator.UI
         {
             IEnumerable<Antique> query = _collection;
 
+            if (_tab != CollectionTab.All)
+                query = query.Where(a => MatchesTab(a, _tab));
+
             if (_categoryFilter.HasValue)
                 query = query.Where(a => a.Type == _categoryFilter.Value);
 
@@ -719,5 +742,61 @@ namespace AntiqueTradingSimulator.UI
                     showRightEllipsis);
             }
         }
+
+        // ------------------------------------------------------------------
+        // Tabs
+        // ------------------------------------------------------------------
+
+        public CollectionTab CurrentTab => _tab;
+
+        private void SetupTabButtons()
+        {
+            Bind(collectionTabButton, CollectionTab.All);
+            Bind(transportTabButton, CollectionTab.InTransit);
+            Bind(renovationTabButton, CollectionTab.InRestoration);
+            Bind(forSaleTabButton, CollectionTab.ForSale);
+
+            RefreshTabVisuals();
+
+            void Bind(Button button, CollectionTab tab)
+            {
+                if (button != null)
+                    button.onClick.AddListener(() => SetTab(tab));
+            }
+        }
+
+        public void SetTab(CollectionTab tab)
+        {
+            _tab = tab;
+
+            ShowCollectionSummary();
+
+            RefreshTabVisuals();
+            OnFiltersChanged();
+        }
+
+        private void RefreshTabVisuals()
+        {
+            Paint(collectionTabButton, CollectionTab.All);
+            Paint(transportTabButton, CollectionTab.InTransit);
+            Paint(renovationTabButton, CollectionTab.InRestoration);
+            Paint(forSaleTabButton, CollectionTab.ForSale);
+
+            void Paint(Button button, CollectionTab tab)
+            {
+                if (button == null) return;
+
+                if (button.targetGraphic is Image image)
+                    image.color = tab == _tab ? activeTabColor : inactiveTabColor;
+            }
+        }
+
+        private static bool MatchesTab(Antique antique, CollectionTab tab) => tab switch
+        {
+            CollectionTab.InTransit => antique.IsInTransit,
+            CollectionTab.InRestoration => antique.IsInRestoration,
+            CollectionTab.ForSale => antique.IsListedForSale,
+            _ => true,
+        };
     }
 }
