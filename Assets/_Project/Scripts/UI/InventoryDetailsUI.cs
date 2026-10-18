@@ -167,6 +167,7 @@ namespace AntiqueTradingSimulator.UI
 
             _currentAntique = antique;
 
+            antiqueImage.ShowAntique(antique);
             SetText(titleText, antique.Name);
             SetText(categoryText, antique.Category);
             SetText(periodText, antique.Century.ToDisplayString());

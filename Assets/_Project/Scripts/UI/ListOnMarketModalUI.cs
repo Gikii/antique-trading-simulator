@@ -99,6 +99,7 @@ namespace AntiqueTradingSimulator.UI
             _antique = antique;
 
             gameObject.SetActive(true);
+            antiqueImage.ShowAntique(antique);
             transform.SetAsLastSibling(); // draw above other modals
 
             if (pauseTimeWhileOpen && timeManager != null && timeManager.IsRunning)

@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: Antique_AntiqueClock
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: clock_001
-  DisplayName: Antique clock
+  DisplayName: Bracket clock
   Type: 1
   Century: 18
   Country: 1
   BasePrice: 500
   EditionSize: 0
-  Description: 
+  Description: An ebonised bracket clock with a brass dial and a twin-fusee movement,
+    made for a London merchant's parlour.
+  Artwork: {fileID: 21300000, guid: 59138fd4f0f647047862530f466d1369, type: 3}

@@ -35,6 +35,7 @@ namespace AntiqueTradingSimulator.UI
             _marketView = marketView;
 
             nameText.text = listing.Name;
+            icon.ShowAntique(listing);
             centuryText.text = $"Century: {listing.Century.ToDisplayString()}";
             conditionText.text = $"Condition: {listing.Condition:P0}";
             sellerText.text = SellerLabel(listing);

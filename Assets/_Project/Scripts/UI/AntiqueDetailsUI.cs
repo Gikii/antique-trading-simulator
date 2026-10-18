@@ -123,6 +123,8 @@ namespace AntiqueTradingSimulator.UI
 
             _currentAntique = antique;
 
+            antiqueImage.ShowAntique(antique);
+
             if (nameText != null)
                 nameText.text = antique.Name;
 

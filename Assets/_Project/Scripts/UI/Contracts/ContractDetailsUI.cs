@@ -105,6 +105,7 @@ namespace AntiqueTradingSimulator.UI
                 nameText.text = string.Empty;
 
             var req = contract.Requirement;
+            contractImage.ShowContract(req);
 
             if (antiqueTypeText != null)
                 antiqueTypeText.text = $"Antique Type: {(req.Scope == ContractAttributeScope.AntiqueType ? req.AntiqueType.ToDisplayString() : "Any")}";

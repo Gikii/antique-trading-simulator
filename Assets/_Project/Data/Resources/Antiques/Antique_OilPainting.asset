@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: Antique_OilPainting
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: painting_001
-  DisplayName: Oil painting
+  DisplayName: Landscape oil painting
   Type: 4
   Century: 18
   Country: 2
   BasePrice: 1200
   EditionSize: 0
-  Description: 
+  Description: A pastoral landscape in oils, softly lit in the manner of the French
+    academy.
+  Artwork: {fileID: 21300000, guid: 7668f430a77742547a238dc16785a196, type: 3}

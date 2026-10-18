@@ -40,6 +40,8 @@ namespace AntiqueTradingSimulator.UI
             if (contract == null)
                 return;
 
+            icon.ShowContract(contract.Requirement);
+
             if (nameText != null)
                 nameText.text = string.Empty;
 
