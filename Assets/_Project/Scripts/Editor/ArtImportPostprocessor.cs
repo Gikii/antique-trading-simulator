@@ -10,6 +10,7 @@ namespace AntiqueTradingSimulator.EditorTools
     /// in the inspector are kept.
     ///  - Art/Sprites/**  (antiques, contracts, slot backdrop): Sprite, Full Rect, mipmaps on
     ///    (the 51x68 inventory thumbnail is a big downscale), max 1024, high-quality compression.
+    ///  - Art/UI/Backgrounds/** (full-screen and scene illustrations): Sprite, Full Rect, no mipmaps, max 2048.
     ///  - Art/UI/**       (icons, frames): Sprite, Full Rect, no mipmaps, max 512.
     /// </summary>
     public class ArtImportPostprocessor : AssetPostprocessor
@@ -17,6 +18,7 @@ namespace AntiqueTradingSimulator.EditorTools
         private const string ArtRoot = "Assets/_Project/Art/";
         private const string SpritesRoot = ArtRoot + "Sprites/";
         private const string UiRoot = ArtRoot + "UI/";
+        private const string BackgroundsRoot = UiRoot + "Backgrounds/";
 
         private void OnPreprocessTexture()
         {
@@ -41,7 +43,7 @@ namespace AntiqueTradingSimulator.EditorTools
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.filterMode = FilterMode.Bilinear;
             importer.mipmapEnabled = isSprite;
-            importer.maxTextureSize = isSprite ? 1024 : 512;
+            importer.maxTextureSize = path.StartsWith(BackgroundsRoot) ? 2048 : isSprite ? 1024 : 512;
             importer.textureCompression = TextureImporterCompression.CompressedHQ;
 
             // Full Rect: UI Images with Preserve Aspect / Simple type behave predictably

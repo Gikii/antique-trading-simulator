@@ -38,8 +38,8 @@ namespace AntiqueTradingSimulator.UI
             icon.ShowAntique(listing);
             centuryText.text = $"Century: {listing.Century.ToDisplayString()}";
             conditionText.text = $"Condition: {listing.Condition:P0}";
-            sellerText.text = SellerLabel(listing);
-            priceText.text = $"{listing.SalePrice:F2} €";
+            sellerText.text = UIFormat.OwnerName(listing.OwnerId, playerLabel: "You (your listing)");
+            priceText.text = UIFormat.Money(listing.SalePrice);
 
             if (shippingText != null)
                 shippingText.text = $"Ships from: {listing.ShippingZone.ToDisplayString()}";
@@ -54,15 +54,8 @@ namespace AntiqueTradingSimulator.UI
         public void UpdatePrice(Antique listing)
         {
             _listing = listing;
-            priceText.text = $"{listing.SalePrice:F2} €";
+            priceText.text = UIFormat.Money(listing.SalePrice);
         }
 
-        private static string SellerLabel(Antique listing)
-        {
-            if (string.IsNullOrEmpty(listing.OwnerId))
-                return "Private seller";
-
-            return listing.OwnerId == Antique.PlayerOwnerId ? "You (your listing)" : listing.OwnerId;
-        }
     }
 }

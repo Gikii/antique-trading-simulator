@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f25db1e7cc814f19ba5b98b18f8216bb, type: 3}
+  m_Name: UITheme
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.UI.UITheme
+  Panel: {fileID: 21300000, guid: ded1f9b417b0b084c835b659d92daad3, type: 3}
+  Inset: {fileID: 21300000, guid: 2f56a900442d5364c90e48ff6cc5c6c2, type: 3}
+  RowSelected: {fileID: 21300000, guid: b3e713ca9963d074d86ad08a2ea4e7c9, type: 3}
+  Button: {fileID: 21300000, guid: 9456f3516042c574d8e0bbd0ae33ed73, type: 3}
+  ButtonPrimary: {fileID: 21300000, guid: da2b859ee5421a347baa3f7440026d10, type: 3}
+  NavItem: {fileID: 21300000, guid: b8369a7f457da84409625198ca3f3c53, type: 3}
+  NavActive: {fileID: 21300000, guid: df62298bf060a7443861864b360aa809, type: 3}
+  Tab: {fileID: 21300000, guid: 7b12948733cacf9479ab6f6e64d60feb, type: 3}
+  TabActive: {fileID: 21300000, guid: d4173ac4b45de7748868f652ce224205, type: 3}
+  Input: {fileID: 21300000, guid: 8c95b87ec77388440b41316ce27413a0, type: 3}
+  BadgeGreen: {fileID: 21300000, guid: 1b49e8609975b5445ab314ba5022af8f, type: 3}
+  Divider: {fileID: 21300000, guid: b3c6407845b3d394c9df4b44b2a3c424, type: 3}
+  ScreenBase: {r: 0.043137256, g: 0.03529412, b: 0.019607844, a: 1}
+  PanelFill: {r: 0.06666667, g: 0.05490196, b: 0.03529412, a: 1}
+  Edge: {r: 0.22745098, g: 0.18039216, b: 0.10980392, a: 1}
+  TextPrimary: {r: 0.91764706, g: 0.8745098, b: 0.78431374, a: 1}
+  TextMuted: {r: 0.6666667, g: 0.59607846, b: 0.47058824, a: 1}
+  Accent: {r: 0.7882353, g: 0.6039216, b: 0.23529412, a: 1}
+  Positive: {r: 0.43137255, g: 0.78431374, b: 0.39215687, a: 1}
+  Negative: {r: 0.8784314, g: 0.3137255, b: 0.2509804, a: 1}
+  Warning: {r: 0.8862745, g: 0.72156864, b: 0.38431373, a: 1}

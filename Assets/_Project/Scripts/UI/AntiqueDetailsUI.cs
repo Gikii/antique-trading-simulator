@@ -151,10 +151,10 @@ namespace AntiqueTradingSimulator.UI
 
             // Owner listings sell at the owner's asking price, not the market value.
             if (currentPriceText != null)
-                currentPriceText.text = $"{antique.SalePrice:F2} €";
+                currentPriceText.text = UIFormat.Money(antique.SalePrice);
 
             if (basePriceText != null)
-                basePriceText.text = $"{antique.BasePrice:F2} €";
+                basePriceText.text = UIFormat.Money(antique.BasePrice);
 
             if (shippingText != null)
                 shippingText.text = ShippingLabel(antique);
@@ -166,7 +166,7 @@ namespace AntiqueTradingSimulator.UI
                 historyText.text = PlaceholderHistoryText;
             
             if (currentValueText != null)
-                currentValueText.text = $"{antique.CurrentPrice:F2} €";
+                currentValueText.text = UIFormat.Money(antique.CurrentPrice);
             
             if (changeText != null)
                 changeText.text = "—"; 
