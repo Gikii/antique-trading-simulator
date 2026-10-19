@@ -17,6 +17,7 @@ MonoBehaviour:
   RowSelected: {fileID: 21300000, guid: b3e713ca9963d074d86ad08a2ea4e7c9, type: 3}
   Button: {fileID: 21300000, guid: 9456f3516042c574d8e0bbd0ae33ed73, type: 3}
   ButtonPrimary: {fileID: 21300000, guid: da2b859ee5421a347baa3f7440026d10, type: 3}
+  ButtonDanger: {fileID: 21300000, guid: f5a314e0ab397094dbf563bb4441e9ef, type: 3}
   NavItem: {fileID: 21300000, guid: b8369a7f457da84409625198ca3f3c53, type: 3}
   NavActive: {fileID: 21300000, guid: df62298bf060a7443861864b360aa809, type: 3}
   Tab: {fileID: 21300000, guid: 7b12948733cacf9479ab6f6e64d60feb, type: 3}

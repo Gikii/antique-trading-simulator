@@ -69,10 +69,7 @@ namespace AntiqueTradingSimulator.UI
 
             for (int i = 0; i < tabButtons.Length; i++)
             {
-                if (tabButtons[i] == null) continue;
-                var image = tabButtons[i].targetGraphic as Image;
-                if (image != null)
-                    image.color = i == (int)tab ? activeTabColor : inactiveTabColor;
+                UITheme.ApplyTabState(tabButtons[i], i == (int)tab, activeTabColor, inactiveTabColor);
             }
         }
 

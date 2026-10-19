@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -23,6 +24,8 @@ namespace AntiqueTradingSimulator.UI
         public Sprite RowSelected;
         public Sprite Button;
         public Sprite ButtonPrimary;
+        [Tooltip("Destructive / irreversible confirmations, e.g. Sell now (ui_button_danger.png).")]
+        public Sprite ButtonDanger;
         public Sprite NavItem;
         public Sprite NavActive;
         public Sprite Tab;
@@ -48,6 +51,27 @@ namespace AntiqueTradingSimulator.UI
         public Color Warning = new Color32(0xE2, 0xB8, 0x62, 0xFF);
 
         private static UITheme _cached;
+
+        /// <summary>
+        /// Shows a tab button as active or idle: the theme's tab frames when the theme exists,
+        /// otherwise the given greybox colours (so nothing breaks before the theme is applied).
+        /// </summary>
+        public static void ApplyTabState(Selectable button, bool active, Color fallbackActive, Color fallbackInactive)
+        {
+            if (button == null || !(button.targetGraphic is Image image))
+                return;
+
+            var theme = Load();
+            if (theme != null && theme.Tab != null && theme.TabActive != null)
+            {
+                image.sprite = active ? theme.TabActive : theme.Tab;
+                image.type = Image.Type.Sliced;
+                image.color = Color.white;
+                return;
+            }
+
+            image.color = active ? fallbackActive : fallbackInactive;
+        }
 
         /// <summary>The theme from Resources, or null if it hasn't been created yet.</summary>
         public static UITheme Load()

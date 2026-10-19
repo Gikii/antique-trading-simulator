@@ -160,7 +160,7 @@ namespace AntiqueTradingSimulator.UI
             textGo.transform.SetParent(root.transform, false);
             var tmp = textGo.AddComponent<TextMeshProUGUI>();
             if (font != null) tmp.font = font;
-            tmp.fontSize = 15f;
+            tmp.fontSize = 17f; // EB Garamond (the TMP default font) reads smaller than LiberationSans
             tmp.color = new Color(0.92f, 0.92f, 0.92f, 1f);
             tmp.raycastTarget = false;
             textGo.AddComponent<LayoutElement>();

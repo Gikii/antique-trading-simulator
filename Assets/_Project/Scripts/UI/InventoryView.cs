@@ -784,10 +784,7 @@ namespace AntiqueTradingSimulator.UI
 
             void Paint(Button button, CollectionTab tab)
             {
-                if (button == null) return;
-
-                if (button.targetGraphic is Image image)
-                    image.color = tab == _tab ? activeTabColor : inactiveTabColor;
+                UITheme.ApplyTabState(button, tab == _tab, activeTabColor, inactiveTabColor);
             }
         }
 

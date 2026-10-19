@@ -197,10 +197,7 @@ namespace AntiqueTradingSimulator.UI
             if (_company == null) Bind();
 
             for (int i = 0; i < periodButtons.Length; i++)
-            {
-                var image = periodButtons[i] != null ? periodButtons[i].targetGraphic as Image : null;
-                if (image != null) image.color = i == (int)_period ? activePeriodColor : inactivePeriodColor;
-            }
+                UITheme.ApplyTabState(periodButtons[i], i == (int)_period, activePeriodColor, inactivePeriodColor);
 
             foreach (var row in hideWhenExpanded)
                 if (row != null) row.SetActive(!_expanded);
