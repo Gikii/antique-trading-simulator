@@ -19,6 +19,9 @@ namespace AntiqueTradingSimulator.UI.Charts
         [SerializeField] private Color fillColor = new Color32(0xE6, 0xB2, 0x40, 0x40);
         [SerializeField] private float lineWidth = 3f;
         [SerializeField] private bool drawFill = true;
+        [Tooltip("Fade the fill from its colour under the line to transparent at the bottom, " +
+                 "instead of a solid block (reads much lighter on the dark theme).")]
+        [SerializeField] private bool fadeFillToBottom = true;
         [Tooltip("Inner padding in pixels (left, bottom, right, top).")]
         [SerializeField] private Vector4 padding = new Vector4(4f, 4f, 4f, 4f);
         [Tooltip("Adds this fraction of the value range above and below the data so the line doesn't touch the edges.")]
@@ -184,9 +187,19 @@ namespace AntiqueTradingSimulator.UI.Charts
                 {
                     Vector2 a = points[i];
                     Vector2 b = points[i + 1];
-                    AddQuad(vh,
-                        new Vector2(a.x, bottom), a, b, new Vector2(b.x, bottom),
-                        fillColor);
+                    if (fadeFillToBottom)
+                    {
+                        Color clear = new Color(fillColor.r, fillColor.g, fillColor.b, 0f);
+                        AddQuad(vh,
+                            new Vector2(a.x, bottom), a, b, new Vector2(b.x, bottom),
+                            clear, fillColor, fillColor, clear);
+                    }
+                    else
+                    {
+                        AddQuad(vh,
+                            new Vector2(a.x, bottom), a, b, new Vector2(b.x, bottom),
+                            fillColor);
+                    }
                 }
             }
 
@@ -215,6 +228,19 @@ namespace AntiqueTradingSimulator.UI.Charts
             vh.AddVert(v1, color, Vector2.zero);
             vh.AddVert(v2, color, Vector2.zero);
             vh.AddVert(v3, color, Vector2.zero);
+            vh.AddTriangle(start, start + 1, start + 2);
+            vh.AddTriangle(start + 2, start + 3, start);
+        }
+
+        /// <summary>Quad with a colour per corner (used for the faded fill).</summary>
+        private static void AddQuad(VertexHelper vh, Vector2 v0, Vector2 v1, Vector2 v2, Vector2 v3,
+            Color32 c0, Color32 c1, Color32 c2, Color32 c3)
+        {
+            int start = vh.currentVertCount;
+            vh.AddVert(v0, c0, Vector2.zero);
+            vh.AddVert(v1, c1, Vector2.zero);
+            vh.AddVert(v2, c2, Vector2.zero);
+            vh.AddVert(v3, c3, Vector2.zero);
             vh.AddTriangle(start, start + 1, start + 2);
             vh.AddTriangle(start + 2, start + 3, start);
         }

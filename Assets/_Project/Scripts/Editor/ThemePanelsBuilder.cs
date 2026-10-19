@@ -112,6 +112,7 @@ namespace AntiqueTradingSimulator.EditorTools
             { "ui_row_selected", new Vector4(14, 14, 14, 14) },
             { "ui_button", new Vector4(8, 8, 8, 8) },
             { "ui_button_primary", new Vector4(8, 8, 8, 8) },
+            { "ui_button_danger", new Vector4(8, 8, 8, 8) },
             { "ui_nav_item", new Vector4(8, 8, 8, 8) },
             { "ui_nav_active", new Vector4(8, 8, 8, 8) },
             { "ui_tab", new Vector4(6, 6, 6, 6) },
@@ -294,6 +295,7 @@ namespace AntiqueTradingSimulator.EditorTools
             theme.RowSelected = theme.RowSelected != null ? theme.RowSelected : Frame("ui_row_selected");
             theme.Button = theme.Button != null ? theme.Button : Frame("ui_button");
             theme.ButtonPrimary = theme.ButtonPrimary != null ? theme.ButtonPrimary : Frame("ui_button_primary");
+            theme.ButtonDanger = theme.ButtonDanger != null ? theme.ButtonDanger : Frame("ui_button_danger");
             theme.NavItem = theme.NavItem != null ? theme.NavItem : Frame("ui_nav_item");
             theme.NavActive = theme.NavActive != null ? theme.NavActive : Frame("ui_nav_active");
             theme.Tab = theme.Tab != null ? theme.Tab : Frame("ui_tab");

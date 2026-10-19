@@ -746,6 +746,12 @@ namespace AntiqueTradingSimulator.UI
                 return;
 
             button.interactable = !selected;
+
+            // With the theme, the selected tab / filter shows the active tab frame (instead of only
+            // looking disabled); without it, its colour stays as it is.
+            var image = button.targetGraphic as Image;
+            var current = image != null ? image.color : Color.white;
+            UITheme.ApplyTabState(button, selected, current, current);
         }
 
 

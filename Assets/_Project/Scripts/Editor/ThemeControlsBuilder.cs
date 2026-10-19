@@ -35,8 +35,8 @@ namespace AntiqueTradingSimulator.EditorTools
 
         private static readonly Color BadgeTextColor = new Color32(0x8C, 0xD2, 0x78, 0xFF);
         private static readonly Color HistoryRowColor = new Color32(0x16, 0x12, 0x0B, 0xFF);
-        /// <summary>Height of the card's name for two lines at its 14 pt size.</summary>
-        private const float NameTwoLineHeight = 36f;
+        /// <summary>Extra room under the card's two-line name.</summary>
+        private const float NameExtraHeight = 2f;
 
         private static readonly Color OptionColor = new Color32(0x1A, 0x15, 0x0D, 0xFF);
 
@@ -53,10 +53,65 @@ namespace AntiqueTradingSimulator.EditorTools
 
         private enum TextRole { Keep, Primary, Muted, Positive }
 
+        /// <summary>Views restyled by the generic pass (under Canvas).</summary>
+        private static readonly string[] GenericViews = { "Views/CompanyView", "Views/InventoryView", "Views/ContractsView", "Views/NewsEventsView", "Modals", "GameMenu" };
+
+        /// <summary>List-row prefabs: flat dark row, warm dark gold when selected, themed texts.</summary>
+        private static readonly string[] RowPrefabs =
+        {
+            "Assets/_Project/Prefabs/UI/Inventory/InventoryListItem.prefab",
+            "Assets/_Project/Prefabs/UI/Contracts/ContractFulfillListItem.prefab",
+            "Assets/_Project/Prefabs/UI/Contracts/ContractListItem.prefab",
+            "Assets/_Project/Prefabs/UI/NewsEvents/NewsListItem.prefab",
+            "Assets/_Project/Prefabs/UI/NewsEvents/ActiveEventListItem.prefab",
+        };
+
+        /// <summary>Other colour fields of scripts, set by name (calendar cells and day numbers).</summary>
+        private static readonly Dictionary<string, Color> NamedColorFields = new Dictionary<string, Color>
+        {
+            { "cellNormal", new Color32(0x1A, 0x15, 0x0E, 0xFF) },
+            { "cellSelected", new Color32(0x2E, 0x24, 0x14, 0xFF) },
+            { "cellToday", new Color32(0x4A, 0x35, 0x18, 0xFF) },
+            { "textCurrentMonth", new Color32(0xEA, 0xDF, 0xC8, 0xFF) },
+            { "textOtherMonth", new Color32(0x6E, 0x60, 0x4A, 0xFF) },
+            { "emptyColor", new Color32(0x2A, 0x21, 0x16, 0xFF) }, // donut ring with no data
+        };
+
+        /// <summary>Buttons whose name contains one of these confirm the main action (green frame).</summary>
+        private static readonly string[] PrimaryButtonNames = { "Confirm", "Create", "Buy", "Accept", "Fulfill" };
+        /// <summary>Option boxes that cannot be picked (e.g. a workshop the player can't use yet).</summary>
+        private static readonly Color UnavailableColor = new Color32(0x0F, 0x0C, 0x08, 0xFF);
+
+        /// <summary>Serialized Button arrays that are tab bars (switched at runtime via UITheme.ApplyTabState).</summary>
+        private static readonly string[] TabArrayFields = { "tabButtons", "periodButtons" };
+
+        /// <summary>Serialized Button fields that are tabs.</summary>
+        private static readonly string[] TabButtonFields = { "collectionTabButton", "transportTabButton", "renovationTabButton", "forSaleTabButton",
+                                                                  "availableTabButton", "myContractsTabButton",
+                                                                  "newsTabButton", "activeEventsTabButton",
+                                                                  "allFilterButton", "officialFilterButton", "rumoursFilterButton", "leakedFilterButton" };
+
+        /// <summary>Selected card, player row, current tier — replaces the bright greybox gold.</summary>
+        private static readonly Color HighlightColor = new Color32(0x4A, 0x35, 0x18, 0xFF);
+        private static readonly string[] HighlightColorFields = { "selectedColor", "playerColor", "itemSelected" };
+        private static readonly string[] NormalColorFields = { "normalColor", "itemNormal" };
+        private const float TabLabelSize = 17f;
+        private const float SelectionOverlayAlpha = 0.14f;
+        private static readonly Color StatusPillColor = new Color32(0x2F, 0x4A, 0x2A, 0xFF);
+        private static readonly Color ModalBackdropColor = new Color(0f, 0f, 0f, 0.7f);
+
+        /// <summary>Flat colour of list rows / cards whose background a script recolours at runtime.</summary>
+        private static readonly Color RowColor = new Color32(0x17, 0x13, 0x0C, 0xFF);
+
         [MenuItem(MenuPath)]
         public static void Run()
         {
             var theme = AssetDatabase.LoadAssetAtPath<UITheme>(ThemePath);
+            if (theme != null && theme.ButtonDanger == null)
+            {
+                theme.ButtonDanger = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Art/UI/Frames/ui_button_danger.png");
+                EditorUtility.SetDirty(theme);
+            }
             if (theme == null || theme.Button == null)
             {
                 Debug.LogError("[ThemeControlsBuilder] UITheme not found or incomplete — run 'Apply Theme Panels' first.");
@@ -67,6 +122,8 @@ namespace AntiqueTradingSimulator.EditorTools
             ApplyToListingCard(theme);
             ApplyToInfoBar(theme);
             ApplyToInfoBarRow(theme);
+            foreach (var path in RowPrefabs)
+                ApplyToRowPrefab(path, theme);
 
             Debug.Log("[ThemeControlsBuilder] Done. Save the scene (Ctrl+S).");
         }
@@ -171,10 +228,345 @@ namespace AntiqueTradingSimulator.EditorTools
                 }
 
                 StyleTexts(market, theme, true);
+                StyleAntiqueDetails(market, theme);
             }
             else Debug.LogWarning("[ThemeControlsBuilder] Canvas/Views/MarketView not found.");
 
+            // Other views: the generic pass (frames by greybox colour, buttons, tabs, dropdowns, texts).
+            foreach (var viewPath in GenericViews)
+            {
+                Transform view = canvas.Find(viewPath);
+                if (view != null) ApplyToView(view, theme);
+                else Debug.LogWarning($"[ThemeControlsBuilder] Canvas/{viewPath} not found.");
+            }
+            RestoreModalBackdrops(canvas);
+
             EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        /// <summary>
+        /// Side panel of the Market: the description and history texts get the free height of
+        /// their sections (they were one-line boxes and spilled over the next section), and the
+        /// white placeholders (chart background, seller avatar) take theme colours.
+        /// </summary>
+        private static void StyleAntiqueDetails(Transform market, UITheme theme)
+        {
+            const string details = "MainArea/SidePanel/AntiqueDetails/";
+
+            foreach (var path in new[] { "DetailsSection/DetailsText", "HistorySection/HistoryText" })
+            {
+                var target = market.Find(details + path);
+                var layout = target != null ? target.GetComponent<LayoutElement>() : null;
+                if (layout == null) continue;
+                Undo.RecordObject(layout, "Fit details text");
+                layout.flexibleHeight = 1f;
+            }
+
+            var chart = market.Find(details + "MarketValueSection/MarketValueBody/PriceChart");
+            if (chart != null) SetSliced(chart.GetComponent<Image>(), theme.Inset, true);
+
+            var avatar = market.Find(details + "SellerSection/SellerRow/SellerAvatar");
+            var avatarImage = avatar != null ? avatar.GetComponent<Image>() : null;
+            if (avatarImage != null)
+            {
+                Undo.RecordObject(avatarImage, "Theme avatar placeholder");
+                avatarImage.sprite = null;
+                avatarImage.color = theme.Edge;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Generic view pass
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Restyles a whole view by what its greybox elements look like:
+        ///  - translucent grey containers (#999999 36%) → panel frame, or inset frame when nested in one
+        ///  - faint white boxes (white 9%) → inset frame
+        ///  - white placeholders for icons / illustrations (white 25%, or plain white "Icon") → bronze block
+        ///  - buttons → button frame, tab buttons → tab frame (the active one is set at runtime)
+        ///  - dropdowns, input fields, scrollbars → their themed look
+        ///  - rows / cards recoloured by script (fields "normalColor") → dark row colour
+        ///  - texts → colour map
+        /// </summary>
+        private static void ApplyToView(Transform view, UITheme theme)
+        {
+            var tabs = CollectTabs(view);
+            var templates = new HashSet<Transform>();
+
+            foreach (var dropdown in view.GetComponentsInChildren<MultiSelectDropdown>(true))
+            {
+                var so = new SerializedObject(dropdown);
+                var template = so.FindProperty("template").objectReferenceValue as RectTransform;
+                StyleDropdown(dropdown.GetComponent<Image>(), dropdown.transform, template, theme, true);
+                if (template != null) templates.Add(template);
+            }
+
+            foreach (var dropdown in view.GetComponentsInChildren<TMP_Dropdown>(true))
+            {
+                StyleDropdown(dropdown.GetComponent<Image>(), dropdown.transform, dropdown.template, theme, true);
+                if (dropdown.template != null) templates.Add(dropdown.template);
+            }
+
+            foreach (var input in view.GetComponentsInChildren<TMP_InputField>(true))
+                if (input.targetGraphic is Image field) SetSliced(field, theme.Input, true);
+
+            foreach (var scrollbar in view.GetComponentsInChildren<Scrollbar>(true))
+                StyleScrollbar(scrollbar, theme);
+
+            var selectableGraphics = new HashSet<Graphic>();
+            foreach (var selectable in view.GetComponentsInChildren<Selectable>(true))
+                if (selectable.targetGraphic != null) selectableGraphics.Add(selectable.targetGraphic);
+
+            foreach (var button in view.GetComponentsInChildren<Button>(true))
+            {
+                if (IsInside(button.transform, templates)) continue;
+                bool isTab = tabs.Contains(button);
+                StyleButton(button, isTab ? theme.Tab : ButtonSpriteFor(button, theme), theme, true);
+                if (!isTab) continue;
+
+                // Some views mark the selected tab by making it non-interactable: don't dim it.
+                var tabColors = button.colors;
+                tabColors.disabledColor = Color.white;
+                button.colors = tabColors;
+
+                // Tab labels at the size of panel text, not of headings.
+                foreach (var label in button.GetComponentsInChildren<TMP_Text>(true))
+                {
+                    if (label.fontSize <= TabLabelSize) continue;
+                    Undo.RecordObject(label, "Theme tab label");
+                    label.fontSize = TabLabelSize;
+                }
+            }
+
+            foreach (var image in view.GetComponentsInChildren<Image>(true))
+            {
+                if (selectableGraphics.Contains(image) || IsInside(image.transform, templates)) continue;
+                if (image.GetComponent<AntiqueImageSlot>() != null || image.GetComponentInParent<AntiqueImageSlot>(true) != null) continue;
+                if (image.sprite != null && image.sprite != BuiltinUISprite()) continue; // already framed / real art
+
+                var c = image.color;
+
+                // Greybox "buttons" that are only an Image (no Button component yet).
+                if (image.name.EndsWith("Button") && image.GetComponent<Selectable>() == null)
+                {
+                    SetSliced(image, theme.Button, true);
+                    continue;
+                }
+                if (image.name.EndsWith("Dropdown") && image.GetComponent<Selectable>() == null)
+                {
+                    SetSliced(image, theme.Input, true);
+                    continue;
+                }
+
+                if (IsGrey(c, 0x99, 0.36f) || IsGrey(c, 0xB2, 0.18f) || IsGrey(c, 0xB2, 0.24f) || IsGrey(c, 0xC0, 0.11f))
+                    SetSliced(image, HasFramedAncestor(image.transform, view, theme) ? theme.Inset : theme.Panel, true);
+                else if (IsGrey(c, 0xFF, 0.09f) || IsGrey(c, 0xFF, 0.16f))
+                    SetSliced(image, theme.Inset, true);
+                else if (IsGrey(c, 0xFF, 0.06f) || IsGrey(c, 0x40, 1f) || IsGrey(c, 0x33, 1f))
+                    SetSliced(image, theme.Inset, true);
+                else if (image.name.Contains("Divider") && (IsGrey(c, 0xFF, 0.12f) || IsColor(c, 0x57, 0x4C, 0x38)))
+                {
+                    Undo.RecordObject(image, "Theme divider");
+                    image.color = theme.Edge;
+                }
+                else if (IsGrey(c, 0xFF, 0.25f)
+                         || image.name.Contains("Thumbnail") || image.name.Contains("HeroImage")
+                         || (image.name.Contains("Icon") && (IsGrey(c, 0xFF, 1f) || IsGrey(c, 0x5C, 1f) || IsGrey(c, 0x66, 1f) || IsColor(c, 0x1F, 0x59, 0xC7))))
+                {
+                    Undo.RecordObject(image, "Theme placeholder");
+                    image.sprite = null;
+                    image.color = theme.Edge;
+                }
+            }
+
+            // Rows and cards that a script recolours (normal vs selected / player).
+            foreach (var behaviour in view.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (behaviour == null) continue;
+                var so = new SerializedObject(behaviour);
+                bool namedChanged = false;
+                foreach (var pair in NamedColorFields)
+                {
+                    var prop = so.FindProperty(pair.Key);
+                    if (prop == null || prop.propertyType != SerializedPropertyType.Color) continue;
+                    prop.colorValue = pair.Value;
+                    namedChanged = true;
+                }
+                if (namedChanged) so.ApplyModifiedProperties();
+
+                // Tier segments: transparent normally, highlighted when current.
+                var current = so.FindProperty("currentBackground");
+                if (current != null && current.propertyType == SerializedPropertyType.Color)
+                {
+                    current.colorValue = HighlightColor;
+                    so.ApplyModifiedProperties();
+                }
+
+                SerializedProperty normal = null;
+                foreach (var field in NormalColorFields)
+                {
+                    var prop = so.FindProperty(field);
+                    if (prop != null && prop.propertyType == SerializedPropertyType.Color) { normal = prop; break; }
+                }
+                var background = so.FindProperty("background");
+                if (normal == null) continue;
+
+                normal.colorValue = RowColor;
+                var unavailable = so.FindProperty("unavailableColor");
+                if (unavailable != null && unavailable.propertyType == SerializedPropertyType.Color)
+                    unavailable.colorValue = UnavailableColor;
+                // Selected / player / current: a warm dark gold that keeps gold and cream text readable.
+                foreach (var field in HighlightColorFields)
+                {
+                    var highlight = so.FindProperty(field);
+                    if (highlight != null && highlight.propertyType == SerializedPropertyType.Color)
+                        highlight.colorValue = HighlightColor;
+                }
+                so.ApplyModifiedProperties();
+
+                // Row / option / card scripts that leave "background" empty tint the Image on their
+                // own object. Only for those: a modal script with an item colour (CreateEventModalUI)
+                // sits on the modal root, whose Image is the dimmed backdrop and must stay as it is.
+                var rowImage = background != null ? background.objectReferenceValue as Image : null;
+                if (rowImage == null && IsRowScript(behaviour)) rowImage = behaviour.GetComponent<Image>();
+                if (rowImage != null)
+                {
+                    Undo.RecordObject(rowImage, "Theme row");
+                    rowImage.sprite = null;
+                    rowImage.type = Image.Type.Simple;
+                    rowImage.color = RowColor;
+                }
+            }
+
+            StyleTexts(view, theme, true);
+        }
+
+        private static bool IsRowScript(MonoBehaviour behaviour)
+        {
+            string type = behaviour.GetType().Name;
+            return type.EndsWith("OptionUI") || type.EndsWith("ItemUI") || type.EndsWith("RowUI") || type.EndsWith("CardUI");
+        }
+
+        /// <summary>
+        /// Modal roots are the dimmed backdrop behind the window (black, 70%). Repairs a backdrop an
+        /// earlier run of this tool painted over with the opaque row colour.
+        /// </summary>
+        private static void RestoreModalBackdrops(Transform canvas)
+        {
+            Transform modals = canvas.Find("Modals");
+            if (modals == null) return;
+
+            foreach (Transform modal in modals)
+            {
+                var image = modal.GetComponent<Image>();
+                if (image == null || image.sprite != null || !IsColor(image.color, 0x17, 0x13, 0x0C)) continue;
+                Undo.RecordObject(image, "Restore modal backdrop");
+                image.color = ModalBackdropColor;
+            }
+        }
+
+        private static HashSet<Selectable> CollectTabs(Transform view)
+        {
+            var tabs = new HashSet<Selectable>();
+            foreach (var behaviour in view.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (behaviour == null) continue;
+                var so = new SerializedObject(behaviour);
+
+                foreach (var field in TabArrayFields)
+                {
+                    var array = so.FindProperty(field);
+                    if (array == null || !array.isArray) continue;
+                    for (int i = 0; i < array.arraySize; i++)
+                        if (array.GetArrayElementAtIndex(i).objectReferenceValue is Selectable tab) tabs.Add(tab);
+                }
+
+                foreach (var field in TabButtonFields)
+                {
+                    var prop = so.FindProperty(field);
+                    if (prop != null && prop.propertyType == SerializedPropertyType.ObjectReference
+                        && prop.objectReferenceValue is Selectable tab)
+                        tabs.Add(tab);
+                }
+            }
+            // Buttons laid out in a "TabsRow" are tabs too, even without a script field.
+            foreach (var button in view.GetComponentsInChildren<Button>(true))
+                if (button.transform.parent != null && button.transform.parent.name == "TabsRow")
+                    tabs.Add(button);
+
+            return tabs;
+        }
+
+        private static void StyleScrollbar(Scrollbar scrollbar, UITheme theme)
+        {
+            var track = scrollbar.GetComponent<Image>();
+            if (track != null)
+            {
+                Undo.RecordObject(track, "Theme scrollbar");
+                track.sprite = null;
+                track.color = theme.ScreenBase;
+            }
+            if (scrollbar.targetGraphic is Image handle)
+            {
+                Undo.RecordObject(handle, "Theme scrollbar");
+                handle.color = theme.Edge;
+            }
+        }
+
+        private static bool HasFramedAncestor(Transform t, Transform view, UITheme theme)
+        {
+            for (var p = t.parent; p != null && p != view; p = p.parent)
+            {
+                var image = p.GetComponent<Image>();
+                if (image == null) continue;
+                if (image.sprite == theme.Panel || image.sprite == theme.Inset || IsGrey(image.color, 0x99, 0.36f))
+                    return true;
+            }
+            return false;
+        }
+
+        private static Sprite _builtinUISprite;
+
+        /// <summary>Unity's default "UISprite" — greybox buttons and boxes use it, it isn't real art.</summary>
+        private static Sprite BuiltinUISprite()
+        {
+            if (_builtinUISprite == null)
+                _builtinUISprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            return _builtinUISprite;
+        }
+
+        /// <summary>Green for the main confirm action, red where the greybox button was red, brown otherwise.</summary>
+        private static Sprite ButtonSpriteFor(Button button, UITheme theme)
+        {
+            foreach (var name in PrimaryButtonNames)
+                if (button.name.Contains(name))
+                {
+                    var c = button.targetGraphic != null ? button.targetGraphic.color : Color.white;
+                    if (c.r > c.g * 1.5f && c.r > 0.2f && theme.ButtonDanger != null)
+                        return theme.ButtonDanger; // e.g. "Sell now" — a confirm that loses value
+                    return theme.ButtonPrimary;
+                }
+
+            var color = button.targetGraphic != null ? button.targetGraphic.color : Color.white;
+            if (color.r > color.g * 1.5f && color.r > 0.2f && theme.ButtonDanger != null)
+                return theme.ButtonDanger; // e.g. "Exit game"
+            return theme.Button;
+        }
+
+        private static bool IsColor(Color c, int r, int g, int b)
+        {
+            const float tolerance = 3f / 255f;
+            return Mathf.Abs(c.r - r / 255f) <= tolerance && Mathf.Abs(c.g - g / 255f) <= tolerance
+                && Mathf.Abs(c.b - b / 255f) <= tolerance;
+        }
+
+        private static bool IsGrey(Color c, int value, float alpha)
+        {
+            const float tolerance = 3f / 255f;
+            float v = value / 255f;
+            return Mathf.Abs(c.r - v) <= tolerance && Mathf.Abs(c.g - v) <= tolerance
+                && Mathf.Abs(c.b - v) <= tolerance && Mathf.Abs(c.a - alpha) <= 0.02f;
         }
 
         /// <summary>Links each ViewManager entry to its navigation button, so the active one gets highlighted.</summary>
@@ -266,7 +658,15 @@ namespace AntiqueTradingSimulator.EditorTools
         /// squeezed every text — the name down to a single line. The name now gets a guaranteed two
         /// lines and the remaining height is split evenly between the other texts of the column.
         /// </summary>
-        private static void FitInfoColumn(TMP_Text nameText)
+        /// <summary>Height of one line of this text, from its font's metrics.</summary>
+        internal static float LineHeight(TMP_Text text)
+        {
+            var face = text.font != null ? text.font.faceInfo : default;
+            float ratio = face.pointSize > 0f ? face.lineHeight / face.pointSize : 1.2f;
+            return text.fontSize * ratio;
+        }
+
+        internal static void FitInfoColumn(TMP_Text nameText)
         {
             var column = nameText.transform.parent;
             var columnLayout = column != null ? column.GetComponent<LayoutElement>() : null;
@@ -274,8 +674,10 @@ namespace AntiqueTradingSimulator.EditorTools
 
             var nameLayout = nameText.GetComponent<LayoutElement>();
             if (nameLayout == null) nameLayout = nameText.gameObject.AddComponent<LayoutElement>();
-            nameLayout.minHeight = NameTwoLineHeight;
-            nameLayout.preferredHeight = NameTwoLineHeight;
+            // Two lines of the name's own font and size (EB Garamond lines are taller than LiberationSans').
+            float nameHeight = Mathf.Ceil(2f * LineHeight(nameText) + NameExtraHeight);
+            nameLayout.minHeight = nameHeight;
+            nameLayout.preferredHeight = nameHeight;
 
             if (columnLayout == null || group == null || columnLayout.preferredHeight <= 0f)
                 return;
@@ -293,7 +695,7 @@ namespace AntiqueTradingSimulator.EditorTools
 
             float spacing = group.spacing * others.Count; // gaps between all (others + name) children
             float padding = group.padding.top + group.padding.bottom;
-            float each = Mathf.Floor((columnLayout.preferredHeight - padding - spacing - NameTwoLineHeight) / others.Count);
+            float each = Mathf.Floor((columnLayout.preferredHeight - padding - spacing - nameHeight) / others.Count);
             foreach (var element in others)
             {
                 element.minHeight = -1f;
@@ -316,6 +718,70 @@ namespace AntiqueTradingSimulator.EditorTools
             EditPrefab(InfoBarRowPrefab, root =>
             {
                 SetSliced(root.GetComponent<Image>(), theme.Inset, false);
+                StyleTexts(root.transform, theme, false);
+            });
+        }
+
+        private static void ApplyToRowPrefab(string path, UITheme theme)
+        {
+            EditPrefab(path, root =>
+            {
+                var image = root.GetComponent<Image>();
+                if (image != null)
+                {
+                    image.sprite = null;
+                    image.type = Image.Type.Simple;
+                    image.color = RowColor; // also the "normal" colour the row script caches
+                    EditorUtility.SetDirty(image);
+                }
+
+                foreach (var behaviour in root.GetComponents<MonoBehaviour>())
+                {
+                    if (behaviour == null) continue;
+                    var so = new SerializedObject(behaviour);
+                    bool any = false;
+                    foreach (var field in HighlightColorFields)
+                    {
+                        var prop = so.FindProperty(field);
+                        if (prop == null || prop.propertyType != SerializedPropertyType.Color) continue;
+                        prop.colorValue = HighlightColor;
+                        any = true;
+                    }
+                    var normal = so.FindProperty("normalColor");
+                    if (normal != null && normal.propertyType == SerializedPropertyType.Color)
+                    {
+                        normal.colorValue = RowColor;
+                        any = true;
+                    }
+                    if (any) so.ApplyModifiedPropertiesWithoutUndo();
+                }
+
+                foreach (var child in root.GetComponentsInChildren<Image>(true))
+                {
+                    if (child.gameObject == root) continue;
+                    if (child.GetComponentInParent<AntiqueImageSlot>(true) != null) continue;
+
+                    if (child.name.Contains("Thumbnail") || child.name == "StatusIcon")
+                    {
+                        child.sprite = null;
+                        child.color = theme.Edge; // placeholder until real art
+                        EditorUtility.SetDirty(child);
+                    }
+                    else if (child.name == "Status")
+                    {
+                        child.sprite = null;
+                        child.color = StatusPillColor; // "ACTIVE" pill: was greybox blue
+                        EditorUtility.SetDirty(child);
+                    }
+                    else if (child.name == "SelectedHighlight")
+                    {
+                        var c = theme.Accent;
+                        c.a = SelectionOverlayAlpha; // the greybox 25% gold read too bright on dark rows
+                        child.color = c;
+                        EditorUtility.SetDirty(child);
+                    }
+                }
+
                 StyleTexts(root.transform, theme, false);
             });
         }
@@ -348,8 +814,21 @@ namespace AntiqueTradingSimulator.EditorTools
         {
             if (button == null) return;
 
-            if (button.targetGraphic is Image image)
+            // Buttons without a Target Graphic still draw the Image on their own object.
+            var image = button.targetGraphic as Image;
+            if (image == null) image = button.GetComponent<Image>();
+            if (image != null)
                 SetSliced(image, sprite, useUndo);
+
+            // A button with a set height keeps it — a crowded layout must not squeeze it until
+            // its label disappears (taller EB Garamond texts nearby take more room).
+            var layout = button.GetComponent<LayoutElement>();
+            if (layout != null && layout.preferredHeight > 0f && layout.minHeight < layout.preferredHeight)
+            {
+                if (useUndo) Undo.RecordObject(layout, "Keep button height");
+                layout.minHeight = layout.preferredHeight;
+                if (!useUndo) EditorUtility.SetDirty(layout);
+            }
 
             if (useUndo) Undo.RecordObject(button, "Theme button");
             // Sprites carry the colour; the tint only brightens on hover and darkens on press.

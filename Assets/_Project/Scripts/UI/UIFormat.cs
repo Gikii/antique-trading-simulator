@@ -198,19 +198,21 @@ namespace AntiqueTradingSimulator.UI
         // Category colors (stable per type, used by the donut chart and legend)
         // ------------------------------------------------------------------
 
+        // Warm, muted colours that sit on the dark theme (antique gold first), still far enough
+        // apart to tell neighbouring donut segments apart.
         private static readonly Color[] CategoryPalette =
         {
-            new Color32(0x4E, 0x79, 0xA7, 0xFF),
-            new Color32(0xE1, 0x8F, 0x3C, 0xFF),
-            new Color32(0x59, 0xA1, 0x4F, 0xFF),
-            new Color32(0xB0, 0x7A, 0xA1, 0xFF),
-            new Color32(0xC9, 0xA2, 0x27, 0xFF),
-            new Color32(0x76, 0xB7, 0xB2, 0xFF),
-            new Color32(0xD3, 0x6B, 0x5C, 0xFF),
-            new Color32(0x9C, 0x75, 0x5F, 0xFF),
+            new Color32(0xC9, 0x9A, 0x3C, 0xFF), // antique gold
+            new Color32(0x7E, 0x9C, 0x5C, 0xFF), // sage green
+            new Color32(0xB8, 0x64, 0x42, 0xFF), // terracotta
+            new Color32(0x5F, 0x8E, 0x8A, 0xFF), // verdigris
+            new Color32(0x9A, 0x6A, 0x8C, 0xFF), // faded plum
+            new Color32(0xD9, 0xC0, 0x8C, 0xFF), // parchment
+            new Color32(0x6E, 0x80, 0x9A, 0xFF), // slate
+            new Color32(0x8C, 0x5E, 0x3C, 0xFF), // umber
         };
 
-        public static readonly Color OtherCategoryColor = new Color32(0x8C, 0x8C, 0x8C, 0xFF);
+        public static readonly Color OtherCategoryColor = new Color32(0x6E, 0x60, 0x4A, 0xFF);
 
         public static int CategoryPaletteSize => CategoryPalette.Length;
 
