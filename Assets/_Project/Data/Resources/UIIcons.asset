@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e14fbfe9ff755394aadb1f409b3255aa, type: 3}
+  m_Name: UIIcons
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.UI.UIIcons
+  Market: {fileID: 21300000, guid: b36a007b887e2f644b92077ee900f93e, type: 3}
+  Collection: {fileID: 21300000, guid: 4ee1021e775cb3a45880ffd0585f3754, type: 3}
+  Auction: {fileID: 21300000, guid: cd414376afc006342a0729cfd7a950d3, type: 3}
+  Contracts: {fileID: 21300000, guid: 43444b3b7f37e734a827b33201357bd3, type: 3}
+  News: {fileID: 21300000, guid: 1c7968b9fa90cf44aa0481d4d6f7fca5, type: 3}
+  Company: {fileID: 21300000, guid: 4a69936980096b940a93503396e8fdd5, type: 3}
+  Warehouse: {fileID: 21300000, guid: 7012b287fe79c27409fde9f10115c3d7, type: 3}
+  Settings: {fileID: 21300000, guid: 90d6b348b93a0a44389a633d5048f5c6, type: 3}
+  Cash: {fileID: 21300000, guid: 6019e6d3d90adac46b60147f2ac59ffb, type: 3}
+  Wealth: {fileID: 21300000, guid: 6b42cd2f7e1b73840b7bd53f41cd6264, type: 3}
+  CollectionValue: {fileID: 21300000, guid: 4732dec8513234043b020dbcadd530d6, type: 3}
+  Reputation: {fileID: 21300000, guid: 62b6e525e2d4ac5498893a97b9f5d7b9, type: 3}
+  Credibility: {fileID: 21300000, guid: d6bf11b7b837a7645851d92d758eb77b, type: 3}
+  MarketShare: {fileID: 21300000, guid: 510176624137e1445a7b584ceb38bca9, type: 3}
+  ContractsFulfilled: {fileID: 21300000, guid: fcaf4734d9a25be4e956befacf9f53b1, type: 3}
+  Calendar: {fileID: 21300000, guid: 684e2089fb25fa342b073f771f4e8c75, type: 3}
+  Income: {fileID: 21300000, guid: 3c9f50bfa8c50664f9b6aedf20b8da45, type: 3}
+  Expenses: {fileID: 21300000, guid: f275b9323893c6b47a80881a912de951, type: 3}
+  Profit: {fileID: 21300000, guid: b3d70bef9abd69c4a83703f568eef024, type: 3}
+  Deadline: {fileID: 21300000, guid: cc8b2202fad68c04c86b815dbf34fb59, type: 3}
+  UpgWarehouse: {fileID: 21300000, guid: 08f389426d0bb5644860d99a490d369b, type: 3}
+  UpgSecurity: {fileID: 21300000, guid: 82adb179a89fdb14992ad4c076dbb4b3, type: 3}
+  UpgInformation: {fileID: 21300000, guid: 53ffe717c44670040ac74f536efae361, type: 3}
+  UpgLogistics: {fileID: 21300000, guid: e1480d8d5c8e63544aa34e17d712811d, type: 3}
+  UpgExperts: {fileID: 21300000, guid: e26742efa8ef52845ab4c3ba64fa328f, type: 3}
+  UpgConservators: {fileID: 21300000, guid: 7208f70c148e8da4a8ece6807ecf19b1, type: 3}
+  UpgStaff: {fileID: 21300000, guid: 604a41ac590134a4dbbc0a55ad87e013, type: 3}
+  InfoAccess: {fileID: 21300000, guid: 2c42bb2789a0e4e4db4598764cc1a466, type: 3}
+  Buy: {fileID: 21300000, guid: b233219032f622148915650c9525718d, type: 3}
+  Sell: {fileID: 21300000, guid: d11dae1e75978f94b9ffa9a5c8fb38be, type: 3}
+  List: {fileID: 21300000, guid: 95c3510087a596c4da025a32dc99686c, type: 3}
+  Restore: {fileID: 21300000, guid: 9c708f1068520fd4f9ca025c83525c5e, type: 3}
+  Fulfil: {fileID: 21300000, guid: 95eb9e95fdb272f42b44ca1491659dfb, type: 3}
+  CreateEvent: {fileID: 21300000, guid: 4d5c2bfad194f9945938c9fac952cf35, type: 3}
+  Info: {fileID: 21300000, guid: a461880e9e871ba4aa0b25a854962d24, type: 3}
+  Warning: {fileID: 21300000, guid: 9ed3bcec262ff1346a87fa61c9929dd9, type: 3}
+  Category: {fileID: 21300000, guid: fa08b4bda81d6e849bb955693838cee5, type: 3}
+  Period: {fileID: 21300000, guid: a3c64e4546176a340877e860f7875109, type: 3}
+  Region: {fileID: 21300000, guid: f698d432c3fbd364182bcb424a14ed8f, type: 3}
+  Date: {fileID: 21300000, guid: 05471c24a1981654b87b1aafd6a027f3, type: 3}
+  NewsOfficial: {fileID: 21300000, guid: ec418740fe6ae46418d2b0d9a59ac31b, type: 3}
+  NewsRumour: {fileID: 21300000, guid: 624218bcdfff69046a2c8fa565e05571, type: 3}
+  NewsLeaked: {fileID: 21300000, guid: 25d9d290530ddfa4686f3392fdefec53, type: 3}
+  NewsFake: {fileID: 21300000, guid: 09c0c9a7b246bf641b4a96655d0a7397, type: 3}
+  Duration: {fileID: 21300000, guid: 0740d7f04d0e0524d8bea39f1b2d0a67, type: 3}
+  ReputationBadges:
+  - {fileID: 21300000, guid: d989a388ef061504a94fdb9b8d336e5a, type: 3}
+  - {fileID: 21300000, guid: a9d9ff650d879ad4ca7f107aa0d93642, type: 3}
+  - {fileID: 21300000, guid: fc192d75f5381a2458c74ea773fed194, type: 3}
+  - {fileID: 21300000, guid: bbde1f85db88d4a47a1c2d3e8b98dab7, type: 3}
+  - {fileID: 21300000, guid: fb33e8b0dcf7ec845bbfd18c95914640, type: 3}
+  CredibilityBadges:
+  - {fileID: 21300000, guid: 6dbecbd77bf8a1942bb0cc5bc07f087c, type: 3}
+  - {fileID: 21300000, guid: 4c019acb46974954d8d8eec4934c83a1, type: 3}
+  - {fileID: 21300000, guid: 7bca7babc4d71bb42a3af3f1c5acde69, type: 3}
+  - {fileID: 21300000, guid: 2532c477bf9baf44f924130fdf51d1d3, type: 3}
+  - {fileID: 21300000, guid: 6b9677e6d49c42d43978045b06c136bd, type: 3}

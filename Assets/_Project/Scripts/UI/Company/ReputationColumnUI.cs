@@ -3,6 +3,7 @@ using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.UI.Charts;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -27,6 +28,8 @@ namespace AntiqueTradingSimulator.UI
 
         [Header("Level")]
         [SerializeField] private TierBarUI tierBar;
+        [Tooltip("Optional. Badge of the current level from UIIcons.")]
+        [SerializeField] private Image tierIcon;
         [SerializeField] private TMP_Text currentTierText;
         [SerializeField] private TMP_Text currentDescriptionText;
         [SerializeField] private TMP_Text nextHeaderText;
@@ -120,6 +123,8 @@ namespace AntiqueTradingSimulator.UI
             var next = reputation.NextTier(kind);
 
             if (currentTierText != null) currentTierText.text = current?.Name ?? "";
+            var icons = UIIcons.Load();
+            if (icons != null) UIIcons.Show(tierIcon, icons.ForTier(kind, currentIndex, tiers.Count));
             if (currentDescriptionText != null) currentDescriptionText.text = current?.Description ?? "";
 
             string measure = kind == ReputationKind.Reputation ? "Reputation" : "Credibility";

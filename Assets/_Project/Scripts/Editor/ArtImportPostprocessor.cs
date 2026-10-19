@@ -11,7 +11,9 @@ namespace AntiqueTradingSimulator.EditorTools
     ///  - Art/Sprites/**  (antiques, contracts, slot backdrop): Sprite, Full Rect, mipmaps on
     ///    (the 51x68 inventory thumbnail is a big downscale), max 1024, high-quality compression.
     ///  - Art/UI/Backgrounds/** (full-screen and scene illustrations): Sprite, Full Rect, no mipmaps, max 2048.
-    ///  - Art/UI/**       (icons, frames): Sprite, Full Rect, no mipmaps, max 512.
+    ///  - Art/UI/Icons/**  (gold emblems, 128 px, shown at 18-72 px): as Art/UI/** but with mipmaps,
+    ///    so they stay smooth when drawn much smaller than the file.
+    ///  - Art/UI/**       (frames, effects): Sprite, Full Rect, no mipmaps, max 512.
     /// </summary>
     public class ArtImportPostprocessor : AssetPostprocessor
     {
@@ -19,6 +21,7 @@ namespace AntiqueTradingSimulator.EditorTools
         private const string SpritesRoot = ArtRoot + "Sprites/";
         private const string UiRoot = ArtRoot + "UI/";
         private const string BackgroundsRoot = UiRoot + "Backgrounds/";
+        private const string IconsRoot = UiRoot + "Icons/";
 
         private void OnPreprocessTexture()
         {
@@ -42,7 +45,7 @@ namespace AntiqueTradingSimulator.EditorTools
             importer.sRGBTexture = true;
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.filterMode = FilterMode.Bilinear;
-            importer.mipmapEnabled = isSprite;
+            importer.mipmapEnabled = isSprite || path.StartsWith(IconsRoot);
             importer.maxTextureSize = path.StartsWith(BackgroundsRoot) ? 2048 : isSprite ? 1024 : 512;
             importer.textureCompression = TextureImporterCompression.CompressedHQ;
 

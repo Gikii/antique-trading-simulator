@@ -16,6 +16,8 @@ namespace AntiqueTradingSimulator.UI
         [Tooltip("Covers the whole card; selects it. Transition should be None (the card colours itself).")]
         [SerializeField] private Button selectButton;
 
+        [Tooltip("Optional. Shows the upgrade's icon from UIIcons.")]
+        [SerializeField] private Image icon;
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text descriptionText;
         [SerializeField] private TMP_Text statusText;
@@ -61,6 +63,9 @@ namespace AntiqueTradingSimulator.UI
             if (info == null) return;
 
             if (background != null) background.color = selected ? selectedColor : normalColor;
+
+            var icons = UIIcons.Load();
+            if (icons != null) UIIcons.Show(icon, icons.ForUpgrade(info.Type));
 
             SetText(nameText, info.Name);
             SetText(descriptionText, info.Description);
