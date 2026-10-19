@@ -40,6 +40,8 @@ namespace AntiqueTradingSimulator.UI
             if (_antique == null)
                 return;
 
+            antiqueImage.ShowAntique(_antique);
+
             // Short marker only — the row is narrow; the arrival date is in the hover tooltip.
             if (nameText != null)
                 nameText.text = _antique.IsInTransit

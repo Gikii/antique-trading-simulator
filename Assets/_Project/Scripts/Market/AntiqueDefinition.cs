@@ -26,5 +26,12 @@ namespace AntiqueTradingSimulator.Market
 
         [TextArea]
         public string Description;
+
+        // Shared by every physical example of this definition; condition and price differ per
+        // instance and are shown by the UI, not baked into the picture.
+        [Tooltip("Transparent 3:4 PNG of the object (e.g. Art/Sprites/Antiques/ant_clock_001.png). " +
+                 "Filled by Tools → Antique Trading Simulator → Art → Assign Artwork. " +
+                 "Empty = falls back to the type / generic artwork from AntiqueArtCatalog.")]
+        public Sprite Artwork;
     }
 }

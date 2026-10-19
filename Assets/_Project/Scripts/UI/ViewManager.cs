@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -27,6 +28,8 @@ namespace AntiqueTradingSimulator.UI
         {
             public ViewType type;
             public UIView view;
+            [Tooltip("Optional MainNavigation button of this view — highlighted while the view is shown.")]
+            public Button navButton;
         }
 
         [SerializeField] private List<ViewEntry> views;
@@ -61,6 +64,25 @@ namespace AntiqueTradingSimulator.UI
                 view.Show();
             else
                 Debug.LogWarning($"ViewManager: no view registered for {type}");
+
+            HighlightNavigation(type);
+        }
+
+        /// <summary>Swaps the navigation buttons' frame between the theme's idle and active sprites.</summary>
+        private void HighlightNavigation(ViewType active)
+        {
+            var theme = UITheme.Load();
+            if (theme == null || theme.NavItem == null || theme.NavActive == null)
+                return; // no theme yet — greybox buttons stay as they are
+
+            foreach (var entry in views)
+            {
+                if (entry.navButton == null || !(entry.navButton.targetGraphic is Image image))
+                    continue;
+
+                image.sprite = entry.type == active ? theme.NavActive : theme.NavItem;
+                image.type = Image.Type.Sliced;
+            }
         }
 
         // Parameterless wrappers so Unity's Button.onClick inspector can bind to them

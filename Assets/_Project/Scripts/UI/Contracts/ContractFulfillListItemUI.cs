@@ -45,6 +45,8 @@ namespace AntiqueTradingSimulator.UI
             if (_antique == null)
                 return;
 
+            antiqueImage.ShowAntique(_antique);
+
             if (nameText != null)
                 nameText.text = _antique.IsInTransit
                     ? $"{_antique.Name}  {UIFormat.Colorize("• in transit", UIFormat.InTransitColor)}"

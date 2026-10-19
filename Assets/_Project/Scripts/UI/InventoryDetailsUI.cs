@@ -167,6 +167,7 @@ namespace AntiqueTradingSimulator.UI
 
             _currentAntique = antique;
 
+            antiqueImage.ShowAntique(antique);
             SetText(titleText, antique.Name);
             SetText(categoryText, antique.Category);
             SetText(periodText, antique.Century.ToDisplayString());
@@ -584,10 +585,7 @@ namespace AntiqueTradingSimulator.UI
 
         private static string OwnerLabel(Antique antique)
         {
-            if (string.IsNullOrEmpty(antique.OwnerId))
-                return "Unknown";
-
-            return antique.OwnerId == Antique.PlayerOwnerId ? "You" : antique.OwnerId;
+            return UIFormat.OwnerName(antique.OwnerId, anonymousLabel: "Unknown");
         }
 
         // Full GUIDs are noise in the UI; the first 8 characters are enough to tell items apart.

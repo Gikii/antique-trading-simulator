@@ -1,5 +1,7 @@
 using System.Globalization;
+using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Core;
+using AntiqueTradingSimulator.Market;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.UI
@@ -55,6 +57,34 @@ namespace AntiqueTradingSimulator.UI
                     _timeManager = Object.FindFirstObjectByType<TimeManager>();
                 return _timeManager;
             }
+        }
+
+        private static NPCManager _npcManager;
+
+        private static NPCManager Npcs
+        {
+            get
+            {
+                if (_npcManager == null)
+                    _npcManager = Object.FindFirstObjectByType<NPCManager>();
+                return _npcManager;
+            }
+        }
+
+        /// <summary>
+        /// Who owns or sells an antique, in words: "Private seller" for anonymous market stock,
+        /// "You" for the player, the trader's name for NPCs (their owner id is an internal GUID).
+        /// </summary>
+        public static string OwnerName(string ownerId, string anonymousLabel = "Private seller", string playerLabel = "You")
+        {
+            if (string.IsNullOrEmpty(ownerId))
+                return anonymousLabel;
+
+            if (ownerId == Antique.PlayerOwnerId)
+                return playerLabel;
+
+            var npc = Npcs != null ? Npcs.GetById(ownerId) : null;
+            return npc != null && !string.IsNullOrEmpty(npc.TraderName) ? npc.TraderName : ownerId;
         }
 
         /// <summary>"7 October" for a game day, or "day 37" without a TimeManager.</summary>

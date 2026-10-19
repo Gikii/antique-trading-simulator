@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: Antique_SilverCoin
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: coin_001
-  DisplayName: Silver coin
+  DisplayName: Silver thaler
   Type: 7
   Century: 18
   Country: 4
   BasePrice: 150
   EditionSize: 0
-  Description: 
+  Description: A large silver thaler struck for a German principality. Common, but
+    always in demand.
+  Artwork: {fileID: 21300000, guid: 5832bcf8b5c73fb47a57643958f59b34, type: 3}
