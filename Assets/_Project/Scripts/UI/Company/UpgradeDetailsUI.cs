@@ -13,6 +13,8 @@ namespace AntiqueTradingSimulator.UI
     /// </summary>
     public class UpgradeDetailsUI : MonoBehaviour
     {
+        [Tooltip("Optional. Shows the upgrade's icon from UIIcons.")]
+        [SerializeField] private Image icon;
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text levelText;
         [SerializeField] private SegmentedBarUI levelBar;
@@ -63,6 +65,9 @@ namespace AntiqueTradingSimulator.UI
         {
             _info = info;
             if (info == null) return;
+
+            var icons = UIIcons.Load();
+            if (icons != null) UIIcons.Show(icon, icons.ForUpgrade(info.Type));
 
             SetText(nameText, info.Name);
             SetText(levelText, UpgradePresentation.LevelLabel(info));

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -68,7 +69,13 @@ namespace AntiqueTradingSimulator.UI
             HighlightNavigation(type);
         }
 
-        /// <summary>Swaps the navigation buttons' frame between the theme's idle and active sprites.</summary>
+        /// <summary>Name of the small second line under a navigation button's title (not recoloured).</summary>
+        public const string NavSubtitleName = "Subtitle";
+
+        /// <summary>
+        /// Swaps the navigation buttons' frame between the theme's idle and active sprites;
+        /// the active button's title turns gold.
+        /// </summary>
         private void HighlightNavigation(ViewType active)
         {
             var theme = UITheme.Load();
@@ -80,8 +87,13 @@ namespace AntiqueTradingSimulator.UI
                 if (entry.navButton == null || !(entry.navButton.targetGraphic is Image image))
                     continue;
 
-                image.sprite = entry.type == active ? theme.NavActive : theme.NavItem;
+                bool isActive = entry.type == active;
+                image.sprite = isActive ? theme.NavActive : theme.NavItem;
                 image.type = Image.Type.Sliced;
+
+                foreach (var label in entry.navButton.GetComponentsInChildren<TMP_Text>(true))
+                    if (label.name != NavSubtitleName)
+                        label.color = isActive ? theme.Accent : theme.TextPrimary;
             }
         }
 

@@ -15,6 +15,7 @@ namespace AntiqueTradingSimulator.UI
         private TMP_Text typeText;
         private TMP_Text dateText;
         private Image typeDot;
+        private Image thumbnail;
 
         private NewsItem news;
 
@@ -43,6 +44,11 @@ namespace AntiqueTradingSimulator.UI
 
             typeDot = transform
                 .Find("TypeInfo/TypeRow/TypeDot")
+                ?.GetComponent<Image>();
+
+            // Optional: square left of the title, shows the news type's icon from UIIcons.
+            thumbnail = transform
+                .Find("Thumbnail")
                 ?.GetComponent<Image>();
 
             dateText = transform
@@ -90,6 +96,10 @@ namespace AntiqueTradingSimulator.UI
 
             if (typeDot != null)
                 typeDot.color = typeColor;
+
+            var icons = UIIcons.Load();
+            if (icons != null)
+                UIIcons.Show(thumbnail, icons.ForNewsType(news.Type));
 
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() =>
