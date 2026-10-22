@@ -76,6 +76,7 @@ namespace AntiqueTradingSimulator.UI
 
         private readonly Dictionary<string, MarketListingUI> _rowsByListingId = new Dictionary<string, MarketListingUI>();
         private bool _subscribed;
+        private bool _refreshPending;
 
         void Awake()
         {
@@ -123,8 +124,22 @@ namespace AntiqueTradingSimulator.UI
         private void HandleDayChanged(int newDay)
         {
             if (gameObject.activeSelf)
-                RefreshListings();
+                _refreshPending = true;
         }
+
+        private void LateUpdate()
+        {
+            if (!_refreshPending)
+                return;
+
+            _refreshPending = false;
+
+            RefreshListings();
+
+            if (antiqueDetailsUI != null)
+                antiqueDetailsUI.RefreshOpenListing();
+        }
+
 
 
         // Called by the Antique Type filter dropdown's onSelectionChanged.
