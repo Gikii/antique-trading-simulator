@@ -90,6 +90,11 @@ namespace AntiqueTradingSimulator.UI
 
             if (clearFiltersButton != null)
                 clearFiltersButton.onClick.AddListener(ClearFilters);
+            if (sortDropdown != null)
+            {
+                sortDropdown.onValueChanged.AddListener(SetSortMode);
+                _sortMode = ToSortMode(sortDropdown.value);
+            }
         }
 
         protected override void OnShown()
@@ -191,9 +196,14 @@ namespace AntiqueTradingSimulator.UI
         // Called by the sort TMP_Dropdown's OnValueChanged(int)
         public void SetSortMode(int dropdownIndex)
         {
-            _sortMode = (MarketSortMode)dropdownIndex;
+            _sortMode = ToSortMode(dropdownIndex);
             RefreshListings();
         }
+
+        private static MarketSortMode ToSortMode(int dropdownIndex) =>
+            System.Enum.IsDefined(typeof(MarketSortMode), dropdownIndex)
+                ? (MarketSortMode)dropdownIndex
+                : MarketSortMode.NameAsc;
 
         public void NextPage()
         {
