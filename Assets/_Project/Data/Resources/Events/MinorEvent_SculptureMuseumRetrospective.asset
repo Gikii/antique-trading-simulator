@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_SculptureMuseumRetrospective
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 818ecd19afed4b15b36a4cca577eee72
+  DisplayName: Major Sculpture Retrospective Opens
+  EventType: 1
+  Description: A landmark retrospective {has opened|opens} to long queues and glowing reviews. Private collectors {are chasing|will chase} anything carved or cast.
+  DurationDays: 8
+  MinLeadDays: 3
+  MaxLeadDays: 9
+  PlayerSelectsLeadTime: 0
+  FailureChance: 0
+  CanBeFakeNews: 0
+  CreateOfficialNews: 1
+  OfficialAnnouncementDaysBefore: 2
+  CreateRumour: 0
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.95
+  Effects:
+  - rid: 8420000000000000401
+  references:
+    version: 2
+    RefIds:
+    - rid: 8420000000000000401
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 5
+        Country: 0
+        Century: 0
+        tempDemandChange: 2
+        permDemandChange: 0
