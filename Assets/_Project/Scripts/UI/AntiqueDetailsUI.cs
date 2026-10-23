@@ -1,6 +1,9 @@
 ﻿using AntiqueTradingSimulator.Agents;
+using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
+using AntiqueTradingSimulator.UI.Charts;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,6 +12,8 @@ namespace AntiqueTradingSimulator.UI
 {
     public class AntiqueDetailsUI : MonoBehaviour
     {
+        private const int TrendWindowDays = 30;
+
         [SerializeField] private MarketView marketView;
 
         [Header("Main")]
@@ -28,6 +33,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text basePriceText;
         [SerializeField] private TMP_Text currentValueText;
         [SerializeField] private TMP_Text changeText;
+        [SerializeField] private UILineChart priceChart;
 
         [Header("Price")]
         [SerializeField] private TMP_Text currentPriceText;
@@ -47,6 +53,7 @@ namespace AntiqueTradingSimulator.UI
         [Header("Dependencies")]
         [SerializeField] private PlayerTrader playerTrader;
         [SerializeField] private TransportManager transportManager;
+        [SerializeField] private EconomyManager economyManager;
         [Tooltip("Confirmation modal opened by Buy. If missing, Buy purchases directly with Standard transport.")]
         [SerializeField] private BuyModalUI buyModal;
 
@@ -78,6 +85,9 @@ namespace AntiqueTradingSimulator.UI
 
             if (transportManager == null)
                 transportManager = FindFirstObjectByType<TransportManager>();
+
+            if (economyManager == null)
+                economyManager = FindFirstObjectByType<EconomyManager>();
 
             if (buyModal == null)
                 buyModal = FindFirstObjectByType<BuyModalUI>(FindObjectsInactive.Include);
@@ -169,9 +179,9 @@ namespace AntiqueTradingSimulator.UI
                 currentValueText.text = UIFormat.Money(antique.CurrentPrice);
             
             if (changeText != null)
-                changeText.text = "—"; 
-            
+                changeText.text = "—";
 
+            RefreshValueTrend(antique);
 
             // The player's own listings show up on the market too, but can't be bought back —
             // they're cancelled from the collection view instead.
@@ -179,6 +189,50 @@ namespace AntiqueTradingSimulator.UI
                 buyButton.interactable = antique.OwnerId != Antique.PlayerOwnerId;
 
             SetVisible(true);
+        }
+        public void RefreshOpenListing()
+        {
+            if (_currentAntique == null)
+                return;
+
+            Market.Market market = economyManager.Market;
+
+
+            if (market != null && market.GetById(_currentAntique.Id) == null)
+            {
+                Hide();
+                return;
+            }
+
+            Show(_currentAntique);
+        }
+
+        private void RefreshValueTrend(Antique antique)
+        {
+            Market.Market market = economyManager.Market;
+
+            List<float> history = CollectionAnalytics.ItemValueHistory(antique, market, TrendWindowDays);
+
+            history.Add(antique.CurrentPrice);
+
+            if (priceChart != null)
+                priceChart.SetValues(history.Count > 1 ? history : null);
+
+            if (changeText == null)
+                return;
+
+            float change = CollectionAnalytics.MarketValueChange(antique, market, TrendWindowDays);
+            float past = antique.CurrentPrice - change;
+
+            if (past <= 0f)
+            {
+                changeText.text = "—";
+                return;
+            }
+
+            string trend = $"{UIFormat.SignedPercent(change / past)} {UIFormat.TrendArrow(change)}";
+            changeText.text = UIFormat.ColorBySign(trend, change)
+                + UIFormat.Colorize($" <size=75%>({TrendWindowDays} d)</size>", UIFormat.MutedColor);
         }
 
         public void Hide()
