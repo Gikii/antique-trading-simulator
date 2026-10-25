@@ -16,9 +16,9 @@ MonoBehaviour:
   DisplayName: Eastern Customs Tightened
   EventType: 1
   Description: Customs offices in the far east {have tightened|are expected to tighten} their
-    inspections, and crates of chinese goods {sit|will sit} on the quays for weeks. Fewer chinese
+    inspections, and crates of Chinese goods {sit|will sit} on the quays for weeks. Fewer Chinese
     pieces {reach|will reach} the market, those already here {fetch|may fetch} more, and some
-    buyers {turn|will turn} to japanese wares instead.
+    buyers {turn|will turn} to Japanese wares instead.
   DurationDays: 6
   MinLeadDays: 2
   MaxLeadDays: 7
