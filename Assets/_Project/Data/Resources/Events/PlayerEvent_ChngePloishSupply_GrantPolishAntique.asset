@@ -37,7 +37,7 @@ MonoBehaviour:
     - rid: 7722896656900030532
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
-        Scope: 0
+        Scope: 1
         AntiqueType: 0
         Country: 15
         Century: 0

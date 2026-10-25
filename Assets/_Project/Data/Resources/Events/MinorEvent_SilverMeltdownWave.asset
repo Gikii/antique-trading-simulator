@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_SilverMeltdownWave
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 62c024a18c4840a1be3879d256b646d8
+  DisplayName: Silver Melt Wave Thins the Coin Market
+  EventType: 1
+  Description: With bullion prices high, lesser coins {are being|will be} melted for their metal rather than sold to collectors. Fewer specimens {survive|will survive} each week.
+  DurationDays: 6
+  MinLeadDays: 2
+  MaxLeadDays: 7
+  PlayerSelectsLeadTime: 0
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementDaysBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 0
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 8420000000000000301
+  references:
+    version: 2
+    RefIds:
+    - rid: 8420000000000000301
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 7
+        Country: 0
+        Century: 0
+        tempSupplyChange: -1
+        permSupplyChange: -0.75
