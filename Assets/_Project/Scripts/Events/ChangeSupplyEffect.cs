@@ -38,9 +38,13 @@ namespace AntiqueTradingSimulator.Events
                 var typeState = market.GetTypeState(definitionId);
                 if (typeState == null) continue;
 
+                float supplyBefore = typeState.Supply;
+
                 typeState.Supply = Mathf.Max(0f, typeState.Supply + permSupplyChange);
                 typeState.TempSupplyMod += tempSupplyChange;
                 RecalculatePricesForDefinition(market, definitionId);
+
+                market.ReportPressure(definitionId, 0f, (typeState.Supply - supplyBefore) + tempSupplyChange);
             }
         }
 

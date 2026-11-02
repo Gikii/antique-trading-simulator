@@ -1,14 +1,15 @@
-using System;
-using System.IO;
 using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Core;
+using AntiqueTradingSimulator.Dependency;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.News;
 using AntiqueTradingSimulator.Restoration;
+using System;
+using System.IO;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Saving
@@ -26,6 +27,7 @@ namespace AntiqueTradingSimulator.Saving
         [SerializeField] private TimeManager timeManager;
         [SerializeField] private NPCManager npcManager;
         [SerializeField] private EconomyManager economyManager;
+        [SerializeField] private DependencyManager dependencyManager;
         [SerializeField] private TransportManager transportManager;
         [SerializeField] private RestorationManager restorationManager;
         [SerializeField] private ContractManager contractManager;
@@ -53,6 +55,7 @@ namespace AntiqueTradingSimulator.Saving
                 timeManager = economyManager != null && economyManager.TimeManager != null
                     ? economyManager.TimeManager
                     : FindFirstObjectByType<TimeManager>();
+            if (dependencyManager == null) dependencyManager = FindFirstObjectByType<DependencyManager>();
             if (npcManager == null) npcManager = FindFirstObjectByType<NPCManager>();
             if (transportManager == null) transportManager = FindFirstObjectByType<TransportManager>();
             if (restorationManager == null) restorationManager = FindFirstObjectByType<RestorationManager>();
@@ -209,6 +212,7 @@ namespace AntiqueTradingSimulator.Saving
             Time = timeManager != null ? timeManager.CaptureState() : null,
             Npcs = npcManager != null ? npcManager.CaptureState() : null,
             Economy = economyManager != null ? economyManager.CaptureState() : null,
+            Dependencies = dependencyManager != null ? dependencyManager.CaptureState() : null,
             Logistics = transportManager != null ? transportManager.CaptureState() : null,
             Restoration = restorationManager != null ? restorationManager.CaptureState() : null,
             Contracts = contractManager != null ? contractManager.CaptureState() : null,
@@ -246,6 +250,9 @@ namespace AntiqueTradingSimulator.Saving
             if (economyManager != null)
                 economyManager.RestoreState(state.Economy, playerTrader != null ? playerTrader.WarehouseFactory : null);
             else WarnMissing("EconomyManager", state.Economy);
+
+            if (dependencyManager != null) dependencyManager.RestoreState(state.Dependencies);
+            else WarnMissing("DependencyManager", state.Dependencies);
 
             if (transportManager != null) transportManager.RestoreState(state.Logistics);
             else WarnMissing("TransportManager", state.Logistics);

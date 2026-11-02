@@ -39001,6 +39001,7 @@ GameObject:
   - component: {fileID: 398503190}
   - component: {fileID: 398503191}
   - component: {fileID: 398503192}
+  - component: {fileID: 398503193}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -39200,6 +39201,7 @@ MonoBehaviour:
   timeManager: {fileID: 398503184}
   npcManager: {fileID: 398503189}
   economyManager: {fileID: 398503183}
+  dependencyManager: {fileID: 0}
   transportManager: {fileID: 398503190}
   restorationManager: {fileID: 0}
   contractManager: {fileID: 398503187}
@@ -39223,6 +39225,22 @@ MonoBehaviour:
   economyManager: {fileID: 0}
   timeManager: {fileID: 0}
   playerTrader: {fileID: 0}
+--- !u!114 &398503193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 398503182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b4feffda2f9c3e48bdf22c2ff695873, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Dependency.DependencyManager
+  economyManager: {fileID: 0}
+  settings: {fileID: 0}
+  loadSettingsFromResources: 1
+  logInfluences: 1
 --- !u!1 &398798546
 GameObject:
   m_ObjectHideFlags: 0
