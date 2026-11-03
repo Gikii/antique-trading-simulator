@@ -32,6 +32,7 @@ namespace AntiqueTradingSimulator.Events
         {
             var market = context.Market;
             var affectedDefinitionIds = ResolveTargetDefinitionIds();
+            bool anyApplied = false;
 
             foreach (var definitionId in affectedDefinitionIds)
             {
@@ -44,8 +45,12 @@ namespace AntiqueTradingSimulator.Events
                 typeState.TempDemandMod += tempDemandChange;
                 RecalculatePricesForDefinition(market, definitionId);
 
-                market.ReportPressure(definitionId, (typeState.Demand - demandBefore) + tempDemandChange, 0f);
+                anyApplied = true;
             }
+
+            if(anyApplied && TryResolveTargetFacet(Scope, AntiqueType, Country, Century, out var facet))
+                context.Dependencies?.ReportCategoryPressure(facet, permDemandChange + tempDemandChange, 0f);
+
         }
 
         public override void Revert(EventContext context)

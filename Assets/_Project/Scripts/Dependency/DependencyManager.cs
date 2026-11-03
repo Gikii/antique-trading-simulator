@@ -140,6 +140,10 @@ namespace AntiqueTradingSimulator.Dependency
         public void ReportPressure(string definitionId, float demandDelta, float supplyDelta) =>
             Engine.ReportPressure(definitionId, demandDelta, supplyDelta);
 
+        public void ReportCategoryPressure(MarketFacet facet, float demandDelta, float supplyDelta) =>
+            Engine.ReportCategoryPressure(facet, demandDelta, supplyDelta);
+
+
         public void AdvanceDay(int day) => Engine.AdvanceDay(day);
 
         public float CurrentInfluenceOn(string definitionId) => Engine.CurrentInfluenceOn(definitionId);

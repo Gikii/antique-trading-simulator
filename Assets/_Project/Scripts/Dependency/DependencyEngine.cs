@@ -106,6 +106,15 @@ namespace AntiqueTradingSimulator.Dependency
                 ReportInterest(facet, signal);
         }
 
+        public void ReportCategoryPressure(MarketFacet facet, float demandDelta, float supplyDelta)
+        {
+            if (_settings == null) return;
+
+            float signal = demandDelta * _settings.DemandSignalWeight - supplyDelta * _settings.SupplySignalWeight;
+            ReportInterest(facet, signal);
+        }
+
+
         /// <summary>A change pushed straight onto a category — an event, a news item, a passing fashion.</summary>
         public void ReportInterest(MarketFacet facet, float signal)
         {
