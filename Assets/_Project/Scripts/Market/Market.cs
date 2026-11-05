@@ -38,6 +38,8 @@ namespace AntiqueTradingSimulator.Market
 
         /// <summary>Raised when an owner-set listing is bought: antique, seller inventory, price paid, proceeds for the seller.</summary>
         public event System.Action<Antique, TraderInventory, float, float> OnOwnerListingSold;
+        /// <summary>Raised when supply or demand is affected. </summary>
+        public event System.Action<string, float, float> OnPressureApplied;
 
         public IReadOnlyList<Antique> Listings => _listings;
         public IReadOnlyDictionary<string, AntiqueMarketState> TypeStates => _typeStates;
@@ -325,13 +327,21 @@ namespace AntiqueTradingSimulator.Market
         }
 
         // Supply/demand nudges shared by every way an antique enters or leaves the market.
-        private void ApplySellPressure(string definitionId)
+        private void ApplySellPressure(string definitionId) => ApplySellPressure(definitionId, report: true);
+
+        private void ApplySellPressure(string definitionId, bool report)
         {
             var typeState = GetTypeState(definitionId);
             if (typeState == null) return;
 
+            float supplyBefore = typeState.Supply;
+            float demandBefore = typeState.Demand;
+
             typeState.Supply += 1f;
             typeState.Demand = Mathf.Max(0f, typeState.Demand - 0.1f);
+
+            if (report)
+                ReportPressure(definitionId, typeState.Demand - demandBefore, typeState.Supply - supplyBefore);
         }
 
         private void ApplyBuyPressure(string definitionId)
@@ -339,9 +349,23 @@ namespace AntiqueTradingSimulator.Market
             var typeState = GetTypeState(definitionId);
             if (typeState == null) return;
 
+            float supplyBefore = typeState.Supply;
+            float demandBefore = typeState.Demand;
+
             typeState.Supply = Mathf.Max(0f, typeState.Supply - 1f);
             typeState.Demand += 0.1f;
+
+            ReportPressure(definitionId, typeState.Demand - demandBefore, typeState.Supply - supplyBefore);
         }
+
+        public void ReportPressure(string definitionId, float demandDelta, float supplyDelta)
+        {
+            if (string.IsNullOrEmpty(definitionId)) return;
+            if (Mathf.Approximately(demandDelta, 0f) && Mathf.Approximately(supplyDelta, 0f)) return;
+
+            OnPressureApplied?.Invoke(definitionId, demandDelta, supplyDelta);
+        }
+
 
         /// <summary>
         /// Puts a specific, already-existing antique listing (with its own quality/state)
@@ -383,7 +407,7 @@ namespace AntiqueTradingSimulator.Market
             try
             {
                 // Same pressure Sell() applies.
-                ApplySellPressure(antique.DefinitionId);
+                ApplySellPressure(antique.DefinitionId, false);
                 return PriceEngine.CalculatePrice(antique, typeState);
             }
             finally

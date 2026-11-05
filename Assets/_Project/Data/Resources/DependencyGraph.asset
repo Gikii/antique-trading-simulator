@@ -1,0 +1,212 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26a236594ca7ccf4e946a2f2099d5483, type: 3}
+  m_Name: DependencyGraph
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Dependency.DependencyGraphSettings
+  DemandSignalWeight: 1
+  SupplySignalWeight: 0.25
+  MaxPropagationDepth: 2
+  DepthDamping: 0.5
+  MinimumPropagatedChange: 0.05
+  MaxInfluencePerDefinition: 3
+  InfluenceCutoff: 0.02
+  Rules:
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 4
+    To:
+      Kind: 0
+      Value: 13
+    Strength: 0.65
+    Symmetry: 1
+    ReverseFactor: 0.6
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 4
+    To:
+      Kind: 0
+      Value: 5
+    Strength: 0.3
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 4
+    To:
+      Kind: 0
+      Value: 8
+    Strength: 0.15
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 4
+    To:
+      Kind: 0
+      Value: 3
+    Strength: -0.2
+    Symmetry: 0
+    ReverseFactor: 0.5
+    ActivationThreshold: 1
+    DecayPerDay: 0.25
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 3
+    To:
+      Kind: 0
+      Value: 14
+    Strength: 0.6
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 3
+    To:
+      Kind: 0
+      Value: 9
+    Strength: 0.55
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 3
+    To:
+      Kind: 0
+      Value: 13
+    Strength: 0.45
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 3
+    To:
+      Kind: 0
+      Value: 12
+    Strength: -0.15
+    Symmetry: 0
+    ReverseFactor: 0.5
+    ActivationThreshold: 1
+    DecayPerDay: 0.25
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 7
+    To:
+      Kind: 0
+      Value: 10
+    Strength: 0.35
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 7
+    To:
+      Kind: 0
+      Value: 6
+    Strength: -0.1
+    Symmetry: 0
+    ReverseFactor: 0.5
+    ActivationThreshold: 1
+    DecayPerDay: 0.25
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 6
+    To:
+      Kind: 0
+      Value: 10
+    Strength: 0.4
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 11
+    To:
+      Kind: 0
+      Value: 12
+    Strength: 0.7
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 1
+    To:
+      Kind: 0
+      Value: 16
+    Strength: 0.25
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 9
+    To:
+      Kind: 2
+      Value: 13
+    Strength: 0.1
+    Symmetry: 1
+    ReverseFactor: 0.4
+    ActivationThreshold: 1
+    DecayPerDay: 0.2
+  AutoRules:
+  - Enabled: 1
+    Dimension: 1
+    SameValueOnly: 1
+    Kind: 2
+    Strength: 0.06
+    ActivationThreshold: 1.5
+    DecayPerDay: 0.2
+  - Enabled: 1
+    Dimension: 2
+    SameValueOnly: 1
+    Kind: 3
+    Strength: 0.03
+    ActivationThreshold: 1.5
+    DecayPerDay: 0.25
+  - Enabled: 1
+    Dimension: 0
+    SameValueOnly: 1
+    Kind: 1
+    Strength: 0.03
+    ActivationThreshold: 1.5
+    DecayPerDay: 0.3

@@ -2,6 +2,7 @@ using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Core;
+using AntiqueTradingSimulator.Dependency;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Logistics;
@@ -23,6 +24,8 @@ namespace AntiqueTradingSimulator.Saving
         public NPCManagerState Npcs;
 
         public EconomyState Economy;
+
+        public DependencyState Dependencies;
 
         public LogisticsState Logistics;
 
