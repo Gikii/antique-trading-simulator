@@ -10,5 +10,8 @@ namespace AntiqueTradingSimulator.Core
         public int SpeedIndex;
 
         public bool IsRunning = true;
+
+        /// <summary>Real seconds spent in the game scene over the whole campaign, paused time included.</summary>
+        public double PlaytimeSeconds;
     }
 }

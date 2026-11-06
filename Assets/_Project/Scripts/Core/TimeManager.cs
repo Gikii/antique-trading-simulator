@@ -25,6 +25,12 @@ namespace AntiqueTradingSimulator.Core
 
         public int CurrentDay { get; private set; } = 1;
         public bool IsRunning { get; private set; } = true;
+
+        /// <summary>
+        /// Real seconds spent in the game over the whole campaign (across saves and loads), paused
+        /// time included — "time played" for the save list. Independent of the game speed.
+        /// </summary>
+        public double PlaytimeSeconds { get; private set; }
         public float SpeedMultiplier { get; private set; } = 1f;
 
         public event Action<int> OnDayChanged;
@@ -60,6 +66,8 @@ namespace AntiqueTradingSimulator.Core
 
         void Update()
         {
+            PlaytimeSeconds += Time.unscaledDeltaTime;
+
             if (!IsRunning) return;
 
             _timer += Time.deltaTime * SpeedMultiplier;
@@ -114,7 +122,8 @@ namespace AntiqueTradingSimulator.Core
             CurrentDay = CurrentDay,
             DayTimer = _timer,
             SpeedIndex = _speedIndex,
-            IsRunning = IsRunning
+            IsRunning = IsRunning,
+            PlaytimeSeconds = PlaytimeSeconds
         };
 
         public void RestoreState(TimeManagerState state)
@@ -130,6 +139,9 @@ namespace AntiqueTradingSimulator.Core
             SpeedMultiplier = speedSteps != null && speedSteps.Length > 0 ? speedSteps[_speedIndex] : 1f;
 
             IsRunning = state.IsRunning;
+
+            // Saves from before play time was tracked carry 0; the count simply starts here.
+            PlaytimeSeconds = System.Math.Max(0d, state.PlaytimeSeconds);
 
             OnSpeedChanged?.Invoke(SpeedMultiplier);
             OnRunningChanged?.Invoke(IsRunning);

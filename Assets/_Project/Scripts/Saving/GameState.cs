@@ -11,13 +11,16 @@ using AntiqueTradingSimulator.Restoration;
 
 namespace AntiqueTradingSimulator.Saving
 {
-    public class GameState
+    /// <summary>
+    /// The whole game as written to a save file. The header fields (version, save time, day,
+    /// company figures) come from <see cref="SaveHeader"/>, so a slot list can read just those.
+    /// </summary>
+    public class GameState : SaveHeader
     {
-        public int Version = SaveSerializer.SaveFormatVersion;
-
-        public string SavedAtUtc;
-
-        public int SavedOnDay;
+        public GameState()
+        {
+            Version = SaveSerializer.SaveFormatVersion;
+        }
 
         public TimeManagerState Time;
 

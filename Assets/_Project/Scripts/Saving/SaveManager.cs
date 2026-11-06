@@ -8,20 +8,24 @@ using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.News;
 using AntiqueTradingSimulator.Restoration;
+using AntiqueTradingSimulator.UI;
 using System;
-using System.IO;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.Saving
 {
     /// <summary>
-    /// Writes and reads the save file. Order of restoring objects is not to be changed
+    /// Writes and reads saves: manual slots the player picks, and rotating autosaves taken every
+    /// few in-game days. The files themselves are handled by <see cref="SaveSlotStore"/>, the
+    /// timing of autosaves by <see cref="AutosaveScheduler"/>. Order of restoring objects is not
+    /// to be changed.
     /// </summary>
     public class SaveManager : MonoBehaviour
     {
-        [Header("File")]
-        [Tooltip("File name inside Application.persistentDataPath.")]
-        [SerializeField] private string fileName = "save.json";
+        [Header("Settings (loaded from Resources if empty)")]
+        [Tooltip("Save folder, slot counts and autosave defaults — shared with the main menu.")]
+        [SerializeField] private SaveSettings settings;
 
         [Header("References (found automatically if empty)")]
         [SerializeField] private TimeManager timeManager;
@@ -36,14 +40,41 @@ namespace AntiqueTradingSimulator.Saving
         [SerializeField] private NewsManager newsManager;
         [SerializeField] private PlayerTrader playerTrader;
 
-        /// <summary>Full path of the save file.</summary>
-        public string SavePath => Path.Combine(Application.persistentDataPath, fileName);
+        private AutosaveScheduler _autosave;
+        private double _playtimeAtLastSave;
 
-        /// <summary>Raised after a successful write, with the path written to.</summary>
-        public event Action<string> OnSaved;
+        public SaveSettings Settings => settings != null ? settings : (settings = SaveSettings.Load());
 
-        /// <summary>Raised after a save has been fully restored.</summary>
-        public event Action<GameState> OnLoaded;
+        public SaveSlotStore Store => SaveFiles.Store;
+
+        public int ManualSlotCount => Store.ManualSlotCount;
+
+        /// <summary>Slot of the last save written or loaded in this session; null in a new game not saved yet.</summary>
+        public SaveSlot? LastSaveSlot { get; private set; }
+
+        /// <summary>In-game day of that save; 0 when there is none.</summary>
+        public int LastSaveDay { get; private set; }
+
+        /// <summary>Play time since the last save or load (since the start, in a new game never saved).</summary>
+        public double SecondsSinceLastSave => Math.Max(0d, Playtime - _playtimeAtLastSave);
+
+        /// <summary>True when leaving now would lose more than a few seconds of play — ask first.</summary>
+        public bool HasUnsavedProgress => SecondsSinceLastSave > Settings.UnsavedProgressWarningSeconds;
+
+        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
+
+        private double Playtime => timeManager != null ? timeManager.PlaytimeSeconds : 0d;
+
+        private TraderInventory PlayerInventory => playerTrader != null ? playerTrader.Inventory : null;
+
+        /// <summary>Raised after a successful write, with the slot written to.</summary>
+        public event Action<SaveSlot> OnSaved;
+
+        /// <summary>Raised when a write failed, with a reason to show the player.</summary>
+        public event Action<string> OnSaveFailed;
+
+        /// <summary>Raised after a save has been fully restored, with the slot it came from.</summary>
+        public event Action<SaveSlot, GameState> OnLoaded;
 
         /// <summary>Raised when a load could not be completed, with a reason to show the player.</summary>
         public event Action<string> OnLoadFailed;
@@ -65,58 +96,161 @@ namespace AntiqueTradingSimulator.Saving
             if (playerTrader == null) playerTrader = FindFirstObjectByType<PlayerTrader>();
             if (companyManager == null)
                 companyManager = playerTrader != null ? playerTrader.Company : FindFirstObjectByType<CompanyManager>();
+
+            _autosave = new AutosaveScheduler(SavePreferences.AutosaveIntervalDays, CurrentDay)
+            {
+                Enabled = SavePreferences.AutosaveEnabled
+            };
         }
 
-        // ---------------------------------------------------------------- file level
+        private void OnEnable()
+        {
+            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            SavePreferences.Changed += ApplyPreferences;
+        }
 
-        public bool HasSave() => File.Exists(SavePath);
+        private void OnDisable()
+        {
+            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            SavePreferences.Changed -= ApplyPreferences;
+        }
 
-        /// <summary>Captures the game and writes it. Returns false (and logs) if anything failed.</summary>
-        public bool Save()
+        private void HandleDayChanged(int day) => _autosave?.NotifyDayChanged(day);
+
+        // Every OnDayChanged listener has finished by LateUpdate, so the autosave never captures
+        // a day that is only half processed. An open modal (a purchase in progress) delays it.
+        private void LateUpdate()
+        {
+            if (_autosave != null && _autosave.ShouldAutosaveNow(CurrentDay, ModalTracker.IsAnyOpen))
+                Autosave();
+        }
+
+        /// <summary>The settings screen changed the player's preferences: apply them to this game now.</summary>
+        private void ApplyPreferences()
+        {
+            if (_autosave == null) return;
+
+            _autosave.Enabled = SavePreferences.AutosaveEnabled;
+            _autosave.IntervalDays = SavePreferences.AutosaveIntervalDays;
+        }
+
+        private void MarkSaved(SaveSlot slot, int day)
+        {
+            LastSaveSlot = slot;
+            LastSaveDay = day;
+            _playtimeAtLastSave = Playtime;
+        }
+
+        // ---------------------------------------------------------------- slots
+
+        public bool HasAnySave() => Store.AnyExists();
+
+        public bool HasSave(SaveSlot slot) => Store.Exists(slot);
+
+        /// <summary>Every slot, filled or empty: manual slots first, then autosaves.</summary>
+        public List<SaveSlotInfo> ListSlots() => Store.List();
+
+        /// <summary>The newest loadable save, manual or autosave — what "Continue" loads. Null if none.</summary>
+        public SaveSlotInfo LatestSave() => Store.Latest();
+
+        public bool DeleteSave(SaveSlot slot)
         {
             try
             {
-                string json = SaveSerializer.ToJson(CaptureGame());
-                WriteAtomically(SavePath, json);
-
-                Debug.Log($"SaveManager: saved to {SavePath}");
-                OnSaved?.Invoke(SavePath);
-                return true;
+                return Store.Delete(slot);
             }
             catch (Exception exception)
             {
-                Debug.LogError($"SaveManager: save failed — {exception.Message}");
+                Debug.LogError($"SaveManager: could not delete {slot.DisplayName} — {exception.Message}");
                 return false;
             }
         }
 
-        /// <summary>
-        /// Reads the save file and restores it. Returns false (and logs, and raises OnLoadFailed) if the file is missing or unreadable.
-        /// </summary>
-        public bool Load()
-        {
-            string path = SavePath;
+        // ---------------------------------------------------------------- save
 
-            if (!File.Exists(path))
+        /// <summary>Captures the game and writes it to a slot. Returns false (and logs) if anything failed.</summary>
+        public bool Save(SaveSlot slot)
+        {
+            if (!Store.IsValid(slot))
             {
-                Fail($"No save file at {path}.");
+                FailSave($"{slot.DisplayName} does not exist (there are {Store.ManualSlotCount} manual and {Store.AutosaveSlotCount} autosave slots).");
+                return false;
+            }
+
+            try
+            {
+                Store.Write(slot, SaveSerializer.ToJson(CaptureGame()));
+            }
+            catch (Exception exception)
+            {
+                FailSave($"Saving to {slot.DisplayName} failed — {exception.Message}");
+                return false;
+            }
+
+            if (!slot.IsAutosave) _autosave?.Reset(CurrentDay);
+            MarkSaved(slot, CurrentDay);
+
+            Debug.Log($"SaveManager: saved day {CurrentDay} to {Store.PathFor(slot)}");
+            OnSaved?.Invoke(slot);
+            return true;
+        }
+
+        /// <summary>Writes the next autosave, over the oldest one once every autosave slot is used.</summary>
+        public bool Autosave()
+        {
+            IsAutosaving = true;
+            try
+            {
+                SaveSlot slot;
+                try
+                {
+                    slot = Store.NextAutosaveSlot();
+                }
+                catch (Exception exception)
+                {
+                    FailSave($"Autosave failed — {exception.Message}");
+                    return false;
+                }
+
+                return Save(slot);
+            }
+            finally
+            {
+                IsAutosaving = false;
+            }
+        }
+
+        /// <summary>True while an autosave is being written — lets OnSaveFailed listeners tell it from a manual save.</summary>
+        public bool IsAutosaving { get; private set; }
+
+        // ---------------------------------------------------------------- load
+
+        /// <summary>
+        /// Reads a slot and restores it. Returns false (and logs, and raises OnLoadFailed) if the
+        /// slot is empty or unreadable; the running game is then left untouched.
+        /// </summary>
+        public bool Load(SaveSlot slot)
+        {
+            if (!Store.Exists(slot))
+            {
+                FailLoad($"{slot.DisplayName} is empty.");
                 return false;
             }
 
             GameState state;
             try
             {
-                state = SaveSerializer.FromJson<GameState>(File.ReadAllText(path));
+                state = SaveSerializer.FromJson<GameState>(Store.Read(slot));
             }
             catch (Exception exception)
             {
-                Fail($"Save file could not be read — {exception.Message}");
+                FailLoad($"{slot.DisplayName} could not be read — {exception.Message}");
                 return false;
             }
 
             if (state == null)
             {
-                Fail("Save file is empty or not a save.");
+                FailLoad($"{slot.DisplayName} is empty or not a save.");
                 return false;
             }
 
@@ -124,74 +258,41 @@ namespace AntiqueTradingSimulator.Saving
             {
                 // No migrations exist yet. When the format changes, convert the old state here
                 // (and only then let it through) rather than loosening this check.
-                Fail(state.Version > SaveSerializer.SaveFormatVersion
-                    ? $"Save was written by a newer version of the game (format {state.Version}, this build reads {SaveSerializer.SaveFormatVersion})."
-                    : $"Save uses format {state.Version}, which this build can no longer read (it reads {SaveSerializer.SaveFormatVersion}).");
+                FailLoad(state.Version > SaveSerializer.SaveFormatVersion
+                    ? $"{slot.DisplayName} was written by a newer version of the game (format {state.Version}, this build reads {SaveSerializer.SaveFormatVersion})."
+                    : $"{slot.DisplayName} uses format {state.Version}, which this build can no longer read (it reads {SaveSerializer.SaveFormatVersion}).");
                 return false;
             }
 
             RestoreGame(state);
+            _autosave?.Reset(CurrentDay);
+            MarkSaved(slot, state.SavedOnDay);
 
-            Debug.Log($"SaveManager: loaded {path} (day {state.SavedOnDay}, saved {state.SavedAtUtc}).");
-            OnLoaded?.Invoke(state);
+            Debug.Log($"SaveManager: loaded {slot.DisplayName} (day {state.SavedOnDay}, saved {state.SavedAtUtc}).");
+            OnLoaded?.Invoke(slot, state);
             return true;
         }
 
-        /// <summary>Deletes the save file. Returns false if there was nothing to delete.</summary>
-        public bool DeleteSave()
+        /// <summary>Loads the newest loadable save ("Continue"). False if there is none.</summary>
+        public bool LoadLatest()
         {
-            if (!HasSave()) return false;
-
-            try
+            var latest = LatestSave();
+            if (latest == null)
             {
-                File.Delete(SavePath);
-                return true;
-            }
-            catch (Exception exception)
-            {
-                Debug.LogError($"SaveManager: could not delete the save — {exception.Message}");
+                FailLoad("There is no save to continue from.");
                 return false;
             }
+
+            return Load(latest.Slot);
         }
 
-        /// <summary>
-        /// Writes through a temporary file so an interrupted write cannot leave a half-written
-        /// save behind: the old file stays intact until the new one is complete on disk.
-        /// </summary>
-        private static void WriteAtomically(string path, string contents)
+        private void FailSave(string reason)
         {
-            string directory = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(directory))
-                Directory.CreateDirectory(directory);
-
-            string temporaryPath = path + ".tmp";
-            File.WriteAllText(temporaryPath, contents);
-
-            if (!File.Exists(path))
-            {
-                File.Move(temporaryPath, path);
-                return;
-            }
-
-            try
-            {
-                File.Replace(temporaryPath, path, null);
-            }
-            catch (PlatformNotSupportedException)
-            {
-                // File.Replace is not implemented everywhere Unity runs. The fallback has a
-                // brief window with no save file, which is still better than a truncated one.
-                File.Delete(path);
-                File.Move(temporaryPath, path);
-            }
-            catch (IOException)
-            {
-                File.Delete(path);
-                File.Move(temporaryPath, path);
-            }
+            Debug.LogError($"SaveManager: {reason}");
+            OnSaveFailed?.Invoke(reason);
         }
 
-        private void Fail(string reason)
+        private void FailLoad(string reason)
         {
             Debug.LogWarning($"SaveManager: load failed — {reason}");
             OnLoadFailed?.Invoke(reason);
@@ -208,6 +309,12 @@ namespace AntiqueTradingSimulator.Saving
             Version = SaveSerializer.SaveFormatVersion,
             SavedAtUtc = DateTime.UtcNow.ToString("o"),
             SavedOnDay = timeManager != null ? timeManager.CurrentDay : 0,
+            CampaignLength = timeManager != null ? timeManager.CampaignLength : 0,
+            PlaytimeSeconds = Playtime,
+            InGameDate = timeManager != null ? TimeManager.FormatLong(timeManager.CurrentDate) : null,
+            CompanyName = companyManager != null ? companyManager.CompanyName : null,
+            Cash = PlayerInventory != null ? PlayerInventory.Cash : 0f,
+            NetWorth = PlayerInventory != null ? PlayerInventory.Wealth : 0f,
 
             Time = timeManager != null ? timeManager.CaptureState() : null,
             Npcs = npcManager != null ? npcManager.CaptureState() : null,
