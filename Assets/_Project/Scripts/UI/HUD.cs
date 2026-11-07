@@ -118,7 +118,8 @@ namespace AntiqueTradingSimulator.UI
                 return;
             }
 
-            SetText(dayText, $"Day {day} / {timeManager.CampaignLength}");
+            // Past the campaign (play goes on as a sandbox) there is no "/ 90" to count towards.
+            SetText(dayText, day > timeManager.CampaignLength ? $"Day {day}" : $"Day {day} / {timeManager.CampaignLength}");
             SetText(dateText, TimeManager.FormatWithWeekday(timeManager.DayToDate(day)));
         }
 

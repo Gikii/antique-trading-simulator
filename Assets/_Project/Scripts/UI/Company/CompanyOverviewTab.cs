@@ -152,7 +152,7 @@ namespace AntiqueTradingSimulator.UI
                 tierProgress.SetColor(UIFormat.AccentColor);
             }
 
-            SetText(dayText, $"Day {now.Day} / {_company.CampaignLength}");
+            SetText(dayText, now.Day > _company.CampaignLength ? $"Day {now.Day}" : $"Day {now.Day} / {_company.CampaignLength}");
             SetText(dateText, timeManager != null ? TimeManager.FormatLong(timeManager.DayToDate(now.Day)) : "");
         }
 

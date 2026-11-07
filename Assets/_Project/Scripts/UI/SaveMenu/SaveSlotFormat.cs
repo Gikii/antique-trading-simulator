@@ -14,9 +14,11 @@ namespace AntiqueTradingSimulator.UI
         {
             if (header == null) return string.Empty;
 
-            string day = header.CampaignLength > 0
-                ? $"Day {header.SavedOnDay} / {header.CampaignLength}"
-                : $"Day {header.SavedOnDay}";
+            string day = header.CampaignFinished
+                ? $"Day {header.SavedOnDay} · Sandbox"
+                : header.CampaignLength > 0
+                    ? $"Day {header.SavedOnDay} / {header.CampaignLength}"
+                    : $"Day {header.SavedOnDay}";
 
             return string.IsNullOrEmpty(header.InGameDate) ? day : $"{day} · {header.InGameDate}";
         }

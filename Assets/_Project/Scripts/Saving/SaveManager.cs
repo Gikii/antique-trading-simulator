@@ -36,6 +36,7 @@ namespace AntiqueTradingSimulator.Saving
         [SerializeField] private RestorationManager restorationManager;
         [SerializeField] private ContractManager contractManager;
         [SerializeField] private CompanyManager companyManager;
+        [SerializeField] private CampaignManager campaignManager;
         [SerializeField] private EventManager eventManager;
         [SerializeField] private NewsManager newsManager;
         [SerializeField] private PlayerTrader playerTrader;
@@ -96,6 +97,7 @@ namespace AntiqueTradingSimulator.Saving
             if (playerTrader == null) playerTrader = FindFirstObjectByType<PlayerTrader>();
             if (companyManager == null)
                 companyManager = playerTrader != null ? playerTrader.Company : FindFirstObjectByType<CompanyManager>();
+            if (campaignManager == null) campaignManager = FindFirstObjectByType<CampaignManager>();
 
             _autosave = new AutosaveScheduler(SavePreferences.AutosaveIntervalDays, CurrentDay)
             {
@@ -315,6 +317,7 @@ namespace AntiqueTradingSimulator.Saving
             CompanyName = companyManager != null ? companyManager.CompanyName : null,
             Cash = PlayerInventory != null ? PlayerInventory.Cash : 0f,
             NetWorth = PlayerInventory != null ? PlayerInventory.Wealth : 0f,
+            CampaignFinished = campaignManager != null && campaignManager.IsFinished,
 
             Time = timeManager != null ? timeManager.CaptureState() : null,
             Npcs = npcManager != null ? npcManager.CaptureState() : null,
@@ -324,6 +327,7 @@ namespace AntiqueTradingSimulator.Saving
             Restoration = restorationManager != null ? restorationManager.CaptureState() : null,
             Contracts = contractManager != null ? contractManager.CaptureState() : null,
             Company = companyManager != null ? companyManager.CaptureState() : null,
+            Campaign = campaignManager != null ? campaignManager.CaptureState() : null,
             Events = eventManager != null ? eventManager.CaptureState() : null,
             News = newsManager != null ? newsManager.CaptureState() : null
         };
@@ -373,6 +377,7 @@ namespace AntiqueTradingSimulator.Saving
             else WarnMissing("ContractManager", state.Contracts);
 
             if (companyManager != null) companyManager.RestoreState(state.Company);
+            if (campaignManager != null) campaignManager.RestoreState(state.Campaign);
             else WarnMissing("CompanyManager", state.Company);
 
             if (eventManager != null) eventManager.RestoreState(state.Events);

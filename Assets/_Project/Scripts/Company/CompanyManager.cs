@@ -9,20 +9,38 @@ using UnityEngine;
 
 namespace AntiqueTradingSimulator.Company
 {
-    /// <summary>A row of the competition ranking: the player's company or an NPC trader.</summary>
+    /// <summary>
+    /// A row of the competition ranking: the player's company or an NPC trader, with the same
+    /// numbers for both (a snapshot of now, its campaign score and its daily history).
+    /// </summary>
     public readonly struct CompetitorEntry
     {
+        /// <summary>Owner Id: <see cref="Market.Antique.PlayerOwnerId"/> for the player, the NPC's Id otherwise.</summary>
+        public readonly string Id;
         public readonly string Name;
-        public readonly float Wealth;
-        public readonly float CollectionValue;
         public readonly bool IsPlayer;
 
-        public CompetitorEntry(string name, float wealth, float collectionValue, bool isPlayer)
+        /// <summary>The trader's numbers right now.</summary>
+        public readonly CompanySnapshot Snapshot;
+
+        /// <summary>Campaign score of <see cref="Snapshot"/> (ScoringSettings, same rules for everyone).</summary>
+        public readonly float Score;
+
+        /// <summary>One snapshot per day, oldest first.</summary>
+        public readonly IReadOnlyList<CompanySnapshot> History;
+
+        public float Wealth => Snapshot.Wealth;
+        public float CollectionValue => Snapshot.CollectionValue;
+
+        public CompetitorEntry(string id, string name, bool isPlayer, CompanySnapshot snapshot, float score,
+                               IReadOnlyList<CompanySnapshot> history)
         {
+            Id = id;
             Name = name;
-            Wealth = wealth;
-            CollectionValue = collectionValue;
             IsPlayer = isPlayer;
+            Snapshot = snapshot;
+            Score = score;
+            History = history;
         }
     }
 
@@ -61,27 +79,39 @@ namespace AntiqueTradingSimulator.Company
         private ContractManager _contractManager;
         private RestorationManager _restorationManager;
 
-        private CompanyReputation _reputation;
+        private TraderRecord _record;
         private CompanyUpgrades _upgrades;
-        private readonly List<CompanySnapshot> _history = new List<CompanySnapshot>();
-
-        // Market sales are turned into reputation once per day, as one history entry.
-        private float _pendingSalesValue;
-        private int _pendingSalesCount;
 
         private bool _subscribed;
 
         public string CompanyName => companyName;
-        public CompanyReputation Reputation
+        /// <summary>
+        /// The company's reputation, contract counts and daily history — the same kind of record
+        /// every NPC keeps, so the final ranking compares like with like.
+        /// </summary>
+        public TraderRecord Record
         {
             get
             {
-                if (_reputation == null)
+                if (_record == null)
                 {
                     EnsureSettings();
-                    _reputation = new CompanyReputation(reputationSettings);
+                    _record = new TraderRecord(reputationSettings, maxSnapshotDays);
+                    _record.Changed += HandleRecordChanged;
                 }
-                return _reputation;
+                return _record;
+            }
+        }
+
+        public CompanyReputation Reputation => Record.Reputation;
+
+        /// <summary>The reputation rules, shared with the NPCs.</summary>
+        public ReputationSettings ReputationSettings
+        {
+            get
+            {
+                EnsureSettings();
+                return reputationSettings;
             }
         }
         public ScoringSettings Scoring
@@ -110,12 +140,12 @@ namespace AntiqueTradingSimulator.Company
 
         public PlayerTrader Player => _player != null ? _player : (_player = GetComponent<PlayerTrader>());
 
-        public int ContractsAccepted { get; private set; }
-        public int ContractsFulfilled { get; private set; }
-        public int ContractsFailed { get; private set; }
+        public int ContractsAccepted => Record.ContractsAccepted;
+        public int ContractsFulfilled => Record.ContractsFulfilled;
+        public int ContractsFailed => Record.ContractsFailed;
 
         /// <summary>One snapshot per day, oldest first.</summary>
-        public IReadOnlyList<CompanySnapshot> History => _history;
+        public IReadOnlyList<CompanySnapshot> History => Record.History;
 
         public int CurrentDay => Clock != null ? Clock.CurrentDay : 1;
         public int CampaignLength => Clock != null ? Clock.CampaignLength : 90;
@@ -138,7 +168,7 @@ namespace AntiqueTradingSimulator.Company
         private void Awake()
         {
             EnsureSettings();
-            Reputation.OnChanged += HandleReputationChanged;
+            _ = Record;
         }
 
         private void EnsureSettings()
@@ -176,7 +206,7 @@ namespace AntiqueTradingSimulator.Company
 
         private void OnDestroy()
         {
-            if (_reputation != null) _reputation.OnChanged -= HandleReputationChanged;
+            if (_record != null) _record.Changed -= HandleRecordChanged;
             if (_upgrades != null) _upgrades.OnUpgraded -= HandleUpgraded;
             Unsubscribe();
         }
@@ -247,7 +277,7 @@ namespace AntiqueTradingSimulator.Company
 
         private void HandleDayChanged(int newDay)
         {
-            FlushSalesReputation(newDay - 1);
+            Record.FlushSales(newDay - 1);
             ChargeUpgradeUpkeep();
             RecordSnapshot();
             OnCompanyChanged?.Invoke();
@@ -264,57 +294,17 @@ namespace AntiqueTradingSimulator.Company
 
         private void HandleLedgerEntry(LedgerEntry entry)
         {
-            if (entry.Category != LedgerCategory.Sale || entry.Amount <= 0f) return;
-
-            _pendingSalesValue += entry.Amount;
-            _pendingSalesCount++;
+            if (entry.Category == LedgerCategory.Sale)
+                Record.RecordSale(entry.Amount);
         }
 
-        private void FlushSalesReputation(int day)
-        {
-            int points = Mathf.RoundToInt(_pendingSalesValue * Reputation.Settings.ReputationPerSaleValue);
-            int count = _pendingSalesCount;
-            _pendingSalesValue = 0f;
-            _pendingSalesCount = 0;
+        private void HandleContractAccepted(Contract contract) => Record.ContractAccepted();
 
-            if (points > 0)
-                Reputation.AddReputation(points, count == 1 ? "Antique sold on the market" : $"{count} antiques sold on the market", day);
-        }
+        private void HandleContractFulfilled(Contract contract) => Record.ContractFulfilled(contract, CurrentDay);
 
-        private void HandleContractAccepted(Contract contract)
-        {
-            ContractsAccepted++;
-            OnCompanyChanged?.Invoke();
-        }
+        private void HandleContractFailed(Contract contract) => Record.ContractFailed(contract, CurrentDay);
 
-        private void HandleContractFulfilled(Contract contract)
-        {
-            ContractsFulfilled++;
-            if (contract == null) return;
-
-            var s = Reputation.Settings;
-            bool exclusive = contract.Type == ContractType.Exclusive;
-
-            int reputation = s.ContractFulfilledReputation
-                             + Mathf.RoundToInt(contract.TotalReward * s.ReputationPerContractReward)
-                             + (exclusive ? s.ExclusiveContractBonusReputation : 0);
-            float credibility = s.ContractFulfilledCredibility + (exclusive ? s.ExclusiveContractBonusCredibility : 0f);
-
-            AddReputation(reputation, exclusive ? $"Exclusive contract fulfilled ({contract.Requirement})" : $"Contract fulfilled ({contract.Requirement})");
-            AddCredibility(credibility, $"Contract delivered on time ({contract.Requirement})");
-        }
-
-        private void HandleContractFailed(Contract contract)
-        {
-            ContractsFailed++;
-
-            var s = Reputation.Settings;
-            string what = contract != null ? $" ({contract.Requirement})" : "";
-            AddReputation(s.ContractFailedReputation, "Failed to deliver contract" + what);
-            AddCredibility(s.ContractFailedCredibility, "Contract deadline missed" + what);
-        }
-
-        private void HandleReputationChanged(ReputationChange change) => OnCompanyChanged?.Invoke();
+        private void HandleRecordChanged() => OnCompanyChanged?.Invoke();
 
         private void HandleUpgraded(CompanyUpgradeType type) => OnCompanyChanged?.Invoke();
 
@@ -331,14 +321,7 @@ namespace AntiqueTradingSimulator.Company
             if (inventory == null || _economyManager == null) return 0f;
 
             int from = days > 0 ? CurrentDay - days + 1 : int.MinValue;
-            int to = int.MaxValue;
-
-            float total = 0f;
-            foreach (var trader in _economyManager.Inventories)
-                if (trader != null)
-                    total += trader.Ledger.TradeVolume(from, to);
-
-            return total > 0f ? inventory.Ledger.TradeVolume(from, to) / total : 0f;
+            return TraderStats.MarketShare(inventory, _economyManager.Inventories, from);
         }
 
         // ---------------------------------------------------------------- snapshots & trends
@@ -347,25 +330,10 @@ namespace AntiqueTradingSimulator.Company
         public CompanySnapshot Capture()
         {
             var inventory = Player != null ? Player.Inventory : null;
-            return new CompanySnapshot(
-                CurrentDay,
-                inventory?.Cash ?? 0f,
-                inventory?.Wealth ?? 0f,
-                inventory?.TotalHoldingsValue ?? 0f,
-                Reputation.Reputation,
-                Reputation.Credibility,
-                MarketShare(),
-                ContractsFulfilled);
+            return Record.Capture(CurrentDay, inventory, MarketShare());
         }
 
-        private void RecordSnapshot()
-        {
-            var snapshot = Capture();
-            _history.RemoveAll(s => s.Day == snapshot.Day);
-            _history.Add(snapshot);
-            if (_history.Count > maxSnapshotDays)
-                _history.RemoveAt(0);
-        }
+        private void RecordSnapshot() => Record.Record(Capture());
 
         /// <summary>
         /// The latest recorded snapshot at least <paramref name="days"/> days old, or the
@@ -373,14 +341,7 @@ namespace AntiqueTradingSimulator.Company
         /// </summary>
         public CompanySnapshot SnapshotDaysAgo(int days)
         {
-            if (_history.Count == 0) return Capture();
-
-            int day = CurrentDay - days;
-            for (int i = _history.Count - 1; i >= 0; i--)
-                if (_history[i].Day <= day)
-                    return _history[i];
-
-            return _history[0];
+            return Record.SnapshotDaysAgo(CurrentDay, days) ?? Capture();
         }
 
         /// <summary>Change of one criterion over the last <paramref name="days"/> days (live minus past).</summary>
@@ -399,19 +360,56 @@ namespace AntiqueTradingSimulator.Company
         /// <summary>The player and every NPC trader, richest first.</summary>
         public List<CompetitorEntry> GetCompetition()
         {
+            var result = Competitors();
+            result.Sort((a, b) => b.Wealth.CompareTo(a.Wealth));
+            return result;
+        }
+
+        /// <summary>
+        /// The player and every NPC trader by campaign score, best first — the final ranking.
+        /// Scores are compared as shown (whole points), so two traders showing the same score
+        /// are ordered by wealth, never by a hidden fraction.
+        /// </summary>
+        public List<CompetitorEntry> GetRanking()
+        {
+            var result = Competitors();
+            result.Sort((a, b) =>
+            {
+                int byScore = Mathf.RoundToInt(b.Score).CompareTo(Mathf.RoundToInt(a.Score));
+                return byScore != 0 ? byScore : b.Wealth.CompareTo(a.Wealth);
+            });
+            return result;
+        }
+
+        private List<CompetitorEntry> Competitors()
+        {
             var result = new List<CompetitorEntry>();
+            var scoring = Scoring;
 
             var inventory = Player != null ? Player.Inventory : null;
             if (inventory != null)
-                result.Add(new CompetitorEntry(companyName, inventory.Wealth, inventory.TotalHoldingsValue, true));
+            {
+                var now = Capture();
+                result.Add(new CompetitorEntry(Market.Antique.PlayerOwnerId, companyName, true, now,
+                                               CampaignScoring.TotalScore(scoring, now), Record.History));
+            }
 
-            if (_npcManager == null) ResolveReferences();
+            if (_npcManager == null || _economyManager == null) ResolveReferences();
             if (_npcManager != null)
+            {
                 foreach (var npc in _npcManager.NPCs)
-                    if (npc?.Inventory != null)
-                        result.Add(new CompetitorEntry(npc.TraderName, npc.Inventory.Wealth, npc.Inventory.TotalHoldingsValue, false));
+                {
+                    if (npc?.Inventory == null) continue;
 
-            result.Sort((a, b) => b.Wealth.CompareTo(a.Wealth));
+                    float share = _economyManager != null
+                        ? TraderStats.MarketShare(npc.Inventory, _economyManager.Inventories)
+                        : 0f;
+                    var now = npc.Record.Capture(CurrentDay, npc.Inventory, share);
+                    result.Add(new CompetitorEntry(npc.Id, npc.TraderName, false, now,
+                                                   CampaignScoring.TotalScore(scoring, now), npc.Record.History));
+                }
+            }
+
             return result;
         }
 
@@ -420,19 +418,25 @@ namespace AntiqueTradingSimulator.Company
         /// <summary>
         /// Snapshot of the company. The competition ranking and the Congress score are not saved.
         /// </summary>
-        public CompanyState CaptureState() => new CompanyState
+        public CompanyState CaptureState()
         {
-            ContractsAccepted = ContractsAccepted,
-            ContractsFulfilled = ContractsFulfilled,
-            ContractsFailed = ContractsFailed,
-            PendingSalesValue = _pendingSalesValue,
-            PendingSalesCount = _pendingSalesCount,
-            History = new List<CompanySnapshot>(_history),
-            Reputation = Reputation.CaptureState(),
-            UpgradeLevels = Upgrades != null
-                ? Upgrades.CaptureState()
-                : new Dictionary<CompanyUpgradeType, int>()
-        };
+            // The company's save keeps its own (older) shape: the record's fields, flattened,
+            // plus the upgrade levels only the player has.
+            var record = Record.CaptureState();
+            return new CompanyState
+            {
+                ContractsAccepted = record.ContractsAccepted,
+                ContractsFulfilled = record.ContractsFulfilled,
+                ContractsFailed = record.ContractsFailed,
+                PendingSalesValue = record.PendingSalesValue,
+                PendingSalesCount = record.PendingSalesCount,
+                History = record.History,
+                Reputation = record.Reputation,
+                UpgradeLevels = Upgrades != null
+                    ? Upgrades.CaptureState()
+                    : new Dictionary<CompanyUpgradeType, int>()
+            };
+        }
 
         /// <summary>
         /// Replaces the company's statistics, reputation, upgrade levels and snapshot history.
@@ -442,15 +446,16 @@ namespace AntiqueTradingSimulator.Company
         {
             if (state == null) return;
 
-            ContractsAccepted = state.ContractsAccepted;
-            ContractsFulfilled = state.ContractsFulfilled;
-            ContractsFailed = state.ContractsFailed;
-
-            _pendingSalesValue = state.PendingSalesValue;
-            _pendingSalesCount = state.PendingSalesCount;
-
-            // Through the property, so the lazy CompanyReputation exists before it is filled.
-            Reputation.RestoreState(state.Reputation);
+            Record.RestoreState(new TraderRecordState
+            {
+                ContractsAccepted = state.ContractsAccepted,
+                ContractsFulfilled = state.ContractsFulfilled,
+                ContractsFailed = state.ContractsFailed,
+                PendingSalesValue = state.PendingSalesValue,
+                PendingSalesCount = state.PendingSalesCount,
+                History = state.History,
+                Reputation = state.Reputation
+            });
 
             if (state.UpgradeLevels != null && state.UpgradeLevels.Count > 0)
             {
@@ -458,15 +463,6 @@ namespace AntiqueTradingSimulator.Company
                     Upgrades.RestoreState(state.UpgradeLevels);
                 else
                     Debug.LogWarning("CompanyManager: upgrade levels could not be restored — the player's inventory does not exist yet. Restore the company after the economy.");
-            }
-
-            _history.Clear();
-            if (state.History != null)
-            {
-                _history.AddRange(state.History);
-
-                if (_history.Count > maxSnapshotDays)
-                    _history.RemoveRange(0, _history.Count - maxSnapshotDays);
             }
 
             OnCompanyChanged?.Invoke();
