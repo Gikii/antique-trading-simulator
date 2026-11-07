@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.News;
 
 namespace AntiqueTradingSimulator.Agents
@@ -20,6 +21,9 @@ namespace AntiqueTradingSimulator.Agents
         public List<PendingReactionState> PendingReactions = new List<PendingReactionState>();
 
         public List<string> CommittedContractIds = new List<string>();
+
+        /// <summary>Reputation, contract counts and daily history. Null in saves from before NPC records.</summary>
+        public TraderRecordState Record;
     }
 
     public class AcquisitionState

@@ -34,6 +34,9 @@ namespace AntiqueTradingSimulator.Saving
         /// <summary>Cash plus the value of everything the player holds.</summary>
         public float NetWorth;
 
+        /// <summary>The campaign had ended (play went on as a sandbox). False in older saves.</summary>
+        public bool CampaignFinished;
+
         /// <summary>SavedAtUtc parsed back, or null when the field is missing or malformed.</summary>
         [JsonIgnore]
         public DateTime? SavedAt =>

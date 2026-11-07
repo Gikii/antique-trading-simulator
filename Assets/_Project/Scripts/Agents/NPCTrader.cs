@@ -1,3 +1,4 @@
+using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Events;
@@ -57,8 +58,16 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>Contracts this NPC has taken — kept by its inventory (saved with the economy).</summary>
         public IReadOnlyCollection<string> CommittedContractIds => Inventory.CommittedContractIds;
 
+        /// <summary>
+        /// Reputation, credibility, contract counts and daily history — kept by the same rules as
+        /// the player's company. Reputation decides which contracts this NPC may take.
+        /// </summary>
+        public TraderRecord Record { get; }
+
+        /// <param name="reputationSettings">The reputation rules; the player's are passed in so both play by the same ones.</param>
         public NPCTrader(string traderName, string profileId, float startingCash, EconomyManager economyManager,
-            ContractManager contractManager = null, TransportManager transportManager = null)
+            ContractManager contractManager = null, TransportManager transportManager = null,
+            ReputationSettings reputationSettings = null)
         {
             Id = Guid.NewGuid().ToString("N");
             TraderName = traderName;
@@ -67,7 +76,21 @@ namespace AntiqueTradingSimulator.Agents
             _economyManager = economyManager;
             _contractManager = contractManager;
             _transportManager = transportManager;
+
+            Record = new TraderRecord(reputationSettings != null
+                ? reputationSettings
+                : ScriptableObject.CreateInstance<ReputationSettings>());
+
+            // The inventory lives exactly as long as this NPC, so the subscription never needs removing.
+            Inventory.Ledger.OnEntryAdded += entry =>
+            {
+                if (entry.Category == LedgerCategory.Sale) Record.RecordSale(entry.Amount);
+            };
         }
+
+        private int CurrentDay => _economyManager != null && _economyManager.TimeManager != null
+            ? _economyManager.TimeManager.CurrentDay
+            : 0;
 
         public void ReceiveNews(NewsItem news)
         {
@@ -418,6 +441,9 @@ namespace AntiqueTradingSimulator.Agents
                         Debug.Log($"{TraderName} dropped open contract {contract.ContractId} — the missing antiques can't arrive before day {contract.DeadlineDay}.");
                         Inventory.ReleaseAllReservationsForContract(contract.ContractId);
                         Inventory.ReleaseCommittedContract(contract.ContractId);
+                        // Backing out of a taken contract costs what missing its deadline would —
+                        // the player can't drop one either, it just runs out.
+                        Record.ContractFailed(contract, currentDay);
                         continue;
                     }
 
@@ -442,7 +468,10 @@ namespace AntiqueTradingSimulator.Agents
             if (listingIds.Count < contract.Requirement.Quantity) return;
 
             if (_contractManager.FulfillContract(contract.ContractId, Id, Inventory, listingIds))
+            {
                 Inventory.ReleaseCommittedContract(contract.ContractId);
+                Record.ContractFulfilled(contract, CurrentDay);
+            }
         }
 
         /// <summary>
@@ -454,10 +483,11 @@ namespace AntiqueTradingSimulator.Agents
         {
             if (_contractManager == null) return 0f;
 
-            // NPCs have no reputation, so contracts that require some are the player's alone.
+            // Contracts that require reputation are open to NPCs that have earned it, as to the player.
+            int reputation = Record.Reputation.Reputation;
             var candidates = _contractManager.OpenContracts.Where(c => !Inventory.IsCommittedToContract(c.ContractId))
                 .Concat(_contractManager.ExclusiveContracts.Where(c => c.CanBeClaimed))
-                .Where(c => !c.RequiresReputation)
+                .Where(c => c.RequiredReputation <= reputation)
                 .ToList();
             if (candidates.Count == 0) return 0f;
 
@@ -494,6 +524,7 @@ namespace AntiqueTradingSimulator.Agents
                 return 0f;
 
             Inventory.CommitToContract(chosen.ContractId);
+            Record.ContractAccepted();
             Debug.Log($"{TraderName} picked up {chosen.Type} contract {chosen.ContractId} — needs {chosen.Requirement.Quantity}, due day {chosen.DeadlineDay}, expected profit {best.Profit:F0}.");
 
             float spent = ExecutePlan(best, currentDay);
@@ -557,7 +588,8 @@ namespace AntiqueTradingSimulator.Agents
                 ProfileId = ProfileId,
                 TraderName = TraderName,
                 // Informational only: the inventory saves and restores the commitments (EconomyState).
-                CommittedContractIds = new List<string>(Inventory.CommittedContractIds)
+                CommittedContractIds = new List<string>(Inventory.CommittedContractIds),
+                Record = Record.CaptureState()
             };
 
             foreach (var pair in _acquisitions)
@@ -591,6 +623,9 @@ namespace AntiqueTradingSimulator.Agents
 
             if (!string.IsNullOrEmpty(state.ProfileId) && state.ProfileId != ProfileId)
                 Debug.LogWarning($"NPCTrader: '{TraderName}' was constructed with profile '{ProfileId}' but the save says '{state.ProfileId}'. Construct the NPC from the saved ProfileId.");
+
+            // Saves from before NPC records start them fresh.
+            Record.RestoreState(state.Record);
 
             _acquisitions.Clear();
             if (state.Acquisitions != null)

@@ -38,6 +38,9 @@ namespace AntiqueTradingSimulator.Saving
 
         public CompanyState Company;
 
+        /// <summary>Whether the campaign has ended, and its frozen ranking. Null in older saves (still running).</summary>
+        public CampaignState Campaign;
+
         public EventsState Events;
 
         public NewsState News;

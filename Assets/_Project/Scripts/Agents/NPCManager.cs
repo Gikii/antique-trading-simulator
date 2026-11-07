@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Logistics;
@@ -25,6 +26,10 @@ namespace AntiqueTradingSimulator.Agents
         [SerializeField] private List<string> initialProfileIds = new();
         [SerializeField] private float defaultStartingCash = 2000f;
 
+        [Header("Reputation (taken from the player's CompanyManager if empty)")]
+        [Tooltip("Leave empty so NPCs and the player earn and lose reputation by the same rules.")]
+        [SerializeField] private ReputationSettings reputationSettings;
+
         private readonly List<NPCTrader> _npcs = new();
         private readonly Dictionary<string, NPCTrader> _npcsById = new();
 
@@ -39,12 +44,31 @@ namespace AntiqueTradingSimulator.Agents
             if (newsManager == null) newsManager = FindFirstObjectByType<NewsManager>();
             if (contractManager == null) contractManager = FindFirstObjectByType<ContractManager>();
             if (transportManager == null) transportManager = FindFirstObjectByType<TransportManager>();
+            if (reputationSettings == null)
+            {
+                var company = FindFirstObjectByType<CompanyManager>();
+                if (company != null) reputationSettings = company.ReputationSettings;
+            }
 
             SpawnInitialNPCs();
         }
 
-        void OnEnable() { if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged; }
-        void OnDisable() { if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged; }
+        void OnEnable()
+        {
+            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            if (contractManager != null) contractManager.OnContractExpired += HandleContractExpired;
+        }
+
+        void OnDisable()
+        {
+            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            if (contractManager != null) contractManager.OnContractExpired -= HandleContractExpired;
+        }
+
+        // Day 1 gets its snapshot too (a loaded game replaces the history afterwards).
+        void Start() => RecordSnapshots(CurrentDay);
+
+        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 1;
 
         /// <summary>
         /// One NPC per entry of initialProfileIds. Name and starting cash come from the profile
@@ -83,11 +107,42 @@ namespace AntiqueTradingSimulator.Agents
         {
             foreach (var npc in _npcs)
                 npc.EvaluateDay(newDay);
+
+            // Yesterday's sales become reputation, then today's numbers are written down —
+            // the same end-of-day steps the player's company takes.
+            foreach (var npc in _npcs)
+                npc.Record.FlushSales(newDay - 1);
+            RecordSnapshots(newDay);
+        }
+
+        private void RecordSnapshots(int day)
+        {
+            var everyone = economyManager != null ? economyManager.Inventories : null;
+            foreach (var npc in _npcs)
+            {
+                float share = TraderStats.MarketShare(npc.Inventory, everyone);
+                npc.Record.Record(npc.Record.Capture(day, npc.Inventory, share));
+            }
+        }
+
+        /// <summary>
+        /// A contract ran out: every NPC that had taken it (claimed an exclusive one, or committed
+        /// to an open one) failed it. Its reserved antiques are freed on its next day, as before.
+        /// </summary>
+        private void HandleContractExpired(Contract contract)
+        {
+            if (contract == null) return;
+
+            foreach (var npc in _npcs)
+            {
+                bool took = contract.ClaimedByTraderId == npc.Id || npc.Inventory.IsCommittedToContract(contract.ContractId);
+                if (took) npc.Record.ContractFailed(contract, CurrentDay);
+            }
         }
 
         public NPCTrader SpawnNPC(string traderName, string profileId, float? startingCash = null)
         {
-            var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager, contractManager, transportManager);
+            var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager, contractManager, transportManager, reputationSettings);
             RegisterNPC(npc);
             Debug.Log("Created NPC Trader " + traderName);
             return npc;
@@ -152,7 +207,7 @@ namespace AntiqueTradingSimulator.Agents
 
                 // Starting cash is set to 0. Restoring inventory sets it to the saved value.
                 var npc = new NPCTrader(npcState.TraderName, npcState.ProfileId, 0f,
-                    economyManager, contractManager, transportManager);
+                    economyManager, contractManager, transportManager, reputationSettings);
 
                 // Before RegisterNPC, which keys everything on the Id this restores.
                 npc.RestoreState(npcState);
