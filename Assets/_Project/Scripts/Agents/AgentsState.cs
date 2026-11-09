@@ -24,6 +24,16 @@ namespace AntiqueTradingSimulator.Agents
 
         /// <summary>Reputation, contract counts and daily history. Null in saves from before NPC records.</summary>
         public TraderRecordState Record;
+
+        public int PlanDay;
+
+        public List<int> SlotTicks = new List<int>();
+
+        public float DayBudget;
+
+        public float ContractReserve;
+
+        public int ContractSlotsUsed;
     }
 
     public class AcquisitionState

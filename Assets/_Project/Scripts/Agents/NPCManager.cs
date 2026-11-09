@@ -55,13 +55,21 @@ namespace AntiqueTradingSimulator.Agents
 
         void OnEnable()
         {
-            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            if (timeManager != null)
+            {
+                timeManager.OnDayChanged += HandleDayChanged;
+                timeManager.OnTick += HandleTick;
+            }
             if (contractManager != null) contractManager.OnContractExpired += HandleContractExpired;
         }
 
         void OnDisable()
         {
-            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            if (timeManager != null)
+            {
+                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnTick -= HandleTick;
+            }
             if (contractManager != null) contractManager.OnContractExpired -= HandleContractExpired;
         }
 
@@ -103,10 +111,16 @@ namespace AntiqueTradingSimulator.Agents
             return $"{baseName} {used + 1}";
         }
 
+        private void HandleTick(int day, int tick)
+        {
+            for (int i = 0; i < _npcs.Count; i++)
+                _npcs[i]?.RunScheduledActions(day, tick);
+        }
+
         private void HandleDayChanged(int newDay)
         {
             foreach (var npc in _npcs)
-                npc.EvaluateDay(newDay);
+                npc.FlushRemainingSlots(); ;
 
             // Yesterday's sales become reputation, then today's numbers are written down —
             // the same end-of-day steps the player's company takes.
@@ -154,6 +168,7 @@ namespace AntiqueTradingSimulator.Agents
 
             _npcsById.Remove(npcId);
             _npcs.Remove(npc);
+            npc.Detach();
             newsManager?.UnregisterReceiver(npc);
             contractManager?.UnregisterTrader(npcId);
             if (economyManager != null) economyManager.UnregisterInventory(npc.Inventory);
@@ -214,6 +229,7 @@ namespace AntiqueTradingSimulator.Agents
 
                 if (_npcsById.ContainsKey(npc.Id))
                 {
+                    npc.Detach();
                     Debug.LogWarning($"NPCManager: duplicate NPC Id '{npc.Id}' in the save — keeping the first one.");
                     continue;
                 }

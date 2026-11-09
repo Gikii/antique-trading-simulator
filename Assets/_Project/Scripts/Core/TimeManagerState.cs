@@ -5,6 +5,8 @@ namespace AntiqueTradingSimulator.Core
     {
         public int CurrentDay = 1;
 
+        public int CurrentTick;
+
         public float DayTimer;
 
         public int SpeedIndex;
