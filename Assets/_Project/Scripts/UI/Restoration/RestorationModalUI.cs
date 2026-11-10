@@ -40,10 +40,10 @@ namespace AntiqueTradingSimulator.UI
 
         [Header("Summary")]
         [SerializeField] private TMP_Text conditionText; // "Poor 40% → Good 85%"
-        [SerializeField] private TMP_Text valueText;     // "4 000 € → 8 500 €"
-        [SerializeField] private TMP_Text costText;      // "2 025 €"
+        [SerializeField] private TMP_Text valueText;     // "4 000 £ → 8 500 £"
+        [SerializeField] private TMP_Text costText;      // "2 025 £"
         [SerializeField] private TMP_Text readyText;     // "18 October (in 6 days)"
-        [SerializeField] private TMP_Text cashAfterText; // "2 630 €"
+        [SerializeField] private TMP_Text cashAfterText; // "2 630 £"
         [SerializeField] private TMP_Text outcomesText;  // chances of each result
         [SerializeField] private TMP_Text expectedText;  // average gain
         [SerializeField] private TMP_Text warningText;   // why Confirm is disabled

@@ -84,7 +84,7 @@ namespace AntiqueTradingSimulator.Company
 
         [Header("Contracts")]
         public int ContractFulfilledReputation = 15;
-        [Tooltip("Extra reputation per € of contract reward (0.01 = +1 per 100 €).")]
+        [Tooltip("Extra reputation per € of contract reward (0.01 = +1 per 100 £).")]
         [Min(0f)] public float ReputationPerContractReward = 0.01f;
         public int ExclusiveContractBonusReputation = 10;
         public float ContractFulfilledCredibility = 0.03f;
@@ -93,7 +93,7 @@ namespace AntiqueTradingSimulator.Company
         public float ContractFailedCredibility = -0.08f;
 
         [Header("Market sales")]
-        [Tooltip("Reputation per € of market sales, summed per day (0.02 = +1 per 50 €).")]
+        [Tooltip("Reputation per € of market sales, summed per day (0.02 = +1 per 50 £).")]
         [Min(0f)] public float ReputationPerSaleValue = 0.02f;
 
         [Header("History")]

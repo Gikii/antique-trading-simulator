@@ -39,7 +39,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text currentPriceText;
 
         [Header("Shipping")]
-        [Tooltip("e.g. \"Ships from International · 5 days, ~120 € (Standard)\". Optional.")]
+        [Tooltip("e.g. \"Ships from International · 5 days, ~120 £ (Standard)\". Optional.")]
         [SerializeField] private TMP_Text shippingText;
 
 

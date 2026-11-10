@@ -438,7 +438,7 @@ namespace AntiqueTradingSimulator.Agents
             if (victim == null) return;
 
             var sold = Inventory.GetHolding(victim);
-            Debug.Log($"{TraderName} panic sells {sold?.Name}: worth {sold?.CurrentPrice:F0} €, paid {paid:F0} €.");
+            Debug.Log($"{TraderName} panic sells {sold?.Name}: worth {sold?.CurrentPrice:F0} £, paid {paid:F0} £.");
             if (SellListing(victim)) _acquisitions.Remove(victim);
         }
 
@@ -707,7 +707,7 @@ namespace AntiqueTradingSimulator.Agents
             {
                 if (!Inventory.ListForSale(_economyManager.Market, chosen, askingPrice, day)) return false;
 
-                Debug.Log($"{TraderName} listed {chosenName} for {askingPrice:F0} € (value {estimatedValue:F0} €).");
+                Debug.Log($"{TraderName} listed {chosenName} for {askingPrice:F0} £ (value {estimatedValue:F0} £).");
                 return true;
             }
 
@@ -756,7 +756,7 @@ namespace AntiqueTradingSimulator.Agents
 
             if (!TryBuyForStock(best, day, bestCost)) return false;
 
-            Debug.Log($"{TraderName} bought {best.Name} on the open market (score {bestScore:P0}, cost {bestCost:F0} €).");
+            Debug.Log($"{TraderName} bought {best.Name} on the open market (score {bestScore:P0}, cost {bestCost:F0} £).");
             return true;
         }
 

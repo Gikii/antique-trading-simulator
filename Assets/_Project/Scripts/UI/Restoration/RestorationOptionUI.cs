@@ -18,7 +18,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button button;
         [SerializeField] private TMP_Text nameText;     // "Certified Conservator"
         [SerializeField] private TMP_Text resultText;   // "→ Good 85%"
-        [SerializeField] private TMP_Text costText;     // "2 025 €"
+        [SerializeField] private TMP_Text costText;     // "2 025 £"
         [SerializeField] private TMP_Text durationText; // "6 days"
         [SerializeField] private TMP_Text riskText;     // "3% risk of damage" / "Requires 500 reputation"
 
