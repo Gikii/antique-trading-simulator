@@ -38,6 +38,10 @@ namespace AntiqueTradingSimulator.Market
 
         /// <summary>Raised when an owner-set listing is bought: antique, seller inventory, price paid, proceeds for the seller.</summary>
         public event System.Action<Antique, TraderInventory, float, float> OnOwnerListingSold;
+        /// <summary>Raised when a listing is added.</summary>
+        public event System.Action<Antique> OnListingAdded;
+        /// <summary> Raissed when a listing is removed for any reason.</summary>
+        public event System.Action<Antique> OnListingRemoved;
         /// <summary>Raised when supply or demand is affected. </summary>
         public event System.Action<string, float, float> OnPressureApplied;
 
@@ -140,6 +144,7 @@ namespace AntiqueTradingSimulator.Market
             RecalculatePrice(listing);
             _listings.Add(listing);
             Feed.AddListing(listing.Name, listing.SalePrice);
+            OnListingAdded?.Invoke(listing);
         }
 
         public Antique GetById(string listingId)
@@ -203,6 +208,7 @@ namespace AntiqueTradingSimulator.Market
             listing.OwnerId = newOwnerId;
             _listings.Remove(listing);
             ApplyBuyPressure(listing.DefinitionId);
+            OnListingRemoved?.Invoke(listing);
 
             return true;
         }
@@ -228,6 +234,7 @@ namespace AntiqueTradingSimulator.Market
             {
                 _listings.Remove(listing);
                 ApplyBuyPressure(listing.DefinitionId);
+                OnListingRemoved?.Invoke(listing);
             }
 
             foreach (var definitionId in expired.Select(l => l.DefinitionId).Distinct())
@@ -256,6 +263,7 @@ namespace AntiqueTradingSimulator.Market
             listing.OwnerId = "";
             _listings.Remove(listing);
             ApplyBuyPressure(listing.DefinitionId);
+            OnListingRemoved?.Invoke(listing);
 
             Feed.AddPurchase(CollectorBuyerName, name, price);
             return true;
@@ -322,6 +330,7 @@ namespace AntiqueTradingSimulator.Market
             antique.AskingPrice = 0f;
             antique.MarketListedOnDay = -1;
             ApplyBuyPressure(antique.DefinitionId);
+            OnListingRemoved?.Invoke(antique);
             RecalculatePricesForDefinition(antique.DefinitionId);
             return true;
         }

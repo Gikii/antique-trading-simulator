@@ -31,7 +31,7 @@ namespace AntiqueTradingSimulator.Economy
 
         [Header("Listing spawning")]
         [SerializeField] private int initialListingCount = 6;
-        [SerializeField] private int newListingsPerDay = 1;
+        [SerializeField] private int newListingsPerDay = 3;
 
         [Tooltip("Anonymous offers are withdrawn after this many days on the market, so it keeps refreshing. 0 = never.")]
         [Min(0)] [SerializeField] private int anonymousListingLifetimeDays = 14;
@@ -170,6 +170,7 @@ namespace AntiqueTradingSimulator.Economy
 
             RollCollectorPurchases(newDay);
         }
+
 
         /// <summary>
         /// Each owner-set listing that has been on the market for at least a day gets one roll per

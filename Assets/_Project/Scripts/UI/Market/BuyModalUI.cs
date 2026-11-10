@@ -122,6 +122,10 @@ namespace AntiqueTradingSimulator.UI
 
             Inventory.OnCashChanged += HandleCashChanged;
             if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+
+            var market = economyManager != null ? economyManager.Market : null;
+            if (market != null) market.OnListingRemoved += HandleListingRemoved;
+
             _subscribed = true;
         }
 
@@ -131,12 +135,24 @@ namespace AntiqueTradingSimulator.UI
 
             if (Inventory != null) Inventory.OnCashChanged -= HandleCashChanged;
             if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+
+            var market = economyManager != null ? economyManager.Market : null;
+            if (market != null) market.OnListingRemoved -= HandleListingRemoved;
+
             _subscribed = false;
         }
 
         // Only relevant when the clock keeps running while the modal is open.
         private void HandleCashChanged(float cash) => Refresh();
         private void HandleDayChanged(int day) => Refresh();
+
+        private void HandleListingRemoved(Antique listing)
+        {
+            if (_listing == null || listing == null || listing.Id != _listing.Id) return;
+
+            Debug.Log($"BuyModalUI: {listing.Name} was sold to another buyer while the modal was open.");
+            Close();
+        }
 
         private void EnsureInitialized()
         {
@@ -285,7 +301,7 @@ namespace AntiqueTradingSimulator.UI
                 return $"Warehouse full ({Inventory.UsedSlots} / {Inventory.Capacity}). Sell something to make room.";
 
             if (total > cash)
-                return $"Not enough cash — {UIFormat.Money(total - cash)} short.";
+                return $"Not enough cash - {UIFormat.Money(total - cash)} short.";
 
             return null;
         }

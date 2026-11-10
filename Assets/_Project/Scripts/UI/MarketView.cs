@@ -103,6 +103,12 @@ namespace AntiqueTradingSimulator.UI
             if (!_subscribed && timeManager != null)
             {
                 timeManager.OnDayChanged += HandleDayChanged;
+                var market = economyManager != null ? economyManager.Market : null;
+                if (market != null)
+                {
+                    market.OnListingAdded += HandleListingsChanged;
+                    market.OnListingRemoved += HandleListingsChanged;
+                }
                 _subscribed = true;
             }
 
@@ -122,6 +128,12 @@ namespace AntiqueTradingSimulator.UI
         }
 
         private void HandleDayChanged(int newDay)
+        {
+            if (gameObject.activeSelf)
+                _refreshPending = true;
+        }
+
+        private void HandleListingsChanged(Antique listing)
         {
             if (gameObject.activeSelf)
                 _refreshPending = true;

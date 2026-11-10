@@ -12,9 +12,14 @@ namespace AntiqueTradingSimulator.Core
     /// </summary>
     public class TimeManager : MonoBehaviour
     {
+        [Header("Real-time")]
         [Tooltip("Real-time seconds one game day lasts at 1x speed. 180 = 3 minutes (≈4.5 h for a 90-day campaign).")]
         [SerializeField] private float secondsPerDay = 180f;
         [SerializeField] private float[] speedSteps = { 1f, 2f, 4f };
+
+        [Header("Ticks")]
+        public const int DefaultTicksPerPeriod = 24;
+        [SerializeField] [Min(1)] private int ticksPerPeriod = DefaultTicksPerPeriod;
 
         [Header("Calendar")]
         [Tooltip("Calendar date of Day 1.")]
@@ -25,6 +30,11 @@ namespace AntiqueTradingSimulator.Core
 
         public int CurrentDay { get; private set; } = 1;
         public bool IsRunning { get; private set; } = true;
+
+        public int CurrentTick { get; private set; }
+
+        /// <summary>True while AdvanceToNextPeriod is running out a period's ticks in one frame.</summary>
+        public bool IsFastForwarding { get; private set; }
 
         /// <summary>
         /// Real seconds spent in the game over the whole campaign (across saves and loads), paused
@@ -37,12 +47,16 @@ namespace AntiqueTradingSimulator.Core
         public event Action<float> OnSpeedChanged;
         /// <summary>Raised when the clock is paused or resumed (true = running).</summary>
         public event Action<bool> OnRunningChanged;
+        public event Action<int, int> OnTick;
 
         public event Action OnTimeRestored;
 
         private float _timer;
         private int _speedIndex = 0;
 
+        private bool _firstTickRaised;
+
+        public int TicksPerPeriod => ticksPerPeriod;
         public float SecondsPerDay => secondsPerDay;
         public float TimeUntilNextDay => Mathf.Max(0f, secondsPerDay - _timer);
         public float DayProgress01 => Mathf.Clamp01(_timer / secondsPerDay);
@@ -68,22 +82,52 @@ namespace AntiqueTradingSimulator.Core
         {
             PlaytimeSeconds += Time.unscaledDeltaTime;
 
+            if (!_firstTickRaised)
+            {
+                _firstTickRaised = true;
+                OnTick?.Invoke(CurrentDay, CurrentTick);
+            }
+
             if (!IsRunning) return;
 
             _timer += Time.deltaTime * SpeedMultiplier;
 
             if (_timer >= secondsPerDay)
             {
-                AdvanceDay();
+                FastForwardDay();
             }
+
+            if (Mathf.FloorToInt(_timer / secondsPerDay * TicksPerPeriod) > CurrentTick)
+            {
+                IncrementTick();
+            }
+        }
+
+        private void IncrementTick()
+        {
+            CurrentTick++;
+            OnTick?.Invoke(CurrentDay, CurrentTick);
         }
 
         private void AdvanceDay()
         {
             _timer = 0f;
             CurrentDay++;
+            CurrentTick = 0;
             Debug.Log("Day " + CurrentDay);
             OnDayChanged?.Invoke(CurrentDay);
+            _firstTickRaised = true;
+            OnTick?.Invoke(CurrentDay, CurrentTick);
+        }
+
+        private void FastForwardDay()
+        {
+            while (CurrentTick < TicksPerPeriod - 1)
+            {
+                IncrementTick();
+            }
+
+            AdvanceDay();
         }
 
         /// <summary>
@@ -91,7 +135,7 @@ namespace AntiqueTradingSimulator.Core
         /// </summary>
         public void ForceAdvanceDay()
         {
-            AdvanceDay();
+            FastForwardDay();
         }
 
         public void Pause() => SetRunning(false);
@@ -120,6 +164,7 @@ namespace AntiqueTradingSimulator.Core
         public TimeManagerState CaptureState() => new TimeManagerState
         {
             CurrentDay = CurrentDay,
+            CurrentTick = CurrentTick,
             DayTimer = _timer,
             SpeedIndex = _speedIndex,
             IsRunning = IsRunning,
@@ -132,6 +177,8 @@ namespace AntiqueTradingSimulator.Core
 
             CurrentDay = Mathf.Max(1, state.CurrentDay);
             _timer = Mathf.Clamp(state.DayTimer, 0f, secondsPerDay);
+
+            CurrentTick = Mathf.Clamp(state.CurrentTick, 0, TicksPerPeriod - 1);
 
             _speedIndex = speedSteps != null && speedSteps.Length > 0
                 ? Mathf.Clamp(state.SpeedIndex, 0, speedSteps.Length - 1)
@@ -146,6 +193,8 @@ namespace AntiqueTradingSimulator.Core
             OnSpeedChanged?.Invoke(SpeedMultiplier);
             OnRunningChanged?.Invoke(IsRunning);
             OnTimeRestored?.Invoke();
+
+            _firstTickRaised = false;
         }
 
     }

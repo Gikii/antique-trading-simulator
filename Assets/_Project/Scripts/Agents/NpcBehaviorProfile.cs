@@ -31,13 +31,24 @@ namespace AntiqueTradingSimulator.Agents
         [Tooltip("Cash an NPC with this profile starts with. 0 = NPCManager's default.")]
         [Min(0f)] public float StartingCash;
 
-        [Header("Information access")]
-        public InfoAccessLevel AccessLevel = InfoAccessLevel.LocalPress;
-
         [Header("Interests (empty list = interested in everything on that axis)")]
         public List<AntiqueType> PreferredTypes = new();
         public List<Country> PreferredCountries = new();
         public List<Century> PreferredCenturies = new();
+
+        [Header("Actions")]
+        [Tooltip("The number of actions the NPC undertakes per period")]
+        [Min(0)] public int ActionsPerPeriod = 5;
+
+        [Tooltip("The percentage of the NPC's action fullfilling a contract can take up while the contract is not yet judged urgent")]
+        [Range(0f, 1f)] public float ContractSlotShare = 0.8f;
+
+        [Tooltip("The minimum return on a purchase to dedicate an action to it. This value is doubled when a contract is being fullfilled")]
+        public float MinBargainScore = 0.08f;
+
+        [Header("Information access")]
+        [Header("Information access")]
+        public InfoAccessLevel AccessLevel = InfoAccessLevel.LocalPress;
 
         [Header("Trust in information")]
         [Range(0f, 1f)] public float RumorTrust = 0.3f;
@@ -88,5 +99,8 @@ namespace AntiqueTradingSimulator.Agents
         [Header("Contracts")]
         [Tooltip("Takes delivery contracts from the board. Contracts already taken are finished either way.")]
         public bool TakesContracts = true;
+
+        [Tooltip("The number of days before a contract's expiry date the NPC focuses entirely on fullfilling the contract")]
+        [Min(0)] public int ContractPanicDays = 2;
     }
 }

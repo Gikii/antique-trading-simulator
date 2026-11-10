@@ -21,6 +21,12 @@ namespace AntiqueTradingSimulator.Agents
             if (!HasMarket(market, traderName)) return false;
 
             var listing = market.GetById(listingId);
+            // Safeguard in case a player attempts to purchase an item that has already been purchased by an NPC or the opposite.
+            if (listing == null)
+            {
+                Debug.Log($"{traderName}: listing {listingId} is no longer available");
+                return false;
+            }
             string antiqueName = listing != null ? listing.Name : null;
             float price = listing != null ? listing.SalePrice : 0f;
 
