@@ -69,7 +69,7 @@ namespace AntiqueTradingSimulator.EditorTools
 
         /// <summary>Latin-1 letters, Polish letters and the symbols the UI prints (€ • · — … arrows, quotes).</summary>
         private const string ExtraCharacters =
-            "€•·—–…↑↓→←°×±§©®™‘’“”„«»" +
+            "£•·—–…↑↓→←°×±§©®™‘’“”„«»" +
             "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæçèéêëìíîïñòóôõöøùúûüýÿ" +
             "ĄąĆćĘęŁłŃńŚśŹźŻż";
 
