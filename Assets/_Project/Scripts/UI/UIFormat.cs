@@ -27,16 +27,16 @@ namespace AntiqueTradingSimulator.UI
             NumberGroupSizes = new[] { 3 }
         };
 
-        /// <summary>"128 450 €"</summary>
+        /// <summary>"128 450 £"</summary>
         public static string Money(float value) =>
-            Mathf.RoundToInt(value).ToString("#,0", MoneyFormat) + " €";
+            Mathf.RoundToInt(value).ToString("#,0", MoneyFormat) + " £";
 
-        /// <summary>"+30 220 €" / "-1 200 €" / "0 €"</summary>
+        /// <summary>"+30 220 £" / "-1 200 £" / "0 £"</summary>
         public static string SignedMoney(float value)
         {
             int rounded = Mathf.RoundToInt(value);
             string sign = rounded > 0 ? "+" : rounded < 0 ? "-" : "";
-            return sign + Mathf.Abs(rounded).ToString("#,0", MoneyFormat) + " €";
+            return sign + Mathf.Abs(rounded).ToString("#,0", MoneyFormat) + " £";
         }
 
         /// <summary>"+30.8%" for 0.308</summary>

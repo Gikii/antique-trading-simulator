@@ -41,7 +41,7 @@ namespace AntiqueTradingSimulator.UI.Charts
         private float _fixedMin;
         private float _fixedMax;
 
-        /// <summary>Formats the min/max labels. Null = money ("128 450 €").</summary>
+        /// <summary>Formats the min/max labels. Null = money ("128 450 £").</summary>
         public Func<float, string> LabelFormatter { get; set; }
 
         /// <summary>

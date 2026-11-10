@@ -17,7 +17,7 @@ namespace AntiqueTradingSimulator.UI
 
         [SerializeField] private Button button;
         [SerializeField] private TMP_Text nameText;     // "Express (secured)"
-        [SerializeField] private TMP_Text costText;     // "120 €"
+        [SerializeField] private TMP_Text costText;     // "120 £"
         [SerializeField] private TMP_Text durationText; // "2 days"
         [SerializeField] private TMP_Text riskText;     // "No damage risk" / "3% damage risk"
 

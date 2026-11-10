@@ -22,7 +22,7 @@ namespace AntiqueTradingSimulator.Logistics
                  "Security currently only raises upkeep; theft/damage risk will read it later.")]
         public float[] SecurityUpgradeCost = { 0f, 500f, 1200f, 3000f };
 
-        [Header("Daily upkeep (€)")]
+        [Header("Daily upkeep (£)")]
         [Min(0f)] public float BaseDailyUpkeep = 5f;
         [Min(0f)] public float UpkeepPerCapacityLevel = 3f;
         [Min(0f)] public float UpkeepPerSecurityLevel = 4f;

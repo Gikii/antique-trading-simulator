@@ -31,7 +31,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text credibilityText;
         [SerializeField] private TMP_Text marketShareText;
 
-        // "128 450 €" – space as thousands separator, like in the mockup.
+        // "128 450 £" – space as thousands separator, like in the mockup.
         private static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo
         {
             NumberGroupSeparator = " ",
@@ -191,8 +191,8 @@ namespace AntiqueTradingSimulator.UI
                     "<size=85%>Antiques at current market value, incl. items in transit.</size>";
         }
 
-        /// <summary>1000 → "1 000 €", 128450 → "128 450 €"</summary>
-        public static string FormatMoney(float amount) => amount.ToString("#,0", MoneyFormat) + " €";
+        /// <summary>1000 → "1 000 €", 128450 → "128 450 £"</summary>
+        public static string FormatMoney(float amount) => amount.ToString("#,0", MoneyFormat) + " £";
 
         private static void SetText(TMP_Text text, string value)
         {

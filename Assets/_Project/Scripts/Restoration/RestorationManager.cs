@@ -163,7 +163,7 @@ namespace AntiqueTradingSimulator.Restoration
                 reason = $"Requires {option.RequiredReputation} reputation" + (string.IsNullOrEmpty(tier) ? "." : $" ({tier}).");
             }
             if (reason == null && inventory != null && cost > inventory.Cash)
-                reason = $"Not enough cash — {Mathf.CeilToInt(cost - inventory.Cash)} € short.";
+                reason = $"Not enough cash — {Mathf.CeilToInt(cost - inventory.Cash)} £ short.";
 
             return new RestorationQuote(option, start, target, partial, worst, cost, CurrentDay, days, perfectValue, reason);
         }

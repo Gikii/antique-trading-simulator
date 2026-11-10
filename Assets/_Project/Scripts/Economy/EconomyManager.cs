@@ -191,7 +191,7 @@ namespace AntiqueTradingSimulator.Economy
 
                 float price = listing.AskingPrice;
                 if (Market.SellToCollector(listing))
-                    Debug.Log($"EconomyManager: a private collector bought {listing.Name} for {price:F0} € (chance was {chance:P0}).");
+                    Debug.Log($"EconomyManager: a private collector bought {listing.Name} for {price:F0} £ (chance was {chance:P0}).");
             }
         }
 

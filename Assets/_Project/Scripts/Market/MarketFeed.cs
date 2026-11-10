@@ -55,7 +55,7 @@ namespace AntiqueTradingSimulator.Market
             Add($"New listing for {antiqueName} posted at {FormatPrice(price)}");
         }
 
-        private static string FormatPrice(float price) => $"{price:F0} €";
+        private static string FormatPrice(float price) => $"{price:F0} £";
 
         public List<string> CaptureState() => new List<string>(_messages);
 

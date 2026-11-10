@@ -21,7 +21,7 @@ namespace AntiqueTradingSimulator.Company
         public ScoreCriterion Criterion;
 
         [Tooltip("Value that earns the full 100 points for this criterion " +
-                 "(€ for Wealth/Collection, count for contracts, points for reputation, 0..1 for credibility/market share).")]
+                 "(£ for Wealth/Collection, count for contracts, points for reputation, 0..1 for credibility/market share).")]
         [Min(0.0001f)] public float Target = 1f;
 
         [Tooltip("Relative weight in the final score. Weights don't need to sum to 1.")]

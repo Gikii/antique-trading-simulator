@@ -276,7 +276,7 @@ namespace AntiqueTradingSimulator.UI
                 SetText(listingPriceValue, "—");
                 SetText(feeValue, "—");
                 SetText(proceedsValue, "—");
-                SetText(priceHintText, UIFormat.Colorize("Enter a price above 0 €.", UIFormat.NegativeColor));
+                SetText(priceHintText, UIFormat.Colorize("Enter a price above 0 £.", UIFormat.NegativeColor));
                 SetConfirmInteractable(false);
                 return;
             }
@@ -348,12 +348,12 @@ namespace AntiqueTradingSimulator.UI
             Antique antique = _antique;
             if (!playerTrader.ListOnMarket(antique.Id, price))
             {
-                Debug.LogWarning($"ListOnMarketModalUI: failed to list {antique.Id} for {price:F0} €.");
+                Debug.LogWarning($"ListOnMarketModalUI: failed to list {antique.Id} for {price:F0} £.");
                 SetText(priceHintText, UIFormat.Colorize("This antique can't be listed right now.", UIFormat.NegativeColor));
                 return;
             }
 
-            Debug.Log($"ListOnMarketModalUI: listed {antique.Name} ({antique.Id}) for {price:F0} €.");
+            Debug.Log($"ListOnMarketModalUI: listed {antique.Name} ({antique.Id}) for {price:F0} £.");
             Close();
             Listed?.Invoke(antique, price);
         }

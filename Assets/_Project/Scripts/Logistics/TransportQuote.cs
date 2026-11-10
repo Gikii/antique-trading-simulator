@@ -25,6 +25,6 @@ namespace AntiqueTradingSimulator.Logistics
         }
 
         public override string ToString() =>
-            $"{Option.ToDisplayString()} / {Zone.ToDisplayString()} — {Cost:F0} €, {DurationDays} day(s), arrives day {ArrivalDay}";
+            $"{Option.ToDisplayString()} / {Zone.ToDisplayString()} — {Cost:F0} £, {DurationDays} day(s), arrives day {ArrivalDay}";
     }
 }

@@ -34,7 +34,7 @@ namespace AntiqueTradingSimulator.UI
         [Header("Item")]
         [SerializeField] private TMP_Text titleText;    // "Buy Chinese Vase?"
         [SerializeField] private TMP_Text itemInfoText; // "Good condition · XVIII century · China"
-        [SerializeField] private TMP_Text priceText;    // "1 250 €"
+        [SerializeField] private TMP_Text priceText;    // "1 250 £"
         [SerializeField] private TMP_Text shipsFromText; // "Ships from: International"
 
         [Header("Transport options (one per TransportOption)")]
@@ -43,10 +43,10 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private GameObject noTransportNotice;
 
         [Header("Summary")]
-        [SerializeField] private TMP_Text shippingCostText; // "120 €"
-        [SerializeField] private TMP_Text totalCostText;    // "1 370 €"
+        [SerializeField] private TMP_Text shippingCostText; // "120 £"
+        [SerializeField] private TMP_Text totalCostText;    // "1 370 £"
         [SerializeField] private TMP_Text arrivalText;      // "7 October (in 5 days)"
-        [SerializeField] private TMP_Text cashAfterText;    // "2 630 €"
+        [SerializeField] private TMP_Text cashAfterText;    // "2 630 £"
         [SerializeField] private TMP_Text warehouseText;    // "6 / 8 → 7 / 8"
         [SerializeField] private TMP_Text warningText;      // reason why Buy is disabled
 

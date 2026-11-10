@@ -120,7 +120,7 @@ namespace AntiqueTradingSimulator.UI
                 quantityText.text = $"Quantity: {req.Quantity}\n{ContractDisplay.ConditionRequirement(req)}";
 
             if (payoutText != null)
-                payoutText.text = $"Payout: {contract.TotalReward:F0} €";
+                payoutText.text = $"Payout: {contract.TotalReward:F0} £";
 
             if (deadlineText != null)
             {
@@ -130,7 +130,7 @@ namespace AntiqueTradingSimulator.UI
             }
 
             if (penaltyText != null)
-                penaltyText.text = $"Penalty: {(contract.Penalty > 0f ? $"{contract.Penalty:F0} €" : "None")}";
+                penaltyText.text = $"Penalty: {(contract.Penalty > 0f ? $"{contract.Penalty:F0} £" : "None")}";
 
             if (contractTypeText != null)
                 contractTypeText.text = $"Type: {ContractDisplay.TypeLabel(contract)}";
