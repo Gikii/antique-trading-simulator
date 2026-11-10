@@ -110,6 +110,12 @@ namespace AntiqueTradingSimulator.Events
                     continue;
                 }
 
+                if (IsGeneratedDefinitionActive(definition, day))
+                {
+                    Debug.LogWarning($"EventManager: '{definition.name}' is already running. Copy scheduled for day {day} was dropped.");
+                    continue;
+                }
+
                 var active = new ActiveEvent(definition, day);
                 active.Begin(BuildContext(day));
 
@@ -140,6 +146,12 @@ namespace AntiqueTradingSimulator.Events
                 return false;
             }
 
+            if (WouldOverlapSameDefinition(definition, triggerDay))
+            {
+                Debug.LogWarning($"EventManager: '{definition.name}' would overlap another instance of itself on day {triggerDay}. It was not scheduled.");
+                return false;
+            }
+
             _scheduledEvents.Add(new ScheduledEvent(triggerDay, definition));
 
             Debug.Log($"EventManager: event scheduled — {definition.name} (Day {triggerDay})");
@@ -162,6 +174,8 @@ namespace AntiqueTradingSimulator.Events
 
                 if (_scheduledEvents.Any(s => s.EventType == EventType.Minor && s.TriggerDay == candidateDay)) continue;
 
+                if (WouldOverlapSameDefinition(definition, candidateDay)) continue;
+
                 ScheduleEvent(definition, candidateDay);
                 return;
             }
@@ -179,6 +193,55 @@ namespace AntiqueTradingSimulator.Events
             return true;
 
         }
+
+        private bool WouldOverlapSameDefinition(EventDefinition definition, int triggerDay)
+        {
+            if (definition == null) return false;
+            if (definition.EventType == EventType.Player) return false;
+
+            int startDay = triggerDay;
+            int endDay = triggerDay + GetDurationDays(definition);
+
+            foreach (var active in _activeEvents)
+            {
+                if (active == null) continue;
+                if (active.EventDefinitionID != definition.Id) continue;
+                if (Overlaps(startDay, endDay, active.StartDay, active.EndDay)) return true;
+            }
+
+            foreach (var scheduled in _scheduledEvents)
+            {
+                if (scheduled == null) continue;
+                if (scheduled.EventDefinitionId != definition.Id) continue;
+
+                int otherStart = scheduled.TriggerDay;
+                int otherEnd = otherStart + GetDurationDays(scheduled.Definition);
+                if (Overlaps(startDay, endDay, otherStart, otherEnd)) return true;
+            }
+
+            return false;
+        }
+
+        private bool IsGeneratedDefinitionActive(EventDefinition definition, int day)
+        {
+            if (definition == null) return false;
+            if (definition.EventType == EventType.Player) return false;
+
+            foreach (var active in _activeEvents)
+            {
+                if (active == null) continue;
+                if (active.EventDefinitionID != definition.Id) continue;
+                if (!active.HasExpired(day)) return true;
+            }
+
+            return false;
+        }
+
+        private static int GetDurationDays(EventDefinition definition) =>
+            definition != null ? Mathf.Max(1, definition.DurationDays) : 1;
+
+        private static bool Overlaps(int startA, int endA, int startB, int endB) =>
+            startA < endB && startB < endA;
 
         // ---------------------------------------------------------------- save / load
 
