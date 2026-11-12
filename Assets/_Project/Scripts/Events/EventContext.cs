@@ -13,13 +13,16 @@ namespace AntiqueTradingSimulator.Events
 
         public DependencyManager Dependencies;
 
-        public EventContext(Market.Market market, int currentDay, TraderInventory playerInventory, TransportManager transport = null, DependencyManager dependencies = null)
+        public Contracts.ContractManager ContractManager;
+
+        public EventContext(Market.Market market, int currentDay, TraderInventory playerInventory, TransportManager transport = null, DependencyManager dependencies = null, Contracts.ContractManager contractManager = null)
         {
             Market = market;
             CurrentDay = currentDay;
             PlayerInventory = playerInventory;
             Transport = transport;
             Dependencies = dependencies;
+            ContractManager = contractManager;
         }
     }
 }

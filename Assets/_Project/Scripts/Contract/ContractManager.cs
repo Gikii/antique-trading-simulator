@@ -4,9 +4,41 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.Contracts
 {
+    /// <summary>
+    /// Variables of a contract that are predefined by the caller instead of rolled randomly. 
+    /// All variables left as null will be rolled randomly the same as in standard contract generation
+    /// </summary>
+    public class ContractOverrides
+    {
+        public ContractAttributeScope? Scope;
+
+        public AntiqueType? AntiqueType;
+
+        public Country? Country;
+
+        public Century? Century;
+
+        public int? Quantity;
+
+        public float? MinCondition;
+
+        public int? DurationDays;
+
+        public ContractType? Type;
+
+        public float? RewardPerUnit;
+
+        public float? Penalty;
+
+        public int? RequiredReputation;
+
+        public string ClassName;
+    }
+
     /// <summary>
     /// A class of contract above the standard one (e.g. Premium, Prestige): offered by clients who
     /// only work with dealers of a given reputation, and who pay more. Reputation gives access to
@@ -208,47 +240,78 @@ namespace AntiqueTradingSimulator.Contracts
             }
         }
 
-        public Contract GenerateContract(int currentDay)
+        public Contract GenerateContract(int currentDay) => GenerateContract(currentDay, null);
+
+        public Contract GenerateContract(int currentDay, ContractOverrides overrides)
         {
             var market = economyManager != null ? economyManager.Market : null;
             if (market == null) return null;
 
-            var requirement = PickRequirement();
+            var requirement = PickRequirement(overrides);
             if (requirement == null) return null;
 
             float avgReferencePrice = requirement.AverageReferenceUnitPrice(market);
             if (avgReferencePrice <= 0f) return null;
 
-            var contractClass = PickContractClass(); // null = standard
+            var contractClass = ResolveContractClass(overrides); // null = standard
             int minQ = contractClass != null ? contractClass.MinQuantity : minQuantity;
             int maxQ = contractClass != null ? Mathf.Max(contractClass.MinQuantity, contractClass.MaxQuantity) : maxQuantity;
             float minMultiplier = contractClass != null ? contractClass.MinRewardMultiplier : minRewardMultiplier;
             float maxMultiplier = contractClass != null ? Mathf.Max(contractClass.MinRewardMultiplier, contractClass.MaxRewardMultiplier) : maxRewardMultiplier;
 
-            requirement.Quantity = UnityEngine.Random.Range(minQ, maxQ + 1);
-            requirement.MinCondition = RollMinCondition(contractClass != null ? contractClass.MinConditionRange : standardMinCondition);
-            int duration = UnityEngine.Random.Range(minDurationDays, maxDurationDays + 1);
+            requirement.Quantity = overrides?.Quantity is int fixedQuantity
+                ? Mathf.Max(1, fixedQuantity)
+                : UnityEngine.Random.Range(minQ, maxQ + 1);
+            requirement.MinCondition = overrides?.MinCondition is float fixedCondition
+                ? Mathf.Clamp(fixedCondition, Antique.MinCondition, Antique.MaxCondition)
+                : RollMinCondition(contractClass != null ? contractClass.MinConditionRange : standardMinCondition);
+            int duration = overrides?.DurationDays is int fixedDuration
+                ? Mathf.Max(1, fixedDuration)
+                : UnityEngine.Random.Range(minDurationDays, maxDurationDays + 1);
 
             // Priced against an antique in exactly the required condition — a better one is the
             // supplier's choice, a worse one doesn't count.
             float baseMultiplier = UnityEngine.Random.Range(minMultiplier, maxMultiplier);
             float urgencyFactor = UrgencyFactor(duration);
-            float rewardPerUnit = avgReferencePrice * requirement.MinCondition * baseMultiplier * urgencyFactor;
+            float rewardPerUnit = overrides?.RewardPerUnit is float fixedReward 
+                ? Mathf.Max(0f, fixedReward) 
+                : avgReferencePrice * requirement.MinCondition * baseMultiplier * urgencyFactor;
 
-            ContractType type = UnityEngine.Random.value < exclusiveContractChance ? ContractType.Exclusive : ContractType.Open;
-            float penalty = type == ContractType.Exclusive
-                ? rewardPerUnit * requirement.Quantity * exclusivePenaltyFraction
-                : 0f;
+            ContractType type = overrides?.Type
+                ?? (UnityEngine.Random.value < exclusiveContractChance ? ContractType.Exclusive : ContractType.Open);
+            float penalty = overrides?.Penalty is float fixedPenalty
+                ? Mathf.Max(0f, fixedPenalty)
+                : (type == ContractType.Exclusive
+                    ? rewardPerUnit * requirement.Quantity * exclusivePenaltyFraction
+                    : 0f);
 
-            var contract = new Contract(type, requirement, currentDay, duration, maxDurationDays, rewardPerUnit, penalty,
-                contractClass != null ? contractClass.RequiredReputation : 0,
+            int durationCap = Mathf.Max(maxDurationDays, duration);
+
+            var contract = new Contract(type, requirement, currentDay, duration, durationCap, rewardPerUnit, penalty,
+                overrides?.RequiredReputation ?? (contractClass != null ? contractClass.RequiredReputation : 0),
                 contractClass != null ? contractClass.Name : "");
+
             _contracts.Add(contract);
             _contractsById[contract.ContractId] = contract;
 
             Debug.Log($"ContractManager: generated {contract.Type} contract ({contract.ContractId}) on day {currentDay} for {requirement.Quantity} antiques at average price {requirement.AverageReferenceUnitPrice(economyManager.Market)} to be fullfilled by day {contract.DeadlineDay} with total payout {contract.TotalReward}");
             OnContractCreated?.Invoke(contract);
             return contract;
+        }
+
+        private ContractClassDefinition ResolveContractClass(ContractOverrides overrides)
+        {
+            string name = overrides?.ClassName;
+            if (name == null) return PickContractClass();
+            if (name.Length == 0) return null; // explicitly standard
+
+            var named = reputationClasses?.FirstOrDefault(c =>
+                c != null && string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+
+            if (named == null)
+                Debug.LogWarning($"ContractManager: no contract class named '{name}' — generating a standard contract instead.");
+
+            return named;
         }
 
         /// <summary>
@@ -294,23 +357,30 @@ namespace AntiqueTradingSimulator.Contracts
             return c == lowestLocked ? c.Weight * lockedClassPreviewWeight : 0f;
         }
 
-        private ContractRequirement PickRequirement()
+        private ContractRequirement PickRequirement(ContractOverrides overrides = null)
         {
             if (AntiqueDatabase.GetAll().Count == 0) return null;
 
-            var scope = (ContractAttributeScope)UnityEngine.Random.Range(0, Enum.GetValues(typeof(ContractAttributeScope)).Length);
+            var scope = overrides?.Scope
+                ?? (ContractAttributeScope)UnityEngine.Random.Range(0, Enum.GetValues(typeof(ContractAttributeScope)).Length);
 
             switch (scope)
             {
                 case ContractAttributeScope.AntiqueType:
+                    if (overrides?.AntiqueType is AntiqueType fixedType)
+                        return new ContractRequirement { Scope = scope, AntiqueType = fixedType };
                     var types = AntiqueDatabase.GetAvailableTypes();
                     return new ContractRequirement { Scope = scope, AntiqueType = types[UnityEngine.Random.Range(0, types.Count)] };
 
                 case ContractAttributeScope.Country:
+                    if (overrides?.Country is Country fixedCountry)
+                        return new ContractRequirement { Scope = scope, Country = fixedCountry };
                     var countries = AntiqueDatabase.GetAvailableCountries();
                     return new ContractRequirement { Scope = scope, Country = countries[UnityEngine.Random.Range(0, countries.Count)] };
 
                 case ContractAttributeScope.Century:
+                    if (overrides?.Century is Century fixedCentury)
+                        return new ContractRequirement { Scope = scope, Century = fixedCentury };
                     var centuries = AntiqueDatabase.GetAvailableCenturies();
                     return new ContractRequirement { Scope = scope, Century = centuries[UnityEngine.Random.Range(0, centuries.Count)] };
                 default:

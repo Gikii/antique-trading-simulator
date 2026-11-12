@@ -93,9 +93,26 @@ namespace AntiqueTradingSimulator.Market
             float condition = Random.Range(Antique.MinCondition, Antique.MaxCondition);
             float priceFactor = Random.Range(Antique.MinPriceFactor, Antique.MaxPriceFactor);
 
+            return CreateListing(definitionId, condition, priceFactor, RollShippingZone(), currentDay, addSupply);
+        }
+
+        public Antique CreateListing(string definitionId, float condition, float priceFactor,
+                                     ShippingZone shippingZone, int currentDay, bool addSupply = true)
+        {
+            if (string.IsNullOrEmpty(definitionId))
+            {
+                Debug.LogWarning("Market: CreateListing was called without a definition Id.");
+                return null;
+            }
+
+            if (GetTypeState(definitionId) == null)
+            {
+                Debug.LogWarning($"Market: '{definitionId}' is not a registered type.");
+                return null;
+            }
 
             var listing = new Antique(definitionId, condition, priceFactor);
-            listing.ShippingZone = RollShippingZone();
+            listing.ShippingZone = shippingZone;
             AddListing(listing, currentDay);
 
             if (addSupply)
@@ -106,7 +123,7 @@ namespace AntiqueTradingSimulator.Market
             return listing;
         }
 
-        private static ShippingZone RollShippingZone()
+        public static ShippingZone RollShippingZone()
         {
             float total = LocalListingWeight + DomesticListingWeight + InternationalListingWeight;
             float roll = Random.value * total;

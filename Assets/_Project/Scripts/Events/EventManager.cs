@@ -13,6 +13,7 @@ namespace AntiqueTradingSimulator.Events
         [SerializeField] private Agents.PlayerTrader playerTrader;
         [SerializeField] private Logistics.TransportManager transportManager;
         [SerializeField] private Dependency.DependencyManager dependencyManager;
+        [SerializeField] private Contracts.ContractManager contractManager;
 
         private readonly List<ActiveEvent> _activeEvents = new List<ActiveEvent>();
         public IReadOnlyList<ActiveEvent> ActiveEvents => _activeEvents;
@@ -28,7 +29,7 @@ namespace AntiqueTradingSimulator.Events
         /// <summary>Null-safe accessor — effects that need it (e.g. GrantAntiquesEffect) check for null themselves.</summary>
         private Economy.TraderInventory PlayerInventory => playerTrader != null ? playerTrader.Inventory : null;
 
-        private EventContext BuildContext(int day) => new EventContext(economyManager.Market, day, PlayerInventory, transportManager, dependencyManager);
+        private EventContext BuildContext(int day) => new EventContext(economyManager.Market, day, PlayerInventory, transportManager, dependencyManager, contractManager);
 
 
         public event Action<ActiveEvent> OnEventTriggered;
@@ -46,6 +47,7 @@ namespace AntiqueTradingSimulator.Events
             if (playerTrader == null) playerTrader = FindFirstObjectByType<Agents.PlayerTrader>();
             if (transportManager == null) transportManager = FindFirstObjectByType<Logistics.TransportManager>();
             if(dependencyManager == null) dependencyManager = FindFirstObjectByType<Dependency.DependencyManager>();
+            if (contractManager == null) contractManager = FindFirstObjectByType<Contracts.ContractManager>();
         }
 
         void OnEnable()
