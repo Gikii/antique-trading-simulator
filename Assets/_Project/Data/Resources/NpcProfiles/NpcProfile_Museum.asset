@@ -40,3 +40,10 @@ MonoBehaviour:
   ListingMarkup: 1.15
   RelistAfterDays: 5
   TakesContracts: 0
+  AuctionAttendance: 0.9
+  AuctionValueMultiplier: 1.3
+  AuctionBudgetShare: 0.7
+  AuctionNewsPremium: 0.05
+  AuctionFeverChance: 0
+  AuctionFeverRaise: 0.1
+  AuctionHesitation: 0.2

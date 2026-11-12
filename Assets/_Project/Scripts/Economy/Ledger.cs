@@ -13,7 +13,7 @@ namespace AntiqueTradingSimulator.Economy
     {
         Sale,         // antique sold on the market (instant sale or own listing, gross price)
         Contract,     // contract reward
-        Auction,      // auction proceeds (no auctions yet)
+        Auction,      // proceeds of selling at auction (winning a lot is a Purchase + Commission)
         Purchase,     // antique bought on the market (price only)
         Transport,    // shipping paid together with a purchase
         Warehouse,    // daily warehouse upkeep

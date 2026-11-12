@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Agents;
+using AntiqueTradingSimulator.Auctions;
 using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Core;
@@ -44,5 +45,8 @@ namespace AntiqueTradingSimulator.Saving
         public EventsState Events;
 
         public NewsState News;
+
+        /// <summary>Scheduled auctions and results. Null in older saves (auctions start from the current day).</summary>
+        public AuctionsState Auctions;
     }
 }

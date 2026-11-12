@@ -35,6 +35,11 @@ namespace AntiqueTradingSimulator.Market
         public List<PricePoint> PriceHistory = new List<PricePoint>();
         private const int MaxHistoryDays = 90;
 
+        // Hammer price of the last lot of this type sold at auction (0 / -1 = never sold at auction).
+        public float LastAuctionPrice;
+        public int LastAuctionDay = -1;
+        public bool HasAuctionPrice => LastAuctionDay >= 0;
+
         private const float SnapThreshold = 0.01f;
 
         public AntiqueMarketState(string definitionId, float initialSupply, float initialDemand)
