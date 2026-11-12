@@ -102,5 +102,28 @@ namespace AntiqueTradingSimulator.Agents
 
         [Tooltip("The number of days before a contract's expiry date the NPC focuses entirely on fullfilling the contract")]
         [Min(0)] public int ContractPanicDays = 2;
+
+        [Header("Auctions")]
+        [Tooltip("Chance to attend an auction session at all.")]
+        [Range(0f, 1f)] public float AuctionAttendance = 0.7f;
+
+        [Tooltip("Most the NPC bids relative to what a lot is worth in its condition (fair value incl. condition premium). " +
+                 "1.3 = up to 30% over that value.")]
+        [Min(0f)] public float AuctionValueMultiplier = 1f;
+
+        [Tooltip("Share of free cash (after the contract reserve) the NPC may spend on one lot.")]
+        [Range(0f, 1f)] public float AuctionBudgetShare = 0.5f;
+
+        [Tooltip("Bids this much higher (or lower) per believed news item about the lot's type, country or century.")]
+        [Range(0f, 1f)] public float AuctionNewsPremium = 0.15f;
+
+        [Tooltip("Auction fever: chance, once per lot, to raise the limit when the price passes it.")]
+        [Range(0f, 1f)] public float AuctionFeverChance = 0.1f;
+
+        [Tooltip("How much fever raises the limit (0.1 = +10%), never beyond the budget.")]
+        [Range(0f, 1f)] public float AuctionFeverRaise = 0.1f;
+
+        [Tooltip("0 = answers every bid quickly; 1 = thinks up to twice as long as the price nears the limit.")]
+        [Range(0f, 1f)] public float AuctionHesitation = 0.4f;
     }
 }

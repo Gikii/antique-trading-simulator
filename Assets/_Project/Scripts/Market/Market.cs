@@ -375,6 +375,34 @@ namespace AntiqueTradingSimulator.Market
             OnPressureApplied?.Invoke(definitionId, demandDelta, supplyDelta);
         }
 
+        /// <summary>
+        /// Takes in the outcome of an auction lot. A sale is remembered as the type's last auction price.
+        /// The result is a signal about interest in the type, so it moves demand by
+        /// <paramref name="demandDelta"/> (the AuctionManager derives it from hammer price vs. market value)
+        /// — it never sets a price. The change is reported like any other pressure, so related categories
+        /// follow through the dependency graph.
+        /// </summary>
+        /// <param name="hammerPrice">Price the lot sold for; 0 if it went unsold.</param>
+        public void ApplyAuctionResult(string definitionId, float hammerPrice, int day, float demandDelta)
+        {
+            var typeState = GetTypeState(definitionId);
+            if (typeState == null) return;
+
+            if (hammerPrice > 0f)
+            {
+                typeState.LastAuctionPrice = hammerPrice;
+                typeState.LastAuctionDay = day;
+            }
+
+            if (Mathf.Approximately(demandDelta, 0f)) return;
+
+            float demandBefore = typeState.Demand;
+            typeState.Demand = Mathf.Max(0f, typeState.Demand + demandDelta);
+
+            ReportPressure(definitionId, typeState.Demand - demandBefore, 0f);
+            RecalculatePricesForDefinition(definitionId);
+        }
+
 
         /// <summary>
         /// Puts a specific, already-existing antique listing (with its own quality/state)

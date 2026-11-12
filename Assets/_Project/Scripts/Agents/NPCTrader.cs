@@ -1,3 +1,4 @@
+using AntiqueTradingSimulator.Auctions;
 using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Economy;
@@ -1162,6 +1163,95 @@ namespace AntiqueTradingSimulator.Agents
 
         public bool SellListing(string listingId) =>
             TraderHelper.SellListing(Inventory, _economyManager.Market, listingId, TraderName, CurrentDay);
+
+        // ---------------------------------------------------------------- auctions
+
+        /// <summary>
+        /// Most this NPC can bid on one lot (hammer price): its free cash after the contract reserve,
+        /// times the profile's auction budget share, leaving <paramref name="costAllowance"/> for the
+        /// buyer's premium and transport. Recomputed for every lot, so winning one lowers the next.
+        /// </summary>
+        public float AuctionBudget(float costAllowance)
+        {
+            var profile = Profile;
+            if (profile == null) return 0f;
+
+            float free = Mathf.Max(0f, Inventory.Cash - CalculateContractReserve() * ReserveSafetyMargin);
+            return free * profile.AuctionBudgetShare / (1f + Mathf.Max(0f, costAllowance));
+        }
+
+        /// <summary>
+        /// This NPC's paddle for a lot, or null if it doesn't want it (outside its interests, below its
+        /// condition standard, no budget). The limit starts from the same fair value used on the market,
+        /// scaled by the profile's auction multiplier, the lot's extra appeal (<paramref name="valuePremium"/>,
+        /// e.g. provenance) and the news it believes about this kind of antique — capped by its budget.
+        /// </summary>
+        public AuctionBidder CreateAuctionBidder(Antique antique, float valuePremium, float costAllowance, System.Random rng)
+        {
+            var profile = Profile;
+            if (profile == null || antique == null || antique.Definition == null || _economyManager.Market == null) return null;
+            if (!IsInterestedIn(antique.Definition, profile)) return null;
+            if (antique.Condition < profile.MinConditionToBuy) return null;
+
+            float cap = AuctionBudget(costAllowance);
+            if (cap <= 0f) return null;
+
+            float jitter = rng != null ? 0.9f + 0.2f * (float)rng.NextDouble() : 1f;
+            float value = FairValue(antique, profile)
+                          * profile.AuctionValueMultiplier
+                          * (1f + Mathf.Max(0f, valuePremium))
+                          * (1f + AuctionNewsBias(antique, profile))
+                          * jitter;
+
+            float limit = Mathf.Min(value, cap);
+            if (limit <= 0f) return null;
+
+            return new AuctionBidder
+            {
+                Id = Id,
+                Name = TraderName,
+                Kind = BidderKind.Npc,
+                Limit = limit,
+                Cap = cap,
+                FeverChance = profile.AuctionFeverChance,
+                FeverRaise = profile.AuctionFeverRaise,
+                Hesitation = profile.AuctionHesitation
+            };
+        }
+
+        /// <summary>Remembers a won lot like a market purchase, so the usual selling rules apply to it.</summary>
+        public void RecordAuctionPurchase(Antique antique, int day)
+        {
+            if (antique == null) return;
+            _acquisitions[antique.Id] = new Acquisition { PurchasePrice = antique.PurchasePrice, Day = day };
+        }
+
+        /// <summary>
+        /// +premium per believed piece of good news matching the antique, −premium per bad one. Only news
+        /// the NPC already reacts to (passed its trust roll, reaction day reached) counts.
+        /// </summary>
+        private float AuctionNewsBias(Antique antique, NpcBehaviorProfile profile)
+        {
+            if (profile.AuctionNewsPremium <= 0f) return 0f;
+
+            int day = CurrentDay;
+            float bias = 0f;
+
+            foreach (var pending in _pendingReactions)
+            {
+                if (pending.ReactionDay > day || pending.News?.NewsData == null) continue;
+
+                foreach (var effect in pending.News.NewsData)
+                {
+                    if (effect == null || effect.targetScope == TargetScope.Other) continue;
+                    if (!MatchesScope(antique, effect)) continue;
+
+                    bias += effect.affectsPriceUp ? profile.AuctionNewsPremium : -profile.AuctionNewsPremium;
+                }
+            }
+
+            return Mathf.Clamp(bias, -0.5f, 0.5f);
+        }
 
         // ---------------------------------------------------------------- save / load
 

@@ -284,6 +284,51 @@ namespace AntiqueTradingSimulator.Economy
             return true;
         }
 
+        /// <summary>
+        /// Total an auction win costs: hammer price, buyer's premium and shipping.
+        /// </summary>
+        public static float AuctionCost(float hammerPrice, float buyersPremium, TransportQuote transport) =>
+            hammerPrice + buyersPremium + (transport != null ? transport.Cost : 0f);
+
+        /// <summary>
+        /// Takes a won auction lot: pays hammer price + buyer's premium + shipping and adds the antique
+        /// to the holdings (InTransit with a quote — the caller dispatches it, as with Buy). The lot was
+        /// never on the regular market, so the Market is not involved. False (nothing changes) without a
+        /// free slot or enough cash.
+        /// </summary>
+        public bool BuyAtAuction(Antique antique, float hammerPrice, float buyersPremium, int currentDay, TransportQuote transport = null)
+        {
+            if (antique == null || Owns(antique.Id)) return false;
+
+            if (!HasFreeSlot)
+            {
+                Debug.Log($"TraderInventory: cannot take auction lot {antique.Name} — warehouse full ({UsedSlots}/{Capacity}).");
+                return false;
+            }
+
+            float shippingCost = transport != null ? transport.Cost : 0f;
+            float cost = AuctionCost(hammerPrice, buyersPremium, transport);
+            if (cost > Cash) return false;
+
+            Cash -= cost;
+            RememberDay(currentDay);
+            Record(LedgerCategory.Purchase, -hammerPrice, $"Bought \"{antique.Name}\" at auction");
+            Record(LedgerCategory.Commission, -buyersPremium, $"Buyer's premium ({antique.Name})");
+            Record(LedgerCategory.Transport, -shippingCost, $"Transport cost ({antique.Name})");
+
+            antique.OwnerId = OwnerId;
+            antique.AskingPrice = 0f;
+            antique.RecordAcquisition(cost, currentDay);
+            antique.TransportCost = shippingCost;
+            if (transport != null)
+                antique.MarkInTransit(transport.ArrivalDay);
+            _holdings[antique.Id] = antique;
+
+            OnCashChanged?.Invoke(Cash);
+            OnHoldingChanged?.Invoke(antique.Id, antique);
+            return true;
+        }
+
         public bool Sell(Market.Market market, string listingId, int currentDay)
         {
             if (!_holdings.TryGetValue(listingId, out var listing)) return false;

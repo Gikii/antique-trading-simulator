@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Agents;
+using AntiqueTradingSimulator.Auctions;
 using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Core;
@@ -39,6 +40,7 @@ namespace AntiqueTradingSimulator.Saving
         [SerializeField] private CampaignManager campaignManager;
         [SerializeField] private EventManager eventManager;
         [SerializeField] private NewsManager newsManager;
+        [SerializeField] private AuctionManager auctionManager;
         [SerializeField] private PlayerTrader playerTrader;
 
         private AutosaveScheduler _autosave;
@@ -94,6 +96,7 @@ namespace AntiqueTradingSimulator.Saving
             if (contractManager == null) contractManager = FindFirstObjectByType<ContractManager>();
             if (eventManager == null) eventManager = FindFirstObjectByType<EventManager>();
             if (newsManager == null) newsManager = FindFirstObjectByType<NewsManager>();
+            if (auctionManager == null) auctionManager = FindFirstObjectByType<AuctionManager>();
             if (playerTrader == null) playerTrader = FindFirstObjectByType<PlayerTrader>();
             if (companyManager == null)
                 companyManager = playerTrader != null ? playerTrader.Company : FindFirstObjectByType<CompanyManager>();
@@ -329,7 +332,8 @@ namespace AntiqueTradingSimulator.Saving
             Company = companyManager != null ? companyManager.CaptureState() : null,
             Campaign = campaignManager != null ? campaignManager.CaptureState() : null,
             Events = eventManager != null ? eventManager.CaptureState() : null,
-            News = newsManager != null ? newsManager.CaptureState() : null
+            News = newsManager != null ? newsManager.CaptureState() : null,
+            Auctions = auctionManager != null ? auctionManager.CaptureState() : null
         };
 
         // ---------------------------------------------------------------- restore
@@ -347,6 +351,7 @@ namespace AntiqueTradingSimulator.Saving
         /// 6. Company  — needs the player's restored inventory and warehouse for its upgrades.
         /// 7. Events   — restored without re-applying; their effect is already in the market.
         /// 8. News     — restored without re-publishing to receivers.
+        /// 9. Auctions — last: lots are re-valued against the restored market.
         /// </summary>
         public void RestoreGame(GameState state)
         {
@@ -385,6 +390,11 @@ namespace AntiqueTradingSimulator.Saving
 
             if (newsManager != null) newsManager.RestoreState(state.News);
             else WarnMissing("NewsManager", state.News);
+
+            // Runs even when the save has no auction state (older saves), so the schedule restarts
+            // from the loaded day instead of keeping this session's catalog.
+            if (auctionManager != null) auctionManager.RestoreState(state.Auctions);
+            else WarnMissing("AuctionManager", state.Auctions);
         }
 
         private static void WarnMissing(string managerName, object savedState)

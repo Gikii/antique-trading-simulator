@@ -32,6 +32,9 @@ namespace AntiqueTradingSimulator.Market
 
         public List<PricePoint> PriceHistory = new List<PricePoint>();
 
+        public float LastAuctionPrice;
+        public int LastAuctionDay = -1;
+
         public static MarketTypeState Capture(AntiqueMarketState typeState)
         {
             if (typeState == null) return null;
@@ -45,7 +48,9 @@ namespace AntiqueTradingSimulator.Market
                 BaselineDemand = typeState.BaselineDemand,
                 TempSupplyMod = typeState.TempSupplyMod,
                 TempDemandMod = typeState.TempDemandMod,
-                PriceHistory = new List<PricePoint>(typeState.PriceHistory)
+                PriceHistory = new List<PricePoint>(typeState.PriceHistory),
+                LastAuctionPrice = typeState.LastAuctionPrice,
+                LastAuctionDay = typeState.LastAuctionDay
             };
         }
 
@@ -57,7 +62,9 @@ namespace AntiqueTradingSimulator.Market
                 BaselineDemand = this.BaselineDemand,
                 TempSupplyMod = this.TempSupplyMod,
                 TempDemandMod = this.TempDemandMod,
-                PriceHistory = new List<PricePoint>(this.PriceHistory ?? new List<PricePoint>())
+                PriceHistory = new List<PricePoint>(this.PriceHistory ?? new List<PricePoint>()),
+                LastAuctionPrice = this.LastAuctionPrice,
+                LastAuctionDay = this.LastAuctionDay
             };
 
             return typeState;
