@@ -55,7 +55,7 @@ namespace AntiqueTradingSimulator.Contracts
             Penalty = type == ContractType.Exclusive ? Mathf.Max(0f, penalty) : 0f;
             RequiredReputation = Mathf.Max(0, requiredReputation);
             ClassName = className ?? "";
-        }
+        } 
 
         public Contract(ContractState state)
         {

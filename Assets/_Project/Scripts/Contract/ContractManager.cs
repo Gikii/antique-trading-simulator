@@ -164,6 +164,8 @@ namespace AntiqueTradingSimulator.Contracts
         /// </summary>
         public Func<int> PlayerReputationProvider { get; set; }
 
+        public ContractFeed Feed { get; } = new ContractFeed();
+
 
         void Awake()
         {
@@ -300,6 +302,7 @@ namespace AntiqueTradingSimulator.Contracts
 
             Debug.Log($"ContractManager: generated {contract.Type} contract ({contract.ContractId}) on week {currentWeek} for {requirement.Quantity} antiques at average price {requirement.AverageReferenceUnitPrice(economyManager.Market)} to be fullfilled by week {contract.DeadlineWeek} with total payout {contract.TotalReward}");
             OnContractCreated?.Invoke(contract);
+            Feed.AddListed(contract);
             return contract;
         }
 
@@ -408,14 +411,11 @@ namespace AntiqueTradingSimulator.Contracts
             return Mathf.Lerp(maxUrgencyBonusMultiplier, 1f, t);
         }
 
-
         public Contract GetById(string contractId)
         {
             _contractsById.TryGetValue(contractId, out var contract);
             return contract;
         }
-
-
 
         public void RegisterTrader(string traderId, TraderInventory inventory)
         {
@@ -508,8 +508,9 @@ namespace AntiqueTradingSimulator.Contracts
 
             inventory.ReleaseAllReservationsForContract(contract.ContractId);
 
-            Debug.Log($"ContractManager: {traderId} fulfilled contract {contract.ContractId} in full for {contract.TotalReward:F2}.");
+            Debug.Log($"ContractManager: {traderId} fulfilled {contract.Type} contract {contract.ContractId} in full for {contract.TotalReward:F2} on day {timeManager.CurrentDay}.");
             OnContractFulfilled?.Invoke(contract);
+            Feed.AddFulfilled(contract);
 
             return true;
         }
@@ -522,6 +523,7 @@ namespace AntiqueTradingSimulator.Contracts
 
             Debug.Log($"ContractManager: contract {contract.ContractId} claimed by {traderId}.");
             OnContractClaimed?.Invoke(contract, traderId);
+            Feed.AddExclusiveClaimed(contract);
             return true;
         }
 
@@ -548,6 +550,8 @@ namespace AntiqueTradingSimulator.Contracts
                 state.ListedContractIds.Add(contract.ContractId);
             }
 
+            state.FeedMessages = Feed.CaptureState();
+
             return state;
         }
 
@@ -566,6 +570,8 @@ namespace AntiqueTradingSimulator.Contracts
                 OnContractsRestored?.Invoke();
                 return;
             }
+
+            Feed.RestoreState(state.FeedMessages);
 
             if (state.Contracts != null)
             {

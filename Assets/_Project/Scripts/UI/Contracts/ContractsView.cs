@@ -63,8 +63,13 @@ namespace AntiqueTradingSimulator.UI
                 fulfillModal.Fulfilled += HandleContractFulfilledByPlayer;
 
             if (listPanel != null) listPanel.Initialize(ShowDetails, ReputationLockReason);
-            if (detailsUI != null) detailsUI.Initialize(AcceptContract, OpenFulfillModal);
+            if (detailsUI != null)
+            {
+                detailsUI.Initialize(AcceptContract, OpenFulfillModal);
+                detailsUI.Closed += HandleDetailsClosed;
+            }
         }
+
 
         protected override void OnShown()
         {
@@ -108,6 +113,12 @@ namespace AntiqueTradingSimulator.UI
 
         private void HandleContractClaimed(Contract contract, string traderId) => RefreshActiveTab();
         private void HandleContractsChanged(Contract contract) => RefreshActiveTab();
+        private void HandleDetailsClosed()
+        {
+            _selectedContract = null;
+            if (listPanel != null) listPanel.ClearSelection();
+        }
+
         private void HandleWeekChanged(int week) => RefreshActiveTab();
 
         public void SetTab(ContractsTab tab)
