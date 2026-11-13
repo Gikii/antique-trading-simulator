@@ -6,6 +6,7 @@ using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Restoration;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Company
 {
@@ -69,8 +70,10 @@ namespace AntiqueTradingSimulator.Company
         [Range(1, 5)] [SerializeField] private int startingInformationNetworkLevel = 1;
 
         [Header("History")]
-        [Tooltip("Daily snapshots kept for charts and trends.")]
-        [Min(8)] [SerializeField] private int maxSnapshotDays = 120;
+        [Tooltip("Weekly snapshots kept for charts, trends and the end screen. Keep it ≥ the campaign length " +
+                 "so the end screen can chart the whole campaign.")]
+        [FormerlySerializedAs("maxSnapshotDays")]
+        [Min(8)] [SerializeField] private int maxSnapshotWeeks = 160;
 
         private PlayerTrader _player;
         private TimeManager _timeManager;
@@ -96,7 +99,7 @@ namespace AntiqueTradingSimulator.Company
                 if (_record == null)
                 {
                     EnsureSettings();
-                    _record = new TraderRecord(reputationSettings, maxSnapshotDays);
+                    _record = new TraderRecord(reputationSettings, maxSnapshotWeeks);
                     _record.Changed += HandleRecordChanged;
                 }
                 return _record;
@@ -147,8 +150,8 @@ namespace AntiqueTradingSimulator.Company
         /// <summary>One snapshot per day, oldest first.</summary>
         public IReadOnlyList<CompanySnapshot> History => Record.History;
 
-        public int CurrentDay => Clock != null ? Clock.CurrentDay : 1;
-        public int CampaignLength => Clock != null ? Clock.CampaignLength : 90;
+        public int CurrentWeek => Clock != null ? Clock.CurrentWeek : 1;
+        public int CampaignLength => Clock != null ? Clock.CampaignLength : 104;
 
         private TimeManager Clock
         {
@@ -158,7 +161,7 @@ namespace AntiqueTradingSimulator.Company
                 return _timeManager;
             }
         }
-        public int DaysUntilCongress => Mathf.Max(0, CampaignLength - CurrentDay);
+        public int WeeksUntilCongress => Mathf.Max(0, CampaignLength - CurrentWeek);
 
         /// <summary>Anything the Company view shows changed (reputation, upgrade, contract, new day).</summary>
         public event Action OnCompanyChanged;
@@ -215,7 +218,7 @@ namespace AntiqueTradingSimulator.Company
         {
             if (_subscribed || Player == null) return;
 
-            if (_timeManager != null) _timeManager.OnDayChanged += HandleDayChanged;
+            if (_timeManager != null) _timeManager.OnWeekChanged += HandleWeekChanged;
             Player.OnContractAccepted += HandleContractAccepted;
             Player.OnContractFulfilled += HandleContractFulfilled;
             Player.OnContractFailed += HandleContractFailed;
@@ -227,7 +230,7 @@ namespace AntiqueTradingSimulator.Company
         {
             if (!_subscribed) return;
 
-            if (_timeManager != null) _timeManager.OnDayChanged -= HandleDayChanged;
+            if (_timeManager != null) _timeManager.OnWeekChanged -= HandleWeekChanged;
             if (_player != null)
             {
                 _player.OnContractAccepted -= HandleContractAccepted;
@@ -240,9 +243,9 @@ namespace AntiqueTradingSimulator.Company
 
         // ---------------------------------------------------------------- reputation API
 
-        public void AddReputation(int delta, string reason) => Reputation.AddReputation(delta, reason, CurrentDay);
+        public void AddReputation(int delta, string reason) => Reputation.AddReputation(delta, reason, CurrentWeek);
 
-        public void AddCredibility(float delta, string reason) => Reputation.AddCredibility(delta, reason, CurrentDay);
+        public void AddCredibility(float delta, string reason) => Reputation.AddCredibility(delta, reason, CurrentWeek);
 
         /// <summary>
         /// What a reputation or credibility tier gives access to, generated from the contract
@@ -275,9 +278,9 @@ namespace AntiqueTradingSimulator.Company
 
         // ---------------------------------------------------------------- event handlers
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
-            Record.FlushSales(newDay - 1);
+            Record.FlushSales(newWeek - 1);
             ChargeUpgradeUpkeep();
             RecordSnapshot();
             OnCompanyChanged?.Invoke();
@@ -300,9 +303,9 @@ namespace AntiqueTradingSimulator.Company
 
         private void HandleContractAccepted(Contract contract) => Record.ContractAccepted();
 
-        private void HandleContractFulfilled(Contract contract) => Record.ContractFulfilled(contract, CurrentDay);
+        private void HandleContractFulfilled(Contract contract) => Record.ContractFulfilled(contract, CurrentWeek);
 
-        private void HandleContractFailed(Contract contract) => Record.ContractFailed(contract, CurrentDay);
+        private void HandleContractFailed(Contract contract) => Record.ContractFailed(contract, CurrentWeek);
 
         private void HandleRecordChanged() => OnCompanyChanged?.Invoke();
 
@@ -314,13 +317,13 @@ namespace AntiqueTradingSimulator.Company
         /// The player's share of all market trading volume (purchases + sales of every
         /// registered trader), 0..1. <paramref name="days"/> = 0 → whole campaign so far.
         /// </summary>
-        public float MarketShare(int days = 0)
+        public float MarketShare(int weeks = 0)
         {
             var inventory = Player != null ? Player.Inventory : null;
             if (_economyManager == null) ResolveReferences();
             if (inventory == null || _economyManager == null) return 0f;
 
-            int from = days > 0 ? CurrentDay - days + 1 : int.MinValue;
+            int from = weeks > 0 ? CurrentWeek - weeks + 1 : int.MinValue;
             return TraderStats.MarketShare(inventory, _economyManager.Inventories, from);
         }
 
@@ -330,7 +333,7 @@ namespace AntiqueTradingSimulator.Company
         public CompanySnapshot Capture()
         {
             var inventory = Player != null ? Player.Inventory : null;
-            return Record.Capture(CurrentDay, inventory, MarketShare());
+            return Record.Capture(CurrentWeek, inventory, MarketShare());
         }
 
         private void RecordSnapshot() => Record.Record(Capture());
@@ -339,14 +342,14 @@ namespace AntiqueTradingSimulator.Company
         /// The latest recorded snapshot at least <paramref name="days"/> days old, or the
         /// oldest one if history doesn't reach that far back (live state if there's none).
         /// </summary>
-        public CompanySnapshot SnapshotDaysAgo(int days)
+        public CompanySnapshot SnapshotWeeksAgo(int weeks)
         {
-            return Record.SnapshotDaysAgo(CurrentDay, days) ?? Capture();
+            return Record.SnapshotWeeksAgo(CurrentWeek, weeks) ?? Capture();
         }
 
         /// <summary>Change of one criterion over the last <paramref name="days"/> days (live minus past).</summary>
-        public float Change(ScoreCriterion criterion, int days) =>
-            Capture().Value(criterion) - SnapshotDaysAgo(days).Value(criterion);
+        public float Change(ScoreCriterion criterion, int weeks) =>
+            Capture().Value(criterion) - SnapshotWeeksAgo(weeks).Value(criterion);
 
         // ---------------------------------------------------------------- score
 
@@ -404,7 +407,7 @@ namespace AntiqueTradingSimulator.Company
                     float share = _economyManager != null
                         ? TraderStats.MarketShare(npc.Inventory, _economyManager.Inventories)
                         : 0f;
-                    var now = npc.Record.Capture(CurrentDay, npc.Inventory, share);
+                    var now = npc.Record.Capture(CurrentWeek, npc.Inventory, share);
                     result.Add(new CompetitorEntry(npc.Id, npc.TraderName, false, now,
                                                    CampaignScoring.TotalScore(scoring, now), npc.Record.History));
                 }
@@ -493,7 +496,7 @@ namespace AntiqueTradingSimulator.Company
             ResolveReferences();
             if (_contractManager == null) return;
             for (int i = 0; i < 5; i++)
-                _contractManager.GenerateContract(CurrentDay);
+                _contractManager.GenerateContract(CurrentWeek);
         }
 
         [ContextMenu("Debug/Log upgrade effects")]
@@ -514,7 +517,7 @@ namespace AntiqueTradingSimulator.Company
             Debug.Log($"CompanyManager effects — reputation {Reputation.Reputation} ({Reputation.Title}); " +
                       $"levels: {levels.TrimEnd(',', ' ')}; " +
                       $"access: {Player.AccessLevel}; market fee: {m.ListingFeeRate:P1}; " +
-                      $"transport: -{m.TransportCostReduction:P0} cost, -{m.TransportDaysReduction} day(s); " +
+                      $"transport: -{m.TransportCostReduction:P0} cost, -{m.TransportWeeksReduction} week(s); " +
                       $"contracts: {Player.ActiveContractCount}/{(limit < 0 ? "unlimited" : limit.ToString())}");
         }
 #endif

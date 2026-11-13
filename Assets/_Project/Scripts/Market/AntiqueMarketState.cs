@@ -8,12 +8,12 @@ namespace AntiqueTradingSimulator.Market
     [Serializable]
     public class PricePoint
     {
-        public int Day;
+        public int Week;
         public float Price;
 
-        public PricePoint(int day, float price)
+        public PricePoint(int week, float price)
         {
-            Day = day;
+            Week = week;
             Price = price;
         }
     }
@@ -32,13 +32,23 @@ namespace AntiqueTradingSimulator.Market
         public float TempSupplyMod;
         public float TempDemandMod;
 
+        /// <summary>
+        /// Seasonal part of the demand (SeasonSettings), set every week by EconomyManager:
+        /// BaselineDemand × (seasonal multiplier − 1). Kept apart from TempDemandMod so events and the
+        /// dependency network never overwrite it, and the UI can show it on its own.
+        /// </summary>
+        public float SeasonalDemandMod;
+
+        /// <summary>The demand prices, collectors and the UI work with: own + temporary (events, dependencies) + seasonal.</summary>
+        public float EffectiveDemand => Demand + TempDemandMod + SeasonalDemandMod;
+
         public List<PricePoint> PriceHistory = new List<PricePoint>();
-        private const int MaxHistoryDays = 90;
+        private const int MaxHistoryWeeks = 90;
 
         // Hammer price of the last lot of this type sold at auction (0 / -1 = never sold at auction).
         public float LastAuctionPrice;
-        public int LastAuctionDay = -1;
-        public bool HasAuctionPrice => LastAuctionDay >= 0;
+        public int LastAuctionWeek = -1;
+        public bool HasAuctionPrice => LastAuctionWeek >= 0;
 
         private const float SnapThreshold = 0.01f;
 
@@ -64,10 +74,10 @@ namespace AntiqueTradingSimulator.Market
         }
 
 
-        public void RecordPrice(int day, float price)
+        public void RecordPrice(int week, float price)
         {
-            PriceHistory.Add(new PricePoint(day, price));
-            if (PriceHistory.Count > MaxHistoryDays)
+            PriceHistory.Add(new PricePoint(week, price));
+            if (PriceHistory.Count > MaxHistoryWeeks)
                 PriceHistory.RemoveAt(0);
         }
     }

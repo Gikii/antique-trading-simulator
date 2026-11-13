@@ -53,15 +53,15 @@ namespace AntiqueTradingSimulator.Economy
     /// <summary>One cash movement. Amount is signed: positive = income, negative = expense.</summary>
     public readonly struct LedgerEntry
     {
-        public readonly int Day;
+        public readonly int Week;
         public readonly LedgerCategory Category;
         public readonly float Amount;
         public readonly string Description;
 
         [JsonConstructor]
-        public LedgerEntry(int day, LedgerCategory category, float amount, string description)
+        public LedgerEntry(int week, LedgerCategory category, float amount, string description)
         {
-            Day = day;
+            Week = week;
             Category = category;
             Amount = amount;
             Description = description ?? "";
@@ -97,10 +97,10 @@ namespace AntiqueTradingSimulator.Economy
         }
 
         /// <summary>Entries from <paramref name="fromDay"/> to <paramref name="toDay"/> inclusive.</summary>
-        public IEnumerable<LedgerEntry> Between(int fromDay, int toDay)
+        public IEnumerable<LedgerEntry> Between(int fromWeek, int toWeek)
         {
             foreach (var entry in _entries)
-                if (entry.Day >= fromDay && entry.Day <= toDay)
+                if (entry.Week >= fromWeek && entry.Week <= toWeek)
                     yield return entry;
         }
 
@@ -113,37 +113,37 @@ namespace AntiqueTradingSimulator.Economy
             return result;
         }
 
-        public float Income(int fromDay, int toDay)
+        public float Income(int fromWeek, int toWeek)
         {
             float sum = 0f;
-            foreach (var entry in Between(fromDay, toDay))
+            foreach (var entry in Between(fromWeek, toWeek))
                 if (entry.IsIncome) sum += entry.Amount;
             return sum;
         }
 
         /// <summary>Total expenses as a positive number.</summary>
-        public float Expenses(int fromDay, int toDay)
+        public float Expenses(int fromWeek, int toWeek)
         {
             float sum = 0f;
-            foreach (var entry in Between(fromDay, toDay))
+            foreach (var entry in Between(fromWeek, toWeek))
                 if (entry.IsExpense) sum -= entry.Amount;
             return sum;
         }
 
         /// <summary>Signed sum of one category.</summary>
-        public float Sum(LedgerCategory category, int fromDay, int toDay)
+        public float Sum(LedgerCategory category, int fromWeek, int toWeek)
         {
             float sum = 0f;
-            foreach (var entry in Between(fromDay, toDay))
+            foreach (var entry in Between(fromWeek, toWeek))
                 if (entry.Category == category) sum += entry.Amount;
             return sum;
         }
 
         /// <summary>Absolute value of all sales and purchases — this trader's market volume.</summary>
-        public float TradeVolume(int fromDay, int toDay)
+        public float TradeVolume(int fromWeek, int toWeek)
         {
             float sum = 0f;
-            foreach (var entry in Between(fromDay, toDay))
+            foreach (var entry in Between(fromWeek, toWeek))
                 if (entry.Category.IsTrade()) sum += Math.Abs(entry.Amount);
             return sum;
         }

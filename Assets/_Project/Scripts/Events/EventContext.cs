@@ -7,7 +7,7 @@ namespace AntiqueTradingSimulator.Events
     public class EventContext
     {
         public Market.Market Market;
-        public int CurrentDay;
+        public int CurrentWeek;
         public TraderInventory PlayerInventory;
         public TransportManager Transport; // may be null — effects fall back to instant delivery
 
@@ -15,10 +15,10 @@ namespace AntiqueTradingSimulator.Events
 
         public Contracts.ContractManager ContractManager;
 
-        public EventContext(Market.Market market, int currentDay, TraderInventory playerInventory, TransportManager transport = null, DependencyManager dependencies = null, Contracts.ContractManager contractManager = null)
+        public EventContext(Market.Market market, int currentWeek, TraderInventory playerInventory, TransportManager transport = null, DependencyManager dependencies = null, Contracts.ContractManager contractManager = null)
         {
             Market = market;
-            CurrentDay = currentDay;
+            CurrentWeek = currentWeek;
             PlayerInventory = playerInventory;
             Transport = transport;
             Dependencies = dependencies;

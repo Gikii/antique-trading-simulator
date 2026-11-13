@@ -24,7 +24,7 @@ public abstract class InfoBarListUI : MonoBehaviour
     protected virtual void OnActionClicked() { }
 
 
-    protected int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
+    protected int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 0;
 
     protected struct RowData {
         public string Label;
@@ -61,7 +61,7 @@ public abstract class InfoBarListUI : MonoBehaviour
         if (_subscribed) return;
 
         if (timeManager != null)
-            timeManager.OnDayChanged += HandleDayChanged;
+            timeManager.OnWeekChanged += HandleWeekChanged;
 
         SubscribeToSources();
         _subscribed = true;
@@ -72,13 +72,13 @@ public abstract class InfoBarListUI : MonoBehaviour
         if (!_subscribed) return;
 
         if (timeManager != null)
-            timeManager.OnDayChanged -= HandleDayChanged;
+            timeManager.OnWeekChanged -= HandleWeekChanged;
 
         UnsubscribeFromSources();
         _subscribed = false;
     }
 
-    private void HandleDayChanged(int day) => Refresh();
+    private void HandleWeekChanged(int week) => Refresh();
 
     public void Refresh()
     {

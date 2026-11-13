@@ -48,7 +48,7 @@ namespace AntiqueTradingSimulator.UI
 
             if (readable)
             {
-                SetText(titleText, SaveSlotFormat.DayAndDate(info.Header), textColor);
+                SetText(titleText, SaveSlotFormat.WeekAndDate(info.Header), textColor);
                 SetText(detailText, SaveSlotFormat.Figures(info.Header), mutedColor);
             }
             else

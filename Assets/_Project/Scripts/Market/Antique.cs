@@ -22,7 +22,7 @@ namespace AntiqueTradingSimulator.Market
         // -1 = never listed on the regular market yet (e.g. exists only as part of an
         // auction pool). Set exclusively by Market.AddListing — not by the constructor,
         // since an Antique can exist without being a market listing.
-        public int MarketListedOnDay = -1;
+        public int MarketListedOnWeek = -1;
 
         // Purely descriptive physical condition (drives the "Good"/"Poor" label
         // shown in UI). Still factors into price, but is no longer the only
@@ -58,11 +58,11 @@ namespace AntiqueTradingSimulator.Market
         // into pricing until there's a concrete mechanic for it.
         public string History = "";
 
-        // Acquisition record for the current owner. PurchasedOnDay = -1 means the
+        // Acquisition record for the current owner. PurchasedOnWeek = -1 means the
         // item has no acquisition record (e.g. an anonymous market listing).
         // Items received for free (event rewards) keep PurchasePrice = 0.
         public float PurchasePrice = 0f;
-        public int PurchasedOnDay = -1;
+        public int PurchasedOnWeek = -1;
 
         // Part of PurchasePrice that was paid for transport (0 if none). PurchasePrice
         // stays the full cost basis; this is only kept so the UI can break it down.
@@ -71,18 +71,18 @@ namespace AntiqueTradingSimulator.Market
         // Part of PurchasePrice paid for restorations (0 if none) — like TransportCost, only
         // kept so the UI can break the cost basis down.
         public float RestorationCost = 0f;
-        public bool HasPurchaseRecord => PurchasedOnDay >= 0;
+        public bool HasPurchaseRecord => PurchasedOnWeek >= 0;
 
-        public void RecordAcquisition(float price, int day)
+        public void RecordAcquisition(float price, int week)
         {
             PurchasePrice = Mathf.Max(0f, price);
-            PurchasedOnDay = day;
+            PurchasedOnWeek = week;
         }
 
         public void ClearAcquisition()
         {
             PurchasePrice = 0f;
-            PurchasedOnDay = -1;
+            PurchasedOnWeek = -1;
             TransportCost = 0f;
             RestorationCost = 0f;
         }
@@ -91,12 +91,12 @@ namespace AntiqueTradingSimulator.Market
         /// Adds what a restoration cost to the cost basis, so profit and ROI stay net of it.
         /// An item without an acquisition record gets one dated <paramref name="day"/>.
         /// </summary>
-        public void AddRestorationCost(float cost, int day)
+        public void AddRestorationCost(float cost, int week)
         {
             if (cost <= 0f) return;
 
             if (!HasPurchaseRecord)
-                PurchasedOnDay = day;
+                PurchasedOnWeek = week;
 
             PurchasePrice += cost;
             RestorationCost += cost;
@@ -124,7 +124,7 @@ namespace AntiqueTradingSimulator.Market
         // but cannot be sold, listed or handed in for a contract until it arrives.
         // It CAN be reserved for a contract while still on the way.
         public AntiqueStatus Status = AntiqueStatus.Available;
-        public int ArrivalDay = -1;
+        public int ArrivalWeek = -1;
 
         public bool IsInTransit => Status == AntiqueStatus.InTransit;
         public bool IsAvailable => Status == AntiqueStatus.Available;
@@ -132,30 +132,30 @@ namespace AntiqueTradingSimulator.Market
         // At a conservator's workshop (RestorationManager). Like InTransit: owned and counted in
         // the collection, but it can't be sold, listed or handed in until the work is done.
         public bool IsInRestoration => Status == AntiqueStatus.InRestoration;
-        public int RestorationEndDay = -1;
+        public int RestorationEndWeek = -1;
 
-        public void MarkInRestoration(int endDay)
+        public void MarkInRestoration(int endWeek)
         {
             Status = AntiqueStatus.InRestoration;
-            RestorationEndDay = endDay;
+            RestorationEndWeek = endWeek;
         }
 
         public void CompleteRestoration()
         {
             Status = AntiqueStatus.Available;
-            RestorationEndDay = -1;
+            RestorationEndWeek = -1;
         }
 
-        public void MarkInTransit(int arrivalDay)
+        public void MarkInTransit(int arrivalWeek)
         {
             Status = AntiqueStatus.InTransit;
-            ArrivalDay = arrivalDay;
+            ArrivalWeek = arrivalWeek;
         }
 
         public void MarkArrived()
         {
             Status = AntiqueStatus.Available;
-            ArrivalDay = -1;
+            ArrivalWeek = -1;
         }
 
         public void AppendHistory(string entry)

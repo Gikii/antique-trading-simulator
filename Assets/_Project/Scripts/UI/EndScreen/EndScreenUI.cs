@@ -145,7 +145,7 @@ namespace AntiqueTradingSimulator.UI
             var winner = campaign.Winner;
             int count = campaign.FinalRanking.Count;
 
-            SetText(titleText, $"The campaign is over — day {campaign.FinishedOnDay}");
+            SetText(titleText, $"The campaign is over — week {campaign.FinishedOnWeek}");
 
             if (player == null || winner == null)
             {
@@ -237,7 +237,7 @@ namespace AntiqueTradingSimulator.UI
             MarkMetricButton(netWorthButton, metric == ChartMetric.NetWorth);
             MarkMetricButton(scoreButton, metric == ChartMetric.Score);
 
-            int days = Mathf.Max(1, campaign.FinishedOnDay);
+            int weeks = Mathf.Max(1, campaign.FinishedOnWeek);
             var scoring = campaign.Company.Scoring;
             var histories = campaign.Company.GetCompetition().ToDictionary(e => e.Id, e => e.History);
 
@@ -246,7 +246,7 @@ namespace AntiqueTradingSimulator.UI
             foreach (var standing in campaign.FinalRanking)
             {
                 histories.TryGetValue(standing.Id, out var history);
-                var values = DailyValues(history, days, snapshot =>
+                var values = WeeklyValues(history, weeks, snapshot =>
                     metric == ChartMetric.NetWorth ? snapshot.Wealth : CampaignScoring.TotalScore(scoring, snapshot));
                 if (values != null) series.Add((standing, values));
             }
@@ -263,8 +263,8 @@ namespace AntiqueTradingSimulator.UI
                 : v => Mathf.RoundToInt(v).ToString();
             SetText(chartMaxText, label(max));
             SetText(chartMinText, label(min));
-            SetText(chartStartText, "Day 1");
-            SetText(chartEndText, $"Day {days}");
+            SetText(chartStartText, "Week 1");
+            SetText(chartEndText, $"Week {weeks}");
 
             int rivalIndex = 0;
             // Rivals first, the player last so its line is drawn on top.
@@ -307,18 +307,18 @@ namespace AntiqueTradingSimulator.UI
         /// The value for each day 1..days: that day's snapshot, or the last one before it (before
         /// the first snapshot, the first one). Null without any history.
         /// </summary>
-        private static List<float> DailyValues(IReadOnlyList<CompanySnapshot> history, int days, System.Func<CompanySnapshot, float> value)
+        private static List<float> WeeklyValues(IReadOnlyList<CompanySnapshot> history, int weeks, System.Func<CompanySnapshot, float> value)
         {
             if (history == null || history.Count == 0) return null;
 
-            var sorted = history.OrderBy(s => s.Day).ToList();
-            var result = new List<float>(days);
+            var sorted = history.OrderBy(s => s.Week).ToList();
+            var result = new List<float>(weeks);
             int index = 0;
             CompanySnapshot current = sorted[0];
 
-            for (int day = 1; day <= days; day++)
+            for (int week = 1; week <= weeks; week++)
             {
-                while (index < sorted.Count && sorted[index].Day <= day)
+                while (index < sorted.Count && sorted[index].Week <= week)
                     current = sorted[index++];
                 result.Add(value(current));
             }

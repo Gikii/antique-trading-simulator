@@ -17,8 +17,8 @@ namespace AntiqueTradingSimulator.UI
 {
     public class InventoryDetailsUI : MonoBehaviour
     {
-        private const int TrendWindowDays = 30;
-        private const int RelatedNewsWindowDays = 7;
+        private const int TrendWindowWeeks = 30;
+        private const int RelatedNewsWindowWeeks = 7;
         private const int MaxRelatedNews = 2;
 
         // Demand/supply this far above or below their baseline count as "high"/"low".
@@ -101,7 +101,7 @@ namespace AntiqueTradingSimulator.UI
         private TooltipTrigger _restoreTooltip;
 
         private Market.Market CurrentMarket => economyManager != null ? economyManager.Market : null;
-        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 0;
 
         private void Awake()
         {
@@ -213,15 +213,15 @@ namespace AntiqueTradingSimulator.UI
             SetText(trendValueText, UIFormat.Money(antique.CurrentPrice));
 
             var market = CurrentMarket;
-            List<float> history = CollectionAnalytics.ItemValueHistory(antique, market, TrendWindowDays);
+            List<float> history = CollectionAnalytics.ItemValueHistory(antique, market, TrendWindowWeeks);
             history.Add(antique.CurrentPrice);
 
-            float change = CollectionAnalytics.MarketValueChange(antique, market, TrendWindowDays);
+            float change = CollectionAnalytics.MarketValueChange(antique, market, TrendWindowWeeks);
             float past = antique.CurrentPrice - change;
             string changeText = past > 0f
                 ? $"{UIFormat.SignedPercent(change / past)} {UIFormat.TrendArrow(change)}"
                 : "—";
-            SetText(trendChangeText, $"{UIFormat.ColorBySign(changeText, change)} <size=75%>({TrendWindowDays} days)</size>");
+            SetText(trendChangeText, $"{UIFormat.ColorBySign(changeText, change)} <size=75%>({UIFormat.Weeks(TrendWindowWeeks)})</size>");
 
             if (trendChart != null)
                 trendChart.SetValues(history.Count > 1 ? history : null);
@@ -229,7 +229,7 @@ namespace AntiqueTradingSimulator.UI
             string range = history.Count > 1
                 ? $"{UIFormat.Money(history.Min())} – {UIFormat.Money(history.Max())}"
                 : "—";
-            SetText(trendRangeText, $"Base price: {UIFormat.Money(antique.BasePrice)}\n{TrendWindowDays}-day range: {range}");
+            SetText(trendRangeText, $"Base price: {UIFormat.Money(antique.BasePrice)}\n{TrendWindowWeeks}-week range: {range}");
         }
 
         private void RefreshInvestmentCard(Antique antique)
@@ -244,14 +244,14 @@ namespace AntiqueTradingSimulator.UI
             else if (antique.PurchasePrice - antique.TransportCost - antique.RestorationCost <= 0.5f)
             {
                 SetText(purchasePriceText, "Purchase price: free (event reward)");
-                SetText(purchaseDateText, $"Acquired: {FormatDay(antique.PurchasedOnDay)}");
+                SetText(purchaseDateText, $"Acquired: {FormatWeek(antique.PurchasedOnWeek)}");
             }
             else
             {
                 // PurchasePrice is the full cost basis (price + transport + restorations) — show the item price alone here.
                 float itemPrice = antique.PurchasePrice - antique.TransportCost - antique.RestorationCost;
                 SetText(purchasePriceText, $"Purchase price: {UIFormat.Money(itemPrice)}");
-                SetText(purchaseDateText, $"Purchased: {FormatDay(antique.PurchasedOnDay)}");
+                SetText(purchaseDateText, $"Purchased: {FormatWeek(antique.PurchasedOnWeek)}");
             }
 
             // PurchasePrice already includes transport and restorations — this line breaks them down.
@@ -268,10 +268,10 @@ namespace AntiqueTradingSimulator.UI
             float? roi = CollectionAnalytics.ReturnOnInvestment(antique.CurrentPrice, antique.PurchasePrice);
             string profitLine = UIFormat.SignedMoney(profit) + (roi.HasValue ? $" ({UIFormat.SignedPercent(roi.Value)})" : "");
 
-            if (antique.HasPurchaseRecord && antique.PurchasedOnDay < CurrentDay)
+            if (antique.HasPurchaseRecord && antique.PurchasedOnWeek < CurrentWeek)
             {
-                int daysHeld = CurrentDay - antique.PurchasedOnDay;
-                profitLine += UIFormat.Colorize($" · held {daysHeld} {(daysHeld == 1 ? "day" : "days")}", UIFormat.MutedColor);
+                int weeksHeld = CurrentWeek - antique.PurchasedOnWeek;
+                profitLine += UIFormat.Colorize($" · held {UIFormat.Weeks(weeksHeld)}", UIFormat.MutedColor);
             }
 
             SetText(profitText, $"Profit / loss: {UIFormat.ColorBySign(profitLine, profit)}");
@@ -293,11 +293,12 @@ namespace AntiqueTradingSimulator.UI
             }
             else
             {
-                float demand = typeState.Demand + typeState.TempDemandMod;
+                float demand = typeState.EffectiveDemand;
                 float supply = typeState.Supply + typeState.TempSupplyMod;
 
                 // For an owner, high demand is good news and high supply is bad news.
-                SetText(demandText, $"Demand: {LevelLabel(demand, typeState.BaselineDemand, higherIsGood: true)}");
+                SetText(demandText, $"Demand: {LevelLabel(demand, typeState.BaselineDemand, higherIsGood: true)}" +
+                                    SeasonalDemandNote(typeState));
                 SetText(supplyText, $"Supply: {LevelLabel(supply, typeState.BaselineSupply, higherIsGood: false)}");
 
                 float referencePrice = PriceEngine.CalculateReferencePrice(antique.BasePrice, typeState);
@@ -312,6 +313,18 @@ namespace AntiqueTradingSimulator.UI
             }
 
             SetText(relatedNewsText, BuildRelatedNews(antique));
+        }
+
+        /// <summary>" · season +15%" when the season moves this type's demand by at least 1%, otherwise "".</summary>
+        private static string SeasonalDemandNote(AntiqueTradingSimulator.Market.AntiqueMarketState typeState)
+        {
+            if (typeState.BaselineDemand <= 0f) return "";
+
+            int percent = Mathf.RoundToInt(typeState.SeasonalDemandMod / typeState.BaselineDemand * 100f);
+            if (percent == 0) return "";
+
+            string text = percent > 0 ? $"season +{percent}%" : $"season {percent}%";
+            return " " + UIFormat.Colorize($"· {text}", UIFormat.MutedColor);
         }
 
         private static string LevelLabel(float value, float baseline, bool higherIsGood)
@@ -338,12 +351,12 @@ namespace AntiqueTradingSimulator.UI
                 return "Related news: —";
 
             InfoAccessLevel access = playerTrader != null ? playerTrader.AccessLevel : InfoAccessLevel.LocalPress;
-            int fromDay = CurrentDay - RelatedNewsWindowDays;
+            int fromWeek = CurrentWeek - RelatedNewsWindowWeeks;
 
             List<NewsItem> related = newsManager.PublishedNews
-                .Where(n => n.DayPublished >= fromDay && n.RequiredAccessLevel <= access)
+                .Where(n => n.WeekPublished >= fromWeek && n.RequiredAccessLevel <= access)
                 .Where(n => n.NewsData != null && n.NewsData.Any(d => Concerns(d, antique)))
-                .OrderByDescending(n => n.DayPublished)
+                .OrderByDescending(n => n.WeekPublished)
                 .Take(MaxRelatedNews)
                 .ToList();
 
@@ -384,9 +397,9 @@ namespace AntiqueTradingSimulator.UI
             bool inTransit = antique.IsInTransit || inRestoration;
 
             string transitReason = antique.IsInTransit
-                ? $"In transit — {UIFormat.ArrivalLabel(antique.ArrivalDay)}. It can't be sold or listed until it reaches your warehouse."
+                ? $"In transit — {UIFormat.ArrivalLabel(antique.ArrivalWeek)}. It can't be sold or listed until it reaches your warehouse."
                 : inRestoration
-                    ? $"Being restored — {UIFormat.ReadyLabel(antique.RestorationEndDay)}. It can't be sold or listed until it's back."
+                    ? $"Being restored — {UIFormat.ReadyLabel(antique.RestorationEndWeek)}. It can't be sold or listed until it's back."
                     : "";
 
             RefreshRestoreAction(antique);
@@ -414,7 +427,7 @@ namespace AntiqueTradingSimulator.UI
                 }
                 else if (listed)
                 {
-                    string since = antique.MarketListedOnDay >= 0 ? $" since day {antique.MarketListedOnDay}" : "";
+                    string since = antique.MarketListedOnWeek >= 0 ? $" since {UIFormat.GameDate(antique.MarketListedOnWeek)}" : "";
                     listOnMarketLabel.text = $"Cancel listing\n<size=70%>Listed for {UIFormat.Money(antique.AskingPrice)}{since}</size>";
                 }
                 else
@@ -435,13 +448,13 @@ namespace AntiqueTradingSimulator.UI
 
             if (inRestoration)
             {
-                sellNowLabel.text = $"Sell now\n<size=70%>Back {UIFormat.GameDate(antique.RestorationEndDay)}</size>";
+                sellNowLabel.text = $"Sell now\n<size=70%>Back {UIFormat.GameDate(antique.RestorationEndWeek)}</size>";
                 return;
             }
 
             if (inTransit)
             {
-                sellNowLabel.text = $"Sell now\n<size=70%>Arrives {UIFormat.GameDate(antique.ArrivalDay)}</size>";
+                sellNowLabel.text = $"Sell now\n<size=70%>Arrives {UIFormat.GameDate(antique.ArrivalWeek)}</size>";
                 return;
             }
 
@@ -485,7 +498,7 @@ namespace AntiqueTradingSimulator.UI
             {
                 var job = restorationManager.GetJob(antique.Id);
                 string where = job != null ? $"{job.OptionName}, " : "";
-                SetText(restoreLabel, $"Restore\n<size=70%>{where}back {UIFormat.GameDate(antique.RestorationEndDay)}</size>");
+                SetText(restoreLabel, $"Restore\n<size=70%>{where}back {UIFormat.GameDate(antique.RestorationEndWeek)}</size>");
                 return;
             }
 
@@ -560,24 +573,24 @@ namespace AntiqueTradingSimulator.UI
         // Helpers
         // ------------------------------------------------------------------
 
-        private string FormatDay(int day)
+        private string FormatWeek(int week)
         {
             if (timeManager == null)
-                return $"day {day}";
+                return $"week {week}";
 
-            return $"{TimeManager.FormatLong(timeManager.DayToDate(day))} (day {day})";
+            return $"{TimeManager.FormatLong(timeManager.WeekToDate(week))} (week {week})";
         }
 
         private static string StatusLabel(Antique antique, RestorationManager restorations)
         {
             if (antique.IsInTransit)
-                return UIFormat.Colorize($"In transit — {UIFormat.ArrivalLabel(antique.ArrivalDay)}", UIFormat.InTransitColor);
+                return UIFormat.Colorize($"In transit — {UIFormat.ArrivalLabel(antique.ArrivalWeek)}", UIFormat.InTransitColor);
 
             if (antique.IsInRestoration)
             {
                 var job = restorations != null ? restorations.GetJob(antique.Id) : null;
                 string where = job != null ? $" at {job.OptionName}" : "";
-                return UIFormat.Colorize($"Being restored{where} — {UIFormat.ReadyLabel(antique.RestorationEndDay)}", UIFormat.InRestorationColor);
+                return UIFormat.Colorize($"Being restored{where} — {UIFormat.ReadyLabel(antique.RestorationEndWeek)}", UIFormat.InRestorationColor);
             }
 
             return "In your warehouse";

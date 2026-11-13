@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Restoration
 {
@@ -27,7 +28,8 @@ namespace AntiqueTradingSimulator.Restoration
         [Tooltip("The fee never goes below this amount (€).")]
         [Min(0f)] public float MinimumFee = 50f;
 
-        [Min(1)] public int DurationDays = 3;
+        [FormerlySerializedAs("DurationDays")]
+        [Min(1)] public int DurationWeeks = 3;
 
         [Tooltip("Chance the antique reaches Max Condition.")]
         [Range(0f, 1f)] public float SuccessChance = 0.7f;
@@ -47,7 +49,7 @@ namespace AntiqueTradingSimulator.Restoration
         public RestorationOption() { }
 
         public RestorationOption(string id, string displayName, string description, float maxCondition, float costRate,
-            float minimumFee, int durationDays, float successChance, float partialChance, int requiredReputation)
+            float minimumFee, int durationWeeks, float successChance, float partialChance, int requiredReputation)
         {
             Id = id;
             DisplayName = displayName;
@@ -55,7 +57,7 @@ namespace AntiqueTradingSimulator.Restoration
             MaxCondition = maxCondition;
             CostRate = costRate;
             MinimumFee = minimumFee;
-            DurationDays = durationDays;
+            DurationWeeks = durationWeeks;
             SuccessChance = successChance;
             PartialChance = partialChance;
             RequiredReputation = requiredReputation;

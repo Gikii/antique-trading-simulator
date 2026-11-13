@@ -178,7 +178,7 @@ namespace AntiqueTradingSimulator.Company
 
             modifiers.ListingFeeRate = GetStat(CompanyUpgradeType.Staff, UpgradeStat.MarketFeeRate, Market.Market.ListingFeeRate);
             modifiers.TransportCostReduction = GetStat(CompanyUpgradeType.Logistics, UpgradeStat.TransportCostReduction, 0f);
-            modifiers.TransportDaysReduction = Mathf.RoundToInt(GetStat(CompanyUpgradeType.Logistics, UpgradeStat.TransportDaysReduction, 0f));
+            modifiers.TransportWeeksReduction = Mathf.RoundToInt(GetStat(CompanyUpgradeType.Logistics, UpgradeStat.TransportWeeksReduction, 0f));
             modifiers.RestorationCostReduction = GetStat(CompanyUpgradeType.Conservators, UpgradeStat.RestorationCostReduction, 0f);
             modifiers.RestorationTimeReduction = GetStat(CompanyUpgradeType.Conservators, UpgradeStat.RestorationTimeReduction, 0f);
         }
@@ -263,11 +263,11 @@ namespace AntiqueTradingSimulator.Company
                 if (Warehouse == null) return 0f;
                 var ws = Warehouse.Settings;
                 return type == CompanyUpgradeType.Warehouse
-                    ? ws.BaseDailyUpkeep + level * ws.UpkeepPerCapacityLevel + _inventory.UsedSlots * ws.UpkeepPerUsedSlot
+                    ? ws.BaseWeeklyUpkeep + level * ws.UpkeepPerCapacityLevel + _inventory.UsedSlots * ws.UpkeepPerUsedSlot
                     : level * ws.UpkeepPerSecurityLevel;
             }
 
-            return LevelData(definition, level)?.DailyUpkeep ?? 0f;
+            return LevelData(definition, level)?.WeeklyUpkeep ?? 0f;
         }
 
         // ---------------------------------------------------------------- buying

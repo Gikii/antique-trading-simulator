@@ -1,5 +1,6 @@
 using System.IO;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Saving
 {
@@ -29,7 +30,8 @@ namespace AntiqueTradingSimulator.Saving
         [Header("Autosave defaults (the player's own choice is kept in PlayerPrefs)")]
         public bool AutosaveEnabledByDefault = true;
 
-        [Min(1)] public int AutosaveIntervalDaysByDefault = 1;
+        [FormerlySerializedAs("AutosaveIntervalDaysByDefault")]
+        [Min(1)] public int AutosaveIntervalWeeksByDefault = 1;
 
         [Header("Unsaved progress")]
         [Tooltip("Play time since the last save (manual or autosave) after which leaving the game asks for confirmation.")]

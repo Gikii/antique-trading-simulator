@@ -31,7 +31,7 @@ namespace AntiqueTradingSimulator.UI
         /// Why the player can't take this contract because of reputation (shown as a tooltip and
         /// a "Locked" badge), or null/empty when it isn't locked.
         /// </param>
-        public void Setup(Contract contract, int currentDay, Action<Contract> onClick, string lockReason = null)
+        public void Setup(Contract contract, int currentWeek, Action<Contract> onClick, string lockReason = null)
         {
             _contract = contract;
             _onClick = onClick;
@@ -53,8 +53,8 @@ namespace AntiqueTradingSimulator.UI
 
             if (deadlineText != null)
             {
-                int daysLeft = Mathf.Max(0, contract.DeadlineDay - currentDay);
-                deadlineText.text = $"{daysLeft}d";
+                int weeksLeft = Mathf.Max(0, contract.DeadlineWeek - currentWeek);
+                deadlineText.text = $"{weeksLeft}d";
             }
 
             bool locked = !string.IsNullOrEmpty(lockReason);

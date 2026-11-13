@@ -14,8 +14,8 @@ namespace AntiqueTradingSimulator.Restoration
         public string OptionId;
         public string OptionName;
 
-        public int StartDay;
-        public int EndDay;
+        public int StartWeek;
+        public int EndWeek;
         public float Cost;
 
         public float StartCondition;
@@ -27,7 +27,7 @@ namespace AntiqueTradingSimulator.Restoration
         /// <summary>Whose antique it is. Not saved — resolved from the owner Id on load.</summary>
         public TraderInventory Owner;
 
-        public int DaysRemaining(int today) => System.Math.Max(0, EndDay - today);
+        public int WeeksRemaining(int thisWeek) => System.Math.Max(0, EndWeek - thisWeek);
     }
 
     /// <summary>A finished restoration — kept briefly for the info bar.</summary>
@@ -36,7 +36,7 @@ namespace AntiqueTradingSimulator.Restoration
         public string AntiqueId;
         public string AntiqueName;
         public string OptionName;
-        public int Day;
+        public int Week;
         public RestorationOutcome Outcome;
         public float StartCondition;
         public float ResultCondition;

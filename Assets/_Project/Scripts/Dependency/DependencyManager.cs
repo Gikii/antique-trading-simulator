@@ -90,7 +90,7 @@ namespace AntiqueTradingSimulator.Dependency
             }
 
             _engine = new DependencyEngine(settings, MarketInstance) { LogChanges = logInfluences };
-            _engine.OnDayProcessed += HandleDayProcessed;
+            _engine.OnWeekProcessed += HandleWeekProcessed;
         }
 
         private void Subscribe()
@@ -111,7 +111,7 @@ namespace AntiqueTradingSimulator.Dependency
             market.OnPressureApplied += Engine.ReportPressure;
 
             if (economyManager.TimeManager != null)
-                economyManager.TimeManager.OnDayChanged += Engine.AdvanceDay;
+                economyManager.TimeManager.OnWeekChanged += Engine.AdvanceWeek;
 
             _subscribed = true;
         }
@@ -125,12 +125,12 @@ namespace AntiqueTradingSimulator.Dependency
                 market.OnPressureApplied -= Engine.ReportPressure;
 
             if (economyManager != null && economyManager.TimeManager != null)
-                economyManager.TimeManager.OnDayChanged -= Engine.AdvanceDay;
+                economyManager.TimeManager.OnWeekChanged -= Engine.AdvanceWeek;
 
             _subscribed = false;
         }
 
-        private void HandleDayProcessed(int day) => OnInfluencesChanged?.Invoke();
+        private void HandleWeekProcessed(int week) => OnInfluencesChanged?.Invoke();
 
         // ---------------------------------------------------------------- forwarding
 
@@ -144,7 +144,7 @@ namespace AntiqueTradingSimulator.Dependency
             Engine.ReportCategoryPressure(facet, demandDelta, supplyDelta);
 
 
-        public void AdvanceDay(int day) => Engine.AdvanceDay(day);
+        public void AdvanceWeek(int week) => Engine.AdvanceWeek(week);
 
         public float CurrentInfluenceOn(string definitionId) => Engine.CurrentInfluenceOn(definitionId);
 

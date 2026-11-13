@@ -63,38 +63,38 @@ namespace AntiqueTradingSimulator.UI
             eventManager.OnEventsRestored -= Refresh;
         }
 
-        private void HandleActiveEventChanged(EventDefinition definition, int triggerDay) => Refresh();
+        private void HandleActiveEventChanged(EventDefinition definition, int triggerWeek) => Refresh();
         private void HandleActiveEventChanged(ActiveEvent activeEvent) => Refresh();
         private void HandleAuctionChanged(Auction auction) => Refresh();
         private void HandleJoinWindowClosed(Auction auction, bool joined) => Refresh();
 
         protected override void BuildLines(List<RowData> lines)
         {
-            int today = CurrentDay;
+            int thisWeek = CurrentWeek;
 
-            AddAuctionLines(lines, today);
+            AddAuctionLines(lines, thisWeek);
 
             if (eventManager == null)
                 return;
 
             List<ActiveEvent> active = eventManager.ActiveEvents
                 .Where(a => a != null && a.Definition != null)
-                .OrderByDescending(a => a.StartDay)
-                .ThenBy(a => a.EndDay)
+                .OrderByDescending(a => a.StartWeek)
+                .ThenBy(a => a.EndWeek)
                 .Take(Mathf.Max(1, maxRows))
                 .ToList();
 
             foreach (ActiveEvent activeEvent in active)
-                lines.Add(BuildLine(activeEvent, today));
+                lines.Add(BuildLine(activeEvent, thisWeek));
         }
 
         /// <summary>Today's result (if an auction was held today), then the next auction.</summary>
-        private void AddAuctionLines(List<RowData> lines, int today)
+        private void AddAuctionLines(List<RowData> lines, int thisWeek)
         {
             if (auctionManager == null) return;
 
             var last = auctionManager.History.Count > 0 ? auctionManager.History[0] : null;
-            if (last != null && last.Day == today)
+            if (last != null && last.Week == thisWeek)
             {
                 int won = last.Lots.Count(l => l.IsSold && AuctionPresentation.IsPlayer(l.WinnerId));
                 string detail = won > 0
@@ -127,7 +127,7 @@ namespace AntiqueTradingSimulator.UI
                     color = UIFormat.PositiveColor;
                     break;
                 default:
-                    when = AuctionPresentation.When(next, today);
+                    when = AuctionPresentation.When(next, thisWeek);
                     break;
             }
 
@@ -135,29 +135,29 @@ namespace AntiqueTradingSimulator.UI
             {
                 Label = $"{AuctionPresentation.Title(next)} · {next.Lots.Count} lots",
                 Detail = UIFormat.Colorize(when, color),
-                Tooltip = $"{AuctionPresentation.Title(next)} · {UIFormat.GameDate(next.Day)}, {AuctionPresentation.Hour(next.StartTick)}\n" +
+                Tooltip = $"{AuctionPresentation.Title(next)} · {AuctionPresentation.Date(next)}\n" +
                           string.Join("\n", next.Lots.Select(l => $"{AuctionPresentation.LotTitle(l)} · est. {AuctionPresentation.Estimate(l)}")) +
                           "\n\nSee the catalog in the Auctions tab."
             });
         }
 
-        private RowData BuildLine(ActiveEvent activeEvent, int today)
+        private RowData BuildLine(ActiveEvent activeEvent, int thisWeek)
         {
-            int daysLeft = activeEvent.EndDay - today;
+            int weeksLeft = activeEvent.EndWeek - thisWeek;
             string title = activeEvent.Definition.DisplayName;
 
             string tooltip = $"{title}\n" +
-                             $"Started {UIFormat.GameDate(activeEvent.StartDay)} · ends {UIFormat.GameDate(activeEvent.EndDay)}";
+                             $"Started {UIFormat.GameDate(activeEvent.StartWeek)} · ends {UIFormat.WeekEndDate(activeEvent.EndWeek - 1)}";
 
             if (!string.IsNullOrWhiteSpace(activeEvent.Definition.Description))
-                tooltip += $"\n\n{activeEvent.Definition.Description}";
+                tooltip += $"\n\n{Helpers.TextHelper.Resolve(activeEvent.Definition.Description, future: false)}";
 
             return new RowData
             {
                 Label = title,
                 Detail = UIFormat.Colorize(
-                    NewsPresentation.DaysLeft(daysLeft).ToLowerInvariant(),
-                    daysLeft <= 1 ? UIFormat.NegativeColor : UIFormat.AccentColor),
+                    NewsPresentation.WeeksLeft(weeksLeft).ToLowerInvariant(),
+                    weeksLeft <= 1 ? UIFormat.NegativeColor : UIFormat.AccentColor),
                 Tooltip = tooltip
             };
         }

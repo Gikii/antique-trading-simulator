@@ -84,7 +84,7 @@ namespace AntiqueTradingSimulator.Market
         /// item put up for sale (and RemoveExpiredListings takes it back out). False for the listings
         /// the market starts with — they are the baseline the initial supply describes.
         /// </param>
-        public Antique GenerateListing(int currentDay, bool addSupply = true)
+        public Antique GenerateListing(int currentWeek, bool addSupply = true)
         {
             string definitionId = PickWeightedDefinitionId();
             if (definitionId == null)
@@ -93,11 +93,11 @@ namespace AntiqueTradingSimulator.Market
             float condition = Random.Range(Antique.MinCondition, Antique.MaxCondition);
             float priceFactor = Random.Range(Antique.MinPriceFactor, Antique.MaxPriceFactor);
 
-            return CreateListing(definitionId, condition, priceFactor, RollShippingZone(), currentDay, addSupply);
+            return CreateListing(definitionId, condition, priceFactor, RollShippingZone(), currentWeek, addSupply);
         }
 
         public Antique CreateListing(string definitionId, float condition, float priceFactor,
-                                     ShippingZone shippingZone, int currentDay, bool addSupply = true)
+                                     ShippingZone shippingZone, int currentWeek, bool addSupply = true)
         {
             if (string.IsNullOrEmpty(definitionId))
             {
@@ -113,7 +113,7 @@ namespace AntiqueTradingSimulator.Market
 
             var listing = new Antique(definitionId, condition, priceFactor);
             listing.ShippingZone = shippingZone;
-            AddListing(listing, currentDay);
+            AddListing(listing, currentWeek);
 
             if (addSupply)
             {
@@ -155,9 +155,9 @@ namespace AntiqueTradingSimulator.Market
             return null;
         }
 
-        public void AddListing(Antique listing, int currentDay)
+        public void AddListing(Antique listing, int currentWeek)
         {
-            listing.MarketListedOnDay = currentDay;
+            listing.MarketListedOnWeek = currentWeek;
             RecalculatePrice(listing);
             _listings.Add(listing);
             Feed.AddListing(listing.Name, listing.SalePrice);
@@ -237,15 +237,15 @@ namespace AntiqueTradingSimulator.Market
         /// The supply the offer added when it appeared is taken back out (same as cancelling a listing),
         /// so generating and expiring offers doesn't drift prices. Returns how many were removed.
         /// </summary>
-        public int RemoveExpiredListings(int currentDay, int lifetimeDays)
+        public int RemoveExpiredListings(int currentWeek, int lifetimeWeeks)
         {
-            if (lifetimeDays <= 0) return 0;
+            if (lifetimeWeeks <= 0) return 0;
 
             var expired = _listings.Where(l =>
                 !l.IsListedForSale &&
                 string.IsNullOrEmpty(l.OwnerId) &&
-                l.MarketListedOnDay >= 0 &&
-                currentDay - l.MarketListedOnDay > lifetimeDays).ToList();
+                l.MarketListedOnWeek >= 0 &&
+                currentWeek - l.MarketListedOnWeek > lifetimeWeeks).ToList();
 
             foreach (var listing in expired)
             {
@@ -319,7 +319,7 @@ namespace AntiqueTradingSimulator.Market
         /// buys it — then the owner receives the price minus ListingFee. Adds the same
         /// supply pressure as any other item offered for sale.
         /// </summary>
-        public bool ListForSale(Antique antique, float askingPrice, int currentDay)
+        public bool ListForSale(Antique antique, float askingPrice, int currentWeek)
         {
             if (antique == null || askingPrice <= 0f) return false;
 
@@ -332,7 +332,7 @@ namespace AntiqueTradingSimulator.Market
             antique.AskingPrice = askingPrice;
             antique.ShippingZone = ShippingZone.Domestic; // ships from the owner's warehouse
             ApplySellPressure(antique.DefinitionId);
-            AddListing(antique, currentDay);
+            AddListing(antique, currentWeek);
             // The extra supply lowers this type's value everywhere, the listed item included.
             RecalculatePricesForDefinition(antique.DefinitionId);
             return true;
@@ -345,7 +345,7 @@ namespace AntiqueTradingSimulator.Market
 
             _listings.Remove(antique);
             antique.AskingPrice = 0f;
-            antique.MarketListedOnDay = -1;
+            antique.MarketListedOnWeek = -1;
             ApplyBuyPressure(antique.DefinitionId);
             OnListingRemoved?.Invoke(antique);
             RecalculatePricesForDefinition(antique.DefinitionId);
@@ -400,7 +400,7 @@ namespace AntiqueTradingSimulator.Market
         /// follow through the dependency graph.
         /// </summary>
         /// <param name="hammerPrice">Price the lot sold for; 0 if it went unsold.</param>
-        public void ApplyAuctionResult(string definitionId, float hammerPrice, int day, float demandDelta)
+        public void ApplyAuctionResult(string definitionId, float hammerPrice, int week, float demandDelta)
         {
             var typeState = GetTypeState(definitionId);
             if (typeState == null) return;
@@ -408,7 +408,7 @@ namespace AntiqueTradingSimulator.Market
             if (hammerPrice > 0f)
             {
                 typeState.LastAuctionPrice = hammerPrice;
-                typeState.LastAuctionDay = day;
+                typeState.LastAuctionWeek = week;
             }
 
             if (Mathf.Approximately(demandDelta, 0f)) return;
@@ -425,7 +425,7 @@ namespace AntiqueTradingSimulator.Market
         /// Puts a specific, already-existing antique listing (with its own quality/state)
         /// back onto the market for sale — its type's supply rises/demand dips slightly.
         /// </summary>
-        public void Sell(Antique listing, int currentDay)
+        public void Sell(Antique listing, int currentWeek)
         {
             if (listing == null)
             {
@@ -441,7 +441,7 @@ namespace AntiqueTradingSimulator.Market
             listing.MarkArrived();
 
             ApplySellPressure(listing.DefinitionId);
-            AddListing(listing, currentDay);
+            AddListing(listing, currentWeek);
         }
 
         /// <summary>
@@ -468,6 +468,22 @@ namespace AntiqueTradingSimulator.Market
             {
                 typeState.Supply = supply;
                 typeState.Demand = demand;
+            }
+        }
+
+        /// <summary>
+        /// Sets every type's seasonal demand from a multiplier per antique type (1 = normal). Prices are
+        /// not recalculated here — call RecalculateAllPrices (ApplyMeanReversion does) afterwards.
+        /// </summary>
+        public void ApplySeasonalDemand(System.Func<AntiqueType, float> multiplierByType)
+        {
+            if (multiplierByType == null) return;
+
+            foreach (var typeState in _typeStates.Values)
+            {
+                var definition = AntiqueDatabase.GetById(typeState.DefinitionId);
+                float multiplier = definition != null ? multiplierByType(definition.Type) : 1f;
+                typeState.SeasonalDemandMod = typeState.BaselineDemand * (multiplier - 1f);
             }
         }
 
@@ -504,18 +520,18 @@ namespace AntiqueTradingSimulator.Market
                 inventory.RevalueHoldings(this, definitionId);
         }
 
-        public void RecordDailyPrices(int day)
+        public void RecordWeeklyPrices(int week)
         {
             foreach (var typeState in _typeStates.Values)
             {
                 var definition = AntiqueDatabase.GetById(typeState.DefinitionId);
                 float basePrice = definition != null ? definition.BasePrice : 0f;
                 float referencePrice = PriceEngine.CalculateReferencePrice(basePrice, typeState);
-                typeState.RecordPrice(day, referencePrice);
+                typeState.RecordPrice(week, referencePrice);
             }
 
             foreach (var inventory in _inventories)
-                inventory.RecordValue(day);
+                inventory.RecordValue(week);
         }
         // ---------------------------------------------------------------- save / load
 

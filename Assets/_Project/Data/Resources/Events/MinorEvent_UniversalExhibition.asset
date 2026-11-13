@@ -22,6 +22,7 @@ MonoBehaviour:
   MinLeadDays: 3
   MaxLeadDays: 8
   PlayerSelectsLeadTime: 1
+  AllowedSeasons: 3
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1

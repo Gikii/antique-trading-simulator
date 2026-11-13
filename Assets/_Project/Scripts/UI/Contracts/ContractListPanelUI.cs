@@ -62,7 +62,7 @@ namespace AntiqueTradingSimulator.UI
         private List<Contract> _sourceContracts = new();
         private readonly List<ContractListItemUI> _spawnedRows = new();
 
-        private int _currentDay;
+        private int _currentWeek;
         private string _selectedContractId;
         private Action<Contract> _onSelect;
         private Func<Contract, string> _lockReason;
@@ -89,10 +89,10 @@ namespace AntiqueTradingSimulator.UI
                 nextPageButton.onClick.AddListener(NextPage);
         }
 
-        public void SetContracts(List<Contract> contracts, int currentDay)
+        public void SetContracts(List<Contract> contracts, int currentWeek)
         {
             _sourceContracts = contracts ?? new List<Contract>();
-            _currentDay = currentDay;
+            _currentWeek = currentWeek;
             Refresh();
         }
 
@@ -178,7 +178,7 @@ namespace AntiqueTradingSimulator.UI
                         if (rowRT != null) rowRT.sizeDelta = new Vector2(rowRT.sizeDelta.x, rowHeight);
                     }
 
-                    rowUI.Setup(contract, _currentDay, HandleRowClicked, _lockReason?.Invoke(contract));
+                    rowUI.Setup(contract, _currentWeek, HandleRowClicked, _lockReason?.Invoke(contract));
                     rowUI.SetSelected(contract.ContractId == _selectedContractId);
                     _spawnedRows.Add(rowUI);
                 }
@@ -235,8 +235,8 @@ namespace AntiqueTradingSimulator.UI
 
             result = _sortMode switch
             {
-                ContractSortMode.DeadlineAsc => result.OrderBy(c => c.DeadlineDay),
-                ContractSortMode.DeadlineDesc => result.OrderByDescending(c => c.DeadlineDay),
+                ContractSortMode.DeadlineAsc => result.OrderBy(c => c.DeadlineWeek),
+                ContractSortMode.DeadlineDesc => result.OrderByDescending(c => c.DeadlineWeek),
                 ContractSortMode.RewardAsc => result.OrderBy(c => c.TotalReward),
                 ContractSortMode.RewardDesc => result.OrderByDescending(c => c.TotalReward),
                 ContractSortMode.QuantityAsc => result.OrderBy(c => c.Requirement.Quantity),

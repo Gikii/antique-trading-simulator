@@ -11,24 +11,24 @@ namespace AntiqueTradingSimulator.Dependency
         public readonly float Strength;
         public readonly DependencyKind Kind;
         public readonly float ActivationThreshold;
-        public readonly float DecayPerDay;
+        public readonly float DecayPerWeek;
 
         public DependencyEdge(MarketFacet source, MarketFacet target, float strength, DependencyKind kind,
-                              float activationThreshold, float decayPerDay)
+                              float activationThreshold, float decayPerWeek)
         {
             Source = source;
             Target = target;
             Strength = strength;
             Kind = kind;
             ActivationThreshold = activationThreshold;
-            DecayPerDay = decayPerDay;
+            DecayPerWeek = decayPerWeek;
         }
 
         public bool IsSelfLink => Source == Target;
 
         public override string ToString() =>
             $"{MarketFacets.DisplayName(Source)} → {MarketFacets.DisplayName(Target)} " +
-            $"({Strength:+0.00;-0.00}, {Kind}, thr {ActivationThreshold:0.##}, decay {DecayPerDay:0.##})";
+            $"({Strength:+0.00;-0.00}, {Kind}, thr {ActivationThreshold:0.##}, decay {DecayPerWeek:0.##})";
     }
 
     /// <summary>One category's share of a market change, produced by walking the graph.</summary>
@@ -36,7 +36,7 @@ namespace AntiqueTradingSimulator.Dependency
     {
         public MarketFacet Facet;
         public float Amount;
-        public float DecayPerDay;
+        public float DecayPerWeek;
         public DependencyKind Kind;
         public int Depth;
     }
@@ -80,7 +80,7 @@ namespace AntiqueTradingSimulator.Dependency
         {
             public float Strength;
             public float ActivationThreshold;
-            public float DecayPerDay;
+            public float DecayPerWeek;
             public DependencyKind Kind;
             public float DominantMagnitude;
         }
@@ -103,13 +103,13 @@ namespace AntiqueTradingSimulator.Dependency
                     if (rule == null || !rule.Enabled) continue;
 
                     AddPair(pairs, rule.From, rule.To, rule.Strength, rule.DerivedKind,
-                            rule.ActivationThreshold, rule.DecayPerDay);
+                            rule.ActivationThreshold, rule.DecayPerWeek);
 
                     // One authored rule, both directions.
                     float reverse = rule.ReverseStrength;
                     if (rule.Symmetry != Symmetry.OneWay && !Mathf.Approximately(reverse, 0f))
                         AddPair(pairs, rule.To, rule.From, reverse, rule.DerivedKind,
-                                rule.ActivationThreshold, rule.DecayPerDay);
+                                rule.ActivationThreshold, rule.DecayPerWeek);
                 }
             }
 
@@ -126,7 +126,7 @@ namespace AntiqueTradingSimulator.Dependency
                 if (Mathf.Approximately(strength, 0f)) continue;
 
                 var edge = new DependencyEdge(pair.Key.from, pair.Key.to, strength, accumulator.Kind,
-                                              accumulator.ActivationThreshold, accumulator.DecayPerDay);
+                                              accumulator.ActivationThreshold, accumulator.DecayPerWeek);
 
                 if (edge.IsSelfLink)
                 {
@@ -173,7 +173,7 @@ namespace AntiqueTradingSimulator.Dependency
                 {
                     Strength = strength,
                     ActivationThreshold = threshold,
-                    DecayPerDay = decay,
+                    DecayPerWeek = decay,
                     Kind = kind,
                     DominantMagnitude = magnitude
                 };
@@ -187,7 +187,7 @@ namespace AntiqueTradingSimulator.Dependency
             {
                 accumulator.DominantMagnitude = magnitude;
                 accumulator.Kind = kind;
-                accumulator.DecayPerDay = decay;
+                accumulator.DecayPerWeek = decay;
             }
 
             pairs[key] = accumulator;
@@ -213,7 +213,7 @@ namespace AntiqueTradingSimulator.Dependency
                 // Interest in part of a century lifts the rest of it: one self-link per value.
                 foreach (var facet in facets)
                     AddPair(pairs, facet, facet, rule.Strength, rule.Kind,
-                            rule.ActivationThreshold, rule.DecayPerDay);
+                            rule.ActivationThreshold, rule.DecayPerWeek);
                 return;
             }
 
@@ -224,7 +224,7 @@ namespace AntiqueTradingSimulator.Dependency
                 {
                     if (i == j) continue;
                     AddPair(pairs, facets[i], facets[j], rule.Strength, rule.Kind,
-                            rule.ActivationThreshold, rule.DecayPerDay);
+                            rule.ActivationThreshold, rule.DecayPerWeek);
                 }
             }
         }
@@ -253,7 +253,7 @@ namespace AntiqueTradingSimulator.Dependency
                     {
                         Facet = source,
                         Amount = selfAmount,
-                        DecayPerDay = selfLink.DecayPerDay,
+                        DecayPerWeek = selfLink.DecayPerWeek,
                         Kind = selfLink.Kind,
                         Depth = 0
                     });
@@ -281,7 +281,7 @@ namespace AntiqueTradingSimulator.Dependency
                     {
                         Facet = edge.Target,
                         Amount = contribution,
-                        DecayPerDay = edge.DecayPerDay,
+                        DecayPerWeek = edge.DecayPerWeek,
                         Kind = edge.Kind,
                         Depth = depth + 1
                     });

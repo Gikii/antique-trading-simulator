@@ -17,8 +17,8 @@ namespace AntiqueTradingSimulator.Restoration
         public string OptionId;
         public string OptionName;
 
-        public int StartDay;
-        public int EndDay;
+        public int StartWeek;
+        public int EndWeek;
         public float Cost;
 
         public float StartCondition;
@@ -34,8 +34,8 @@ namespace AntiqueTradingSimulator.Restoration
             AntiqueName = job.AntiqueName,
             OptionId = job.OptionId,
             OptionName = job.OptionName,
-            StartDay = job.StartDay,
-            EndDay = job.EndDay,
+            StartWeek = job.StartWeek,
+            EndWeek = job.EndWeek,
             Cost = job.Cost,
             StartCondition = job.StartCondition,
             TargetCondition = job.TargetCondition,
@@ -50,8 +50,8 @@ namespace AntiqueTradingSimulator.Restoration
             AntiqueName = AntiqueName,
             OptionId = OptionId,
             OptionName = OptionName,
-            StartDay = StartDay,
-            EndDay = EndDay,
+            StartWeek = StartWeek,
+            EndWeek = EndWeek,
             Cost = Cost,
             StartCondition = StartCondition,
             TargetCondition = TargetCondition,

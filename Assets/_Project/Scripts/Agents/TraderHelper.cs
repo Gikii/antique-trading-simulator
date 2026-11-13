@@ -16,7 +16,7 @@ namespace AntiqueTradingSimulator.Agents
         /// TransportManager the purchase falls back to instant delivery.
         /// </summary>
         public static bool BuyListing(TraderInventory inventory, Market.Market market, string listingId, string traderName,
-            int currentDay = -1, TransportManager transport = null, TransportOption option = TransportOption.Standard)
+            int currentWeek = -1, TransportManager transport = null, TransportOption option = TransportOption.Standard)
         {
             if (!HasMarket(market, traderName)) return false;
 
@@ -32,7 +32,7 @@ namespace AntiqueTradingSimulator.Agents
 
             TransportQuote quote = transport != null && listing != null ? transport.Quote(listing, option, buyer: inventory) : null;
 
-            bool success = inventory.Buy(market, listingId, currentDay, quote);
+            bool success = inventory.Buy(market, listingId, currentWeek, quote);
             LogResult(traderName, "buy", listingId, success, inventory.Cash);
             if (success) {
                 market.Feed.AddPurchase(traderName, antiqueName, price);
@@ -51,11 +51,11 @@ namespace AntiqueTradingSimulator.Agents
             return listing.SalePrice + (quote != null ? quote.Cost : 0f);
         }
 
-        public static bool SellListing(TraderInventory inventory, Market.Market market, string listingId, string traderName, int currentDay)
+        public static bool SellListing(TraderInventory inventory, Market.Market market, string listingId, string traderName, int currentWeek)
         {
             if (!HasMarket(market, traderName)) return false;
 
-            bool success = inventory.Sell(market, listingId, currentDay);
+            bool success = inventory.Sell(market, listingId, currentWeek);
             LogResult(traderName, "sell", listingId, success, inventory.Cash);
             return success;
         }

@@ -12,7 +12,7 @@ namespace AntiqueTradingSimulator.UI
     /// Right-side details panel (NewsDetails / EventDetails).
     /// Fills the texts of the clicked news item or active event.
     /// Children are found by name, so the same component works for both panels.
-    /// Refreshes itself when the day changes (e.g. "In 5 days" → "In 4 days").
+    /// Refreshes itself when the week changes (e.g. "In 5 weeks" → "In 4 weeks").
     /// </summary>
     public class DetailsPanelUI : MonoBehaviour
     {
@@ -47,15 +47,15 @@ namespace AntiqueTradingSimulator.UI
         private void OnEnable()
         {
             Cache();
-            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged += HandleWeekChanged;
         }
 
         private void OnDisable()
         {
-            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged -= HandleWeekChanged;
         }
 
-        private void HandleDayChanged(int day) => Refresh();
+        private void HandleWeekChanged(int week) => Refresh();
 
         // ------------------------------------------------------------------
         // Public API
@@ -89,15 +89,15 @@ namespace AntiqueTradingSimulator.UI
 
         private void RenderNews(NewsItem news)
         {
-            int today = timeManager != null ? timeManager.CurrentDay : news.DayPublished;
+            int thisWeek = timeManager != null ? timeManager.CurrentWeek : news.WeekPublished;
 
             SetText(titleText, NewsPresentation.GetTitle(news));
             SetType(NewsPresentation.TypeLabel(news.Type), NewsPresentation.TypeColor(news.Type));
             SetText(descriptionText, NewsPresentation.GetNewsDescription(news));
 
             SetRowValue(expectedDateRow,
-                $"{NewsPresentation.RelativeDays(news.EventTriggerDay - today)}\n" +
-                NewsPresentation.FormatDay(news.EventTriggerDay, timeManager));
+                $"{NewsPresentation.RelativeWeeks(news.EventTriggerWeek - thisWeek)}\n" +
+                NewsPresentation.FormatWeek(news.EventTriggerWeek, timeManager));
 
             // Rumours may reveal only some effects – the rest stays "Unknown".
             FillTargets(news.NewsData, UnknownValue);
@@ -110,8 +110,8 @@ namespace AntiqueTradingSimulator.UI
             EventDefinition definition = activeEvent.Definition;
             List<NewsEventData> effects = BuildEventEffects(definition);
 
-            int today = timeManager != null ? timeManager.CurrentDay : activeEvent.StartDay;
-            int lastDay = activeEvent.EndDay - 1; // EndDay is exclusive
+            int thisWeek = timeManager != null ? timeManager.CurrentWeek : activeEvent.StartWeek;
+            int lastWeek = activeEvent.EndWeek - 1; // EndWeek is exclusive
 
             SetText(titleText, definition != null ? definition.DisplayName : "Unknown event");
             SetType("Event", NewsPresentation.EventColor);
@@ -119,8 +119,8 @@ namespace AntiqueTradingSimulator.UI
 
             if (timeRemainingRow != null)
             {
-                SetRowLabel(timeRemainingRow, NewsPresentation.DaysLeft(activeEvent.EndDay - today));
-                SetRowValue(timeRemainingRow, FormatRange(activeEvent.StartDay, lastDay));
+                SetRowLabel(timeRemainingRow, NewsPresentation.WeeksLeft(activeEvent.EndWeek - thisWeek));
+                SetRowValue(timeRemainingRow, FormatRange(activeEvent.StartWeek, lastWeek));
             }
 
             // Events are fully known – missing targets mean "not affected".
@@ -167,13 +167,13 @@ namespace AntiqueTradingSimulator.UI
             return result;
         }
 
-        /// <summary>"14 May – 19 May 1884"</summary>
-        private string FormatRange(int firstDay, int lastDay)
+        /// <summary>"12 May – 1 June 1884": from the Monday of the first week to the Sunday of the last one.</summary>
+        private string FormatRange(int firstWeek, int lastWeek)
         {
-            if (timeManager == null) return $"Day {firstDay} – {lastDay}";
+            if (timeManager == null) return $"Week {firstWeek} – {lastWeek}";
 
-            return $"{TimeManager.FormatDayMonth(timeManager.DayToDate(firstDay))} – " +
-                   TimeManager.FormatLong(timeManager.DayToDate(lastDay));
+            return $"{TimeManager.FormatDayMonth(timeManager.WeekToDate(firstWeek))} – " +
+                   TimeManager.FormatLong(timeManager.WeekToDate(lastWeek).AddDays(TimeManager.DaysPerWeek - 1));
         }
 
         // ------------------------------------------------------------------

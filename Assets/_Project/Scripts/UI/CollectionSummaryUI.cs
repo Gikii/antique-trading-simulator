@@ -19,8 +19,8 @@ namespace AntiqueTradingSimulator.UI
     {
         // How many categories get their own donut slice/legend row; the rest are "Other".
         private const int MaxLegendCategories = 5;
-        private const int ChangeWindowDays = 7;
-        private const int ChartWindowDays = 30;
+        private const int ChangeWindowWeeks = 7;
+        private const int ChartWindowWeeks = 30;
 
         [Header("Header")]
         [SerializeField] private TMP_Text titleText;
@@ -101,7 +101,7 @@ namespace AntiqueTradingSimulator.UI
 
         private void RefreshValueChart(TraderInventory inventory)
         {
-            SetText(valueChartTitle, $"Collection value (last {ChartWindowDays} days)");
+            SetText(valueChartTitle, $"Collection value (last {UIFormat.Weeks(ChartWindowWeeks)})");
 
             if (valueChart == null)
                 return;
@@ -110,7 +110,7 @@ namespace AntiqueTradingSimulator.UI
             if (inventory != null)
             {
                 var history = inventory.ValueHistory;
-                int from = Mathf.Max(0, history.Count - ChartWindowDays);
+                int from = Mathf.Max(0, history.Count - ChartWindowWeeks);
                 for (int i = from; i < history.Count; i++)
                     values.Add(history[i].Price);
 
@@ -191,7 +191,7 @@ namespace AntiqueTradingSimulator.UI
             }
             else
             {
-                int nextArrival = inTransit.Min(a => a.ArrivalDay);
+                int nextArrival = inTransit.Min(a => a.ArrivalWeek);
                 string transportDetail = $"{UIFormat.Money(CollectionAnalytics.TotalValue(inTransit))} · next {UIFormat.GameDate(nextArrival)}";
                 SetText(inTransportText, StatusTile("In transport", inTransit.Count.ToString(), transportDetail));
             }
@@ -202,7 +202,7 @@ namespace AntiqueTradingSimulator.UI
             }
             else
             {
-                int nextReady = inRestoration.Min(a => a.RestorationEndDay);
+                int nextReady = inRestoration.Min(a => a.RestorationEndWeek);
                 string restorationDetail = $"{UIFormat.Money(CollectionAnalytics.TotalValue(inRestoration))} · next {UIFormat.GameDate(nextReady)}";
                 SetText(inRenovationText, StatusTile("In restoration", inRestoration.Count.ToString(), restorationDetail));
             }
@@ -258,8 +258,8 @@ namespace AntiqueTradingSimulator.UI
             }
             else
             {
-                float upkeep = warehouse.CalculateDailyUpkeep(used);
-                detail = UIFormat.Colorize($"{inventory.FreeSlots} free · {UIFormat.Money(upkeep)} / day", UIFormat.MutedColor);
+                float upkeep = warehouse.CalculateWeeklyUpkeep(used);
+                detail = UIFormat.Colorize($"{inventory.FreeSlots} free · {UIFormat.Money(upkeep)} / week", UIFormat.MutedColor);
             }
 
             SetText(warehouseCapacityText, $"Warehouse\n<b>{slots}</b>\n{detail}");
@@ -268,11 +268,11 @@ namespace AntiqueTradingSimulator.UI
         private void RefreshFooter(IReadOnlyCollection<Antique> collection, Market.Market market)
         {
             // Market-driven change only: buying or selling items doesn't count as "change in value".
-            float change = CollectionAnalytics.MarketValueChange(collection, market, ChangeWindowDays);
+            float change = CollectionAnalytics.MarketValueChange(collection, market, ChangeWindowWeeks);
             string changeText = UIFormat.ColorBySign(
                 $"{UIFormat.SignedMoney(change)} {UIFormat.TrendArrow(change)}", change);
 
-            SetText(valueChangeText, $"Market value change ({ChangeWindowDays} days): {changeText}");
+            SetText(valueChangeText, $"Market value change ({UIFormat.Weeks(ChangeWindowWeeks)}): {changeText}");
             SetText(hintText, "Click an antique on the list to see its details and actions.");
         }
 

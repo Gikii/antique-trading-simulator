@@ -60,9 +60,9 @@ namespace AntiqueTradingSimulator.Logistics
 
         // ---------------------------------------------------------------- upkeep
 
-        public float CalculateDailyUpkeep(int usedSlots)
+        public float CalculateWeeklyUpkeep(int usedSlots)
         {
-            return _settings.BaseDailyUpkeep
+            return _settings.BaseWeeklyUpkeep
                    + capacityLevel * _settings.UpkeepPerCapacityLevel
                    + securityLevel * _settings.UpkeepPerSecurityLevel
                    + Mathf.Max(0, usedSlots) * _settings.UpkeepPerUsedSlot;

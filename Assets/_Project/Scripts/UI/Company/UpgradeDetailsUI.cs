@@ -86,7 +86,7 @@ namespace AntiqueTradingSimulator.UI
             SetText(currentHeaderText, $"CURRENT LEVEL (Level {info.DisplayLevel})");
             _rows.Clear();
             _rows.AddRange(UpgradePresentation.EffectRows(info.CurrentEffects));
-            _rows.Add(("Daily upkeep", UpgradePresentation.PerDay(info.CurrentUpkeep)));
+            _rows.Add(("Daily upkeep", UpgradePresentation.PerWeek(info.CurrentUpkeep)));
             Fill(_currentPool, currentRows, _rows);
 
             // Next level
@@ -104,7 +104,7 @@ namespace AntiqueTradingSimulator.UI
                         ? (label, UIFormat.Colorize(value, UIFormat.PositiveColor))
                         : (UIFormat.Colorize(label, UIFormat.PositiveColor), ""));
 
-                _rows.Add(("Daily upkeep", UpgradePresentation.PerDay(info.NextUpkeep)));
+                _rows.Add(("Daily upkeep", UpgradePresentation.PerWeek(info.NextUpkeep)));
                 if (info.RequiredReputation > 0)
                     _rows.Add(("Required reputation", UIFormat.Colorize(UIFormat.Number(info.RequiredReputation),
                         info.MeetsReputation ? UIFormat.PositiveColor : UIFormat.NegativeColor)));

@@ -13,9 +13,9 @@ namespace AntiqueTradingSimulator.News
 
     public class PendingNewsState
     {
-        public int PublishDay;
+        public int PublishWeek;
         public string EventDefinitionId;
-        public int EventTriggerDay;
+        public int EventTriggerWeek;
         public NewsType Type;
     }
 }

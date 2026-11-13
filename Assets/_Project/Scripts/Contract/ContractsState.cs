@@ -18,8 +18,8 @@ namespace AntiqueTradingSimulator.Contracts
 
         public ContractRequirement Requirement;
 
-        public int CreatedDay;
-        public int DurationDays;
+        public int CreatedWeek;
+        public int DurationWeeks;
 
         public float RewardPerUnit;
         public float Penalty;
@@ -41,8 +41,8 @@ namespace AntiqueTradingSimulator.Contracts
                 ContractId = contract.ContractId,
                 Type = contract.Type,
                 Requirement = contract.Requirement,
-                CreatedDay = contract.CreatedDay,
-                DurationDays = contract.DurationDays,
+                CreatedWeek = contract.CreatedWeek,
+                DurationWeeks = contract.DurationWeeks,
                 RewardPerUnit = contract.RewardPerUnit,
                 Penalty = contract.Penalty,
                 RequiredReputation = contract.RequiredReputation,

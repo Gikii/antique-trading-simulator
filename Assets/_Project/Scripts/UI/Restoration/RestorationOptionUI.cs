@@ -70,7 +70,7 @@ namespace AntiqueTradingSimulator.UI
                 ? $"→ {UIFormat.ConditionLabel(quote.TargetCondition)} {UIFormat.Percent(quote.TargetCondition)}"
                 : UIFormat.Colorize($"Max {UIFormat.Percent(quote.TargetCondition)}", muted));
             SetText(costText, improves ? UIFormat.Money(quote.Cost) : "—");
-            SetText(durationText, UIFormat.Days(quote.DurationDays));
+            SetText(durationText, UIFormat.Weeks(quote.DurationWeeks));
             SetText(riskText, RiskLabel(quote));
 
             if (_tooltip != null)

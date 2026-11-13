@@ -14,7 +14,7 @@ namespace AntiqueTradingSimulator.Economy
     {
         private float _listingFeeRate = Market.Market.ListingFeeRate;
         private float _transportCostReduction;
-        private int _transportDaysReduction;
+        private int _transportWeeksReduction;
         private float _restorationCostReduction;
         private float _restorationTimeReduction;
 
@@ -33,10 +33,10 @@ namespace AntiqueTradingSimulator.Economy
         }
 
         /// <summary>Whole days taken off delivery time. TransportManager never goes below 1 day.</summary>
-        public int TransportDaysReduction
+        public int TransportWeeksReduction
         {
-            get => _transportDaysReduction;
-            set => _transportDaysReduction = Mathf.Max(0, value);
+            get => _transportWeeksReduction;
+            set => _transportWeeksReduction = Mathf.Max(0, value);
         }
 
         /// <summary>Fraction taken off restoration fees (0.1 = -10%).</summary>
@@ -61,7 +61,7 @@ namespace AntiqueTradingSimulator.Economy
         {
             ListingFeeRate = Market.Market.ListingFeeRate;
             TransportCostReduction = 0f;
-            TransportDaysReduction = 0;
+            TransportWeeksReduction = 0;
             RestorationCostReduction = 0f;
             RestorationTimeReduction = 0f;
         }

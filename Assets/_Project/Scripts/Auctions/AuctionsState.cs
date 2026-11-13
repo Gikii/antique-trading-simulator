@@ -17,9 +17,9 @@ namespace AntiqueTradingSimulator.Auctions
     {
         public string Id;
         public int Number;
-        public int Day;
+        public int Week;
         public int StartTick;
-        public int AnnouncedOnDay;
+        public int AnnouncedOnWeek;
         public AuctionStatus Status;
         public bool PlayerJoined;
         public List<AuctionLotState> Lots = new List<AuctionLotState>();
@@ -32,9 +32,9 @@ namespace AntiqueTradingSimulator.Auctions
             {
                 Id = auction.Id,
                 Number = auction.Number,
-                Day = auction.Day,
+                Week = auction.Week,
                 StartTick = auction.StartTick,
-                AnnouncedOnDay = auction.AnnouncedOnDay,
+                AnnouncedOnWeek = auction.AnnouncedOnWeek,
                 Status = auction.Status,
                 PlayerJoined = auction.PlayerJoined
             };
@@ -51,9 +51,9 @@ namespace AntiqueTradingSimulator.Auctions
             {
                 Id = Id,
                 Number = Number,
-                Day = Day,
+                Week = Week,
                 StartTick = StartTick,
-                AnnouncedOnDay = AnnouncedOnDay,
+                AnnouncedOnWeek = AnnouncedOnWeek,
                 Status = Status,
                 PlayerJoined = PlayerJoined
             };

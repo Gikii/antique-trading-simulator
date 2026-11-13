@@ -41338,16 +41338,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9064d79ec1dd3d40a2bcff3cc4b8564, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Core.TimeManager
-  secondsPerDay: 180
+  secondsPerWeek: 150
   speedSteps:
   - 1
   - 2
   - 4
-  ticksPerPeriod: 24
+  ticksPerDay: 4
   startYear: 1884
   startMonth: 4
-  startDay: 22
-  campaignLength: 90
+  startDay: 21
+  campaignLength: 104
 --- !u!4 &398503185
 Transform:
   m_ObjectHideFlags: 0
@@ -55402,7 +55402,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Last 7 days
+  m_text: Last 7 weeks
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: ffdcf0967cf3d2b4ea7682389fa42222, type: 2}
   m_sharedMaterial: {fileID: -8220453057294329371, guid: ffdcf0967cf3d2b4ea7682389fa42222, type: 2}
@@ -108898,7 +108898,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Today
+  m_text: This week
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: ffdcf0967cf3d2b4ea7682389fa42222, type: 2}
   m_sharedMaterial: {fileID: -8220453057294329371, guid: ffdcf0967cf3d2b4ea7682389fa42222, type: 2}

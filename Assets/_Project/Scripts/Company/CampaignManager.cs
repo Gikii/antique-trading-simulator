@@ -26,7 +26,7 @@ namespace AntiqueTradingSimulator.Company
     public class CampaignState
     {
         public CampaignPhase Phase;
-        public int FinishedOnDay;
+        public int FinishedOnWeek;
         public List<FinalStanding> Ranking = new List<FinalStanding>();
     }
 
@@ -49,7 +49,7 @@ namespace AntiqueTradingSimulator.Company
         public bool IsFinished => Phase == CampaignPhase.Finished;
 
         /// <summary>The last day of the campaign (0 while it runs).</summary>
-        public int FinishedOnDay { get; private set; }
+        public int FinishedOnWeek { get; private set; }
 
         /// <summary>Best first. Empty while the campaign runs.</summary>
         public IReadOnlyList<FinalStanding> FinalRanking => _ranking;
@@ -93,18 +93,18 @@ namespace AntiqueTradingSimulator.Company
 
         private void OnEnable()
         {
-            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged += HandleWeekChanged;
         }
 
         private void OnDisable()
         {
-            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged -= HandleWeekChanged;
         }
 
         // Day CampaignLength + 1 starting means the last campaign day is over.
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
-            if (!IsFinished && timeManager != null && newDay > timeManager.CampaignLength)
+            if (!IsFinished && timeManager != null && newWeek > timeManager.CampaignLength)
                 Finish();
         }
 
@@ -137,11 +137,11 @@ namespace AntiqueTradingSimulator.Company
             }
 
             Phase = CampaignPhase.Finished;
-            FinishedOnDay = timeManager != null ? Mathf.Min(timeManager.CurrentDay, timeManager.CampaignLength) : 0;
+            FinishedOnWeek = timeManager != null ? Mathf.Min(timeManager.CurrentWeek, timeManager.CampaignLength) : 0;
             if (timeManager != null && timeManager.IsRunning) timeManager.Pause();
 
             var player = PlayerStanding;
-            Debug.Log($"CampaignManager: campaign over on day {FinishedOnDay}. Winner: {Winner?.Name ?? "nobody"}" +
+            Debug.Log($"CampaignManager: campaign over on week {FinishedOnWeek}. Winner: {Winner?.Name ?? "nobody"}" +
                       (player != null ? $"; the player is {player.Place} of {_ranking.Count} with {player.Score:0}." : "."));
 
             OnCampaignFinished?.Invoke();
@@ -152,7 +152,7 @@ namespace AntiqueTradingSimulator.Company
         public CampaignState CaptureState() => new CampaignState
         {
             Phase = Phase,
-            FinishedOnDay = FinishedOnDay,
+            FinishedOnWeek = FinishedOnWeek,
             Ranking = new List<FinalStanding>(_ranking)
         };
 
@@ -161,7 +161,7 @@ namespace AntiqueTradingSimulator.Company
         {
             _ranking.Clear();
             Phase = state?.Phase ?? CampaignPhase.Running;
-            FinishedOnDay = state?.FinishedOnDay ?? 0;
+            FinishedOnWeek = state?.FinishedOnWeek ?? 0;
             if (state?.Ranking != null) _ranking.AddRange(state.Ranking);
         }
 

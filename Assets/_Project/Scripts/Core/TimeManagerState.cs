@@ -3,11 +3,13 @@ namespace AntiqueTradingSimulator.Core
 
     public class TimeManagerState
     {
-        public int CurrentDay = 1;
+        /// <summary>Current period = in-game week.</summary>
+        public int CurrentWeek = 1;
 
         public int CurrentTick;
 
-        public float DayTimer;
+        /// <summary>Real seconds elapsed in the current period (week).</summary>
+        public float WeekTimer;
 
         public int SpeedIndex;
 

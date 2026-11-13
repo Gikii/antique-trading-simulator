@@ -15,8 +15,8 @@ namespace AntiqueTradingSimulator.UI
     /// </summary>
     public class ReputationColumnUI : MonoBehaviour
     {
-        private const int TrendDays = 7;
-        private const int ChartDays = 30;
+        private const int TrendWeeks = 7;
+        private const int ChartWeeks = 30;
 
         [SerializeField] private ReputationKind kind;
 
@@ -89,18 +89,18 @@ namespace AntiqueTradingSimulator.UI
         {
             if (valueText != null) valueText.text = FormatValue(value);
 
-            float change = company.Change(Criterion, TrendDays);
+            float change = company.Change(Criterion, TrendWeeks);
             if (changeText != null)
                 changeText.text = UIFormat.ColorBySign($"{UIFormat.TrendArrow(change)} {FormatDelta(change)}", change) +
-                                  " " + UIFormat.Colorize($"({TrendDays} days)", UIFormat.MutedColor);
+                                  " " + UIFormat.Colorize($"({UIFormat.Weeks(TrendWeeks)})", UIFormat.MutedColor);
 
             if (chart == null) return;
 
             // Daily snapshots of the last 30 days, with today's live value as the last point.
             _chartValues.Clear();
-            int today = company.CurrentDay;
+            int thisWeek = company.CurrentWeek;
             foreach (var snapshot in company.History)
-                if (snapshot.Day > today - ChartDays && snapshot.Day < today)
+                if (snapshot.Week > thisWeek - ChartWeeks && snapshot.Week < thisWeek)
                     _chartValues.Add(snapshot.Value(Criterion));
             _chartValues.Add(value);
 
