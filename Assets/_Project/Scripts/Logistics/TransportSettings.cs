@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Logistics
 {
@@ -25,9 +26,12 @@ namespace AntiqueTradingSimulator.Logistics
         [Serializable]
         public struct OptionSettings
         {
-            [Min(1)] public int LocalDays;
-            [Min(1)] public int DomesticDays;
-            [Min(1)] public int InternationalDays;
+            [FormerlySerializedAs("LocalDays")]
+            [Min(1)] public int LocalWeeks;
+            [FormerlySerializedAs("DomesticDays")]
+            [Min(1)] public int DomesticWeeks;
+            [FormerlySerializedAs("InternationalDays")]
+            [Min(1)] public int InternationalWeeks;
 
             [Tooltip("Multiplies the zone's base cost.")]
             [Min(0f)] public float CostMultiplier;
@@ -44,19 +48,19 @@ namespace AntiqueTradingSimulator.Logistics
         [Header("Transport services")]
         public OptionSettings Economy = new OptionSettings
         {
-            LocalDays = 2, DomesticDays = 4, InternationalDays = 8,
+            LocalWeeks = 2, DomesticWeeks = 4, InternationalWeeks = 8,
             CostMultiplier = 0.6f, DamageChance = 0.08f
         };
 
         public OptionSettings Standard = new OptionSettings
         {
-            LocalDays = 1, DomesticDays = 3, InternationalDays = 5,
+            LocalWeeks = 1, DomesticWeeks = 3, InternationalWeeks = 5,
             CostMultiplier = 1f, DamageChance = 0.03f
         };
 
         public OptionSettings Express = new OptionSettings
         {
-            LocalDays = 1, DomesticDays = 1, InternationalDays = 2,
+            LocalWeeks = 1, DomesticWeeks = 1, InternationalWeeks = 2,
             CostMultiplier = 2.5f, DamageChance = 0f
         };
 
@@ -82,17 +86,17 @@ namespace AntiqueTradingSimulator.Logistics
         };
 
         /// <summary>Delivery time in days, before any event-driven delays.</summary>
-        public int GetBaseDurationDays(ShippingZone zone, TransportOption option)
+        public int GetBaseDurationWeeks(ShippingZone zone, TransportOption option)
         {
             var settings = GetOption(option);
-            int days = zone switch
+            int weeks = zone switch
             {
-                ShippingZone.Local => settings.LocalDays,
-                ShippingZone.Domestic => settings.DomesticDays,
-                ShippingZone.International => settings.InternationalDays,
-                _ => settings.DomesticDays
+                ShippingZone.Local => settings.LocalWeeks,
+                ShippingZone.Domestic => settings.DomesticWeeks,
+                ShippingZone.International => settings.InternationalWeeks,
+                _ => settings.DomesticWeeks
             };
-            return Mathf.Max(1, days);
+            return Mathf.Max(1, weeks);
         }
 
         public float GetCost(float itemPrice, ShippingZone zone, TransportOption option)

@@ -53,11 +53,14 @@ namespace AntiqueTradingSimulator.Agents
         [Header("Trust in information")]
         [Range(0f, 1f)] public float RumorTrust = 0.3f;
         [Range(0f, 1f)] public float LeakTrust = 0.7f;
-        [Range(0, 5)] public int MinReactionDelayDays = 0;
-        [Range(0, 5)] public int MaxReactionDelayDays = 2;
+        [FormerlySerializedAs("MinReactionDelayDays")]
+        [Range(0, 5)] public int MinReactionDelayWeeks = 0;
+        [FormerlySerializedAs("MaxReactionDelayDays")]
+        [Range(0, 5)] public int MaxReactionDelayWeeks = 2;
 
         [Header("Buying")]
-        [Range(0f, 1f)] public float DailyBudgetFraction = 0.2f;
+        [FormerlySerializedAs("DailyBudgetFraction")]
+        [Range(0f, 1f)] public float WeeklyBudgetFraction = 0.2f;
         [Tooltip("Most the NPC pays relative to what the antique is worth in its condition " +
                  "(reference price of its type × condition). 1.3 = up to 30% over that value.")]
         public float MaxPriceMultiplierWillingToPay = 1.3f;
@@ -75,11 +78,13 @@ namespace AntiqueTradingSimulator.Agents
         public bool NeverSells;
 
         public float ProfitTargetMultiplier = 1.4f;
-        public int MinHoldingDaysBeforeSell = 3;
+        [FormerlySerializedAs("MinHoldingDaysBeforeSell")]
+        public int MinHoldingWeeksBeforeSell = 3;
 
         [Tooltip("After holding an antique this long, the NPC settles for Patient Profit Multiplier instead of the " +
                  "profit target — keeps its money moving instead of sitting on stock forever. 0 = never.")]
-        [Min(0)] public int PatientSellAfterDays = 10;
+        [FormerlySerializedAs("PatientSellAfterDays")]
+        [Min(0)] public int PatientSellAfterWeeks = 10;
         [Min(0f)] public float PatientProfitMultiplier = 1.05f;
 
         [Tooltip("Panic selling: sells at once (instant sale) when an antique is worth less than its cost × this. " +
@@ -94,7 +99,8 @@ namespace AntiqueTradingSimulator.Agents
         [Min(1f)] public float ListingMarkup = 1.15f;
 
         [Tooltip("A listing that hasn't sold after this many weeks is withdrawn and re-evaluated.")]
-        [Min(1)] public int RelistAfterDays = 5;
+        [FormerlySerializedAs("RelistAfterDays")]
+        [Min(1)] public int RelistAfterWeeks = 5;
 
         [Header("Seasons")]
         [Tooltip("How much of the expected seasonal price change the NPC prices in: 0 = ignores the calendar, " +
@@ -103,14 +109,16 @@ namespace AntiqueTradingSimulator.Agents
         [Range(0f, 1f)] public float SeasonalForesight;
 
         [Tooltip("How many weeks ahead the NPC looks when judging the season.")]
-        [Min(0)] public int SeasonalHorizonDays = 8;
+        [FormerlySerializedAs("SeasonalHorizonDays")]
+        [Min(0)] public int SeasonalHorizonWeeks = 8;
 
         [Header("Contracts")]
         [Tooltip("Takes delivery contracts from the board. Contracts already taken are finished either way.")]
         public bool TakesContracts = true;
 
         [Tooltip("The number of weeks before a contract's expiry date the NPC focuses entirely on fullfilling the contract")]
-        [Min(0)] public int ContractPanicDays = 2;
+        [FormerlySerializedAs("ContractPanicDays")]
+        [Min(0)] public int ContractPanicWeeks = 2;
 
         [Header("Auctions")]
         [Tooltip("Chance to attend an auction session at all.")]

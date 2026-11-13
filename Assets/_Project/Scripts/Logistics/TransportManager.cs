@@ -12,7 +12,7 @@ namespace AntiqueTradingSimulator.Logistics
     /// Moves purchased antiques from the seller to the buyer's warehouse. A purchase
     /// never puts an item straight into storage: the buyer gets a TransportQuote
     /// (cost + arrival day), the antique enters their inventory with Status = InTransit,
-    /// and only on its ArrivalDay does this manager deliver it — possibly damaged,
+    /// and only on its ArrivalWeek does this manager deliver it — possibly damaged,
     /// depending on the transport option. Used by the player, NPCs and event rewards alike.
     ///
     /// Seasons (SeasonSettings on the TimeManager) add weather: carrier prices change with the
@@ -33,14 +33,14 @@ namespace AntiqueTradingSimulator.Logistics
         public readonly struct DeliveryRecord
         {
             public readonly Shipment Shipment;
-            public readonly int Day;
+            public readonly int Week;
             public readonly float ConditionLost;
             public bool Damaged => ConditionLost > 0f;
 
-            public DeliveryRecord(Shipment shipment, int day, float conditionLost)
+            public DeliveryRecord(Shipment shipment, int week, float conditionLost)
             {
                 Shipment = shipment;
-                Day = day;
+                Week = week;
                 ConditionLost = conditionLost;
             }
         }
@@ -53,7 +53,7 @@ namespace AntiqueTradingSimulator.Logistics
 
         // Extra days added per zone, e.g. by a future "port strike" event.
         // Affects new quotes only; use DelayShipments to also hold up items already on the way.
-        private readonly Dictionary<ShippingZone, int> _zoneDelayDays = new();
+        private readonly Dictionary<ShippingZone, int> _zoneDelayWeeks = new();
 
         public TransportSettings Settings => settings;
 
@@ -100,7 +100,7 @@ namespace AntiqueTradingSimulator.Logistics
 
         public event Action OnShipmentsRestored;
 
-        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 0;
 
         // Without a TimeManager there is no calendar, so no seasonal effects.
         private SeasonSettings SeasonRules => timeManager != null ? timeManager.SeasonSettings : null;
@@ -126,13 +126,13 @@ namespace AntiqueTradingSimulator.Logistics
         void OnEnable()
         {
             if (timeManager != null)
-                timeManager.OnDayChanged += HandleDayChanged;
+                timeManager.OnWeekChanged += HandleWeekChanged;
         }
 
         void OnDisable()
         {
             if (timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnWeekChanged -= HandleWeekChanged;
         }
 
         // ---------------------------------------------------------------- quoting
@@ -154,10 +154,10 @@ namespace AntiqueTradingSimulator.Logistics
             var modifiers = buyer?.Modifiers;
             ShippingZone zone = antique.ShippingZone;
 
-            int baseDays = settings.GetBaseDurationDays(zone, option);
+            int baseWeeks = settings.GetBaseDurationWeeks(zone, option);
             if (modifiers != null)
-                baseDays = Mathf.Max(1, baseDays - modifiers.TransportDaysReduction);
-            int duration = baseDays + GetZoneDelay(zone);
+                baseWeeks = Mathf.Max(1, baseWeeks - modifiers.TransportWeeksReduction);
+            int duration = baseWeeks + GetZoneDelay(zone);
 
             float cost = free ? 0f : settings.GetCost(antique.SalePrice, zone, option);
             if (SeasonRules != null)
@@ -165,22 +165,22 @@ namespace AntiqueTradingSimulator.Logistics
             if (modifiers != null)
                 cost *= 1f - modifiers.TransportCostReduction;
 
-            return new TransportQuote(option, zone, cost, CurrentDay, Mathf.Max(1, duration));
+            return new TransportQuote(option, zone, cost, CurrentWeek, Mathf.Max(1, duration));
         }
 
         /// <summary>
         /// Damage chance of a service for a shipment delivered in the given week, season and its weather
         /// included — as far as the weather is known (a coming season's weather is a secret until it starts).
         /// </summary>
-        public float GetDamageChance(TransportOption option, int deliveryDay) =>
-            DamageChance(option, deliveryDay, KnownWeather(deliveryDay));
+        public float GetDamageChance(TransportOption option, int deliveryWeek) =>
+            DamageChance(option, deliveryWeek, KnownWeather(deliveryWeek));
 
-        private float DamageChance(TransportOption option, int deliveryDay, WeatherSeverity weather)
+        private float DamageChance(TransportOption option, int deliveryWeek, WeatherSeverity weather)
         {
             float chance = settings.GetDamageChance(option);
             if (SeasonRules != null)
             {
-                chance *= SeasonRules.GetDamageChanceMultiplier(timeManager.SeasonOf(deliveryDay));
+                chance *= SeasonRules.GetDamageChanceMultiplier(timeManager.SeasonOf(deliveryWeek));
                 chance *= SeasonRules.GetSeverityEffect(weather).DamageMultiplier;
             }
             return Mathf.Clamp01(chance);
@@ -193,14 +193,14 @@ namespace AntiqueTradingSimulator.Logistics
         /// Weather outlook for a shipment due in the given week: the season it arrives in, its chance
         /// to be held up or to arrive early, and its damage risk. All zero without seasons.
         /// </summary>
-        public SeasonalOutlook GetSeasonalOutlook(ShippingZone zone, TransportOption option, int arrivalDay)
+        public SeasonalOutlook GetSeasonalOutlook(ShippingZone zone, TransportOption option, int arrivalWeek)
         {
-            float damage = GetDamageChance(option, arrivalDay);
+            float damage = GetDamageChance(option, arrivalWeek);
             if (SeasonRules == null)
                 return new SeasonalOutlook(Season.Spring, 0f, 0f, damage, "");
 
-            Season season = timeManager.SeasonOf(arrivalDay);
-            WeatherSeverity weather = KnownWeather(arrivalDay);
+            Season season = timeManager.SeasonOf(arrivalWeek);
+            WeatherSeverity weather = KnownWeather(arrivalWeek);
             var effect = SeasonRules.GetSeverityEffect(weather);
             return new SeasonalOutlook(
                 season,
@@ -212,7 +212,7 @@ namespace AntiqueTradingSimulator.Logistics
         }
 
         public SeasonalOutlook GetSeasonalOutlook(TransportQuote quote) =>
-            GetSeasonalOutlook(quote.Zone, quote.Option, quote.ArrivalDay);
+            GetSeasonalOutlook(quote.Zone, quote.Option, quote.ArrivalWeek);
 
         /// <summary>Quotes every transport option for one antique — handy for a selection modal.</summary>
         public List<TransportQuote> QuoteAllOptions(Antique antique, TraderInventory buyer = null)
@@ -238,7 +238,7 @@ namespace AntiqueTradingSimulator.Logistics
                 return null;
             }
 
-            antique.MarkInTransit(quote.ArrivalDay);
+            antique.MarkInTransit(quote.ArrivalWeek);
 
             var shipment = new Shipment(antique.Id, antique.Name, recipient, recipientName, quote);
             _shipments.Add(shipment);
@@ -250,17 +250,17 @@ namespace AntiqueTradingSimulator.Logistics
 
         // ---------------------------------------------------------------- delivery
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
             // The season's weather (and its forecasts) first — this week's transport rolls depend on it.
-            Weather?.AdvanceWeek(newDay);
+            Weather?.AdvanceWeek(newWeek);
 
-            RollEarlyArrivals(newDay);
+            RollEarlyArrivals(newWeek);
 
-            var due = _shipments.Where(s => s.ArrivalDay <= newDay).ToList();
+            var due = _shipments.Where(s => s.ArrivalWeek <= newWeek).ToList();
             foreach (var shipment in due)
             {
-                if (TryHoldUpByWeather(shipment, newDay))
+                if (TryHoldUpByWeather(shipment, newWeek))
                     continue;
 
                 _shipments.Remove(shipment);
@@ -272,27 +272,27 @@ namespace AntiqueTradingSimulator.Logistics
         /// In the week before a shipment is due, good weather may bring it in now — but never in the
         /// week it was dispatched, so every journey still takes at least a week.
         /// </summary>
-        private void RollEarlyArrivals(int newDay)
+        private void RollEarlyArrivals(int newWeek)
         {
             if (SeasonRules == null) return;
 
             foreach (var shipment in _shipments)
             {
                 if (shipment.EarlyArrivalRolled || shipment.SeasonalShiftWeeks != 0) continue;
-                if (shipment.ArrivalDay - 1 != newDay || newDay <= shipment.DispatchDay) continue;
+                if (shipment.ArrivalWeek - 1 != newWeek || newWeek <= shipment.DispatchWeek) continue;
 
                 shipment.EarlyArrivalRolled = true;
 
-                Season season = timeManager.SeasonOf(shipment.ArrivalDay);
+                Season season = timeManager.SeasonOf(shipment.ArrivalWeek);
                 float earlyChance = SeasonRules.GetEarlyChance(season, shipment.Zone) *
-                                    SeasonRules.GetSeverityEffect(ActualWeather(shipment.ArrivalDay)).EarlyMultiplier;
+                                    SeasonRules.GetSeverityEffect(ActualWeather(shipment.ArrivalWeek)).EarlyMultiplier;
                 if (UnityEngine.Random.value >= Mathf.Clamp01(earlyChance)) continue;
 
-                shipment.ArrivalDay = newDay;
+                shipment.ArrivalWeek = newWeek;
                 shipment.SeasonalShiftWeeks = -1;
 
                 var antique = shipment.Recipient?.GetHolding(shipment.AntiqueId);
-                antique?.AppendHistory($"Arrived a week early thanks to good {season.ToLowerString()} weather (week {newDay}).");
+                antique?.AppendHistory($"Arrived a week early thanks to good {season.ToLowerString()} weather (week {newWeek}).");
 
                 Debug.Log($"TransportManager: {shipment.AntiqueName} arrives a week early ({season}).");
                 OnShipmentShiftedBySeason?.Invoke(shipment, -1, season);
@@ -300,24 +300,24 @@ namespace AntiqueTradingSimulator.Logistics
         }
 
         /// <summary>In the week a shipment is due, bad weather may hold it up one more week. True if it was held up.</summary>
-        private bool TryHoldUpByWeather(Shipment shipment, int newDay)
+        private bool TryHoldUpByWeather(Shipment shipment, int newWeek)
         {
             if (SeasonRules == null || shipment.SeasonalShiftWeeks != 0) return false;
 
-            Season season = timeManager.SeasonOf(newDay);
+            Season season = timeManager.SeasonOf(newWeek);
             float delayChance = SeasonRules.GetDelayChance(season, shipment.Zone, shipment.Option) *
-                                SeasonRules.GetSeverityEffect(ActualWeather(newDay)).DelayMultiplier;
+                                SeasonRules.GetSeverityEffect(ActualWeather(newWeek)).DelayMultiplier;
             if (UnityEngine.Random.value >= Mathf.Clamp01(delayChance))
                 return false;
 
-            shipment.ArrivalDay = newDay + 1;
+            shipment.ArrivalWeek = newWeek + 1;
             shipment.SeasonalShiftWeeks = 1;
 
             var antique = shipment.Recipient?.GetHolding(shipment.AntiqueId);
             if (antique != null)
             {
-                antique.MarkInTransit(shipment.ArrivalDay);
-                antique.AppendHistory($"Held up a week by {season.ToLowerString()} weather (week {newDay}).");
+                antique.MarkInTransit(shipment.ArrivalWeek);
+                antique.AppendHistory($"Held up a week by {season.ToLowerString()} weather (week {newWeek}).");
                 shipment.Recipient.NotifyHoldingUpdated(antique.Id);
             }
 
@@ -336,14 +336,14 @@ namespace AntiqueTradingSimulator.Logistics
             }
 
             float conditionLost = 0f;
-            if (UnityEngine.Random.value < DamageChance(shipment.Option, CurrentDay, ActualWeather(CurrentDay)))
+            if (UnityEngine.Random.value < DamageChance(shipment.Option, CurrentWeek, ActualWeather(CurrentWeek)))
             {
                 float before = antique.Condition;
                 antique.Condition = Mathf.Max(Antique.MinCondition, antique.Condition - settings.RollConditionLoss());
                 conditionLost = before - antique.Condition;
 
                 if (conditionLost > 0f)
-                    antique.AppendHistory($"Damaged in transit (week {shipment.ArrivalDay}, {shipment.Option.ToDisplayString()} transport).");
+                    antique.AppendHistory($"Damaged in transit (week {shipment.ArrivalWeek}, {shipment.Option.ToDisplayString()} transport).");
             }
 
             // Condition affects price — re-value before anyone is notified.
@@ -357,7 +357,7 @@ namespace AntiqueTradingSimulator.Logistics
             else
                 Debug.Log($"TransportManager: {shipment.AntiqueName} arrived at {shipment.RecipientName}.");
 
-            _deliveryLog.Add(new DeliveryRecord(shipment, CurrentDay, conditionLost));
+            _deliveryLog.Add(new DeliveryRecord(shipment, CurrentWeek, conditionLost));
             if (_deliveryLog.Count > MaxDeliveryLog)
                 _deliveryLog.RemoveAt(0);
 
@@ -373,36 +373,36 @@ namespace AntiqueTradingSimulator.Logistics
             _shipments.FirstOrDefault(s => s.AntiqueId == antiqueId);
 
         /// <summary>Deliveries to this recipient on or after the given day, newest first.</summary>
-        public IEnumerable<DeliveryRecord> GetDeliveriesFor(TraderInventory recipient, int sinceDay) =>
-            _deliveryLog.Where(d => d.Shipment.Recipient == recipient && d.Day >= sinceDay).Reverse();
+        public IEnumerable<DeliveryRecord> GetDeliveriesFor(TraderInventory recipient, int sinceWeek) =>
+            _deliveryLog.Where(d => d.Shipment.Recipient == recipient && d.Week >= sinceWeek).Reverse();
 
         // ---------------------------------------------------------------- delays (hooks for future events)
 
         public int GetZoneDelay(ShippingZone zone) =>
-            _zoneDelayDays.TryGetValue(zone, out int days) ? days : 0;
+            _zoneDelayWeeks.TryGetValue(zone, out int weeks) ? weeks : 0;
 
         /// <summary>Adds (or, with a negative value, removes) extra days for new shipments in a zone.</summary>
-        public void AddZoneDelay(ShippingZone zone, int days)
+        public void AddZoneDelay(ShippingZone zone, int weeks)
         {
-            _zoneDelayDays[zone] = Mathf.Max(0, GetZoneDelay(zone) + days);
+            _zoneDelayWeeks[zone] = Mathf.Max(0, GetZoneDelay(zone) + weeks);
         }
 
         /// <summary>Pushes back the arrival of every shipment already travelling in the given zone.</summary>
-        public void DelayShipments(ShippingZone zone, int days)
+        public void DelayShipments(ShippingZone zone, int weeks)
         {
-            if (days <= 0) return;
+            if (weeks <= 0) return;
 
             foreach (var shipment in _shipments.Where(s => s.Zone == zone))
             {
-                shipment.ArrivalDay += days;
+                shipment.ArrivalWeek += weeks;
                 var antique = shipment.Recipient?.GetHolding(shipment.AntiqueId);
                 if (antique == null) continue;
 
-                antique.MarkInTransit(shipment.ArrivalDay);
+                antique.MarkInTransit(shipment.ArrivalWeek);
                 shipment.Recipient.NotifyHoldingUpdated(antique.Id);
             }
 
-            OnShipmentsDelayed?.Invoke(zone, days);
+            OnShipmentsDelayed?.Invoke(zone, weeks);
         }
 
         // ---------------------------------------------------------------- save / load
@@ -411,7 +411,7 @@ namespace AntiqueTradingSimulator.Logistics
         {
             var state = new LogisticsState
             {
-                ZoneDelayDays = new Dictionary<ShippingZone, int>(_zoneDelayDays),
+                ZoneDelayWeeks = new Dictionary<ShippingZone, int>(_zoneDelayWeeks),
                 Weather = Weather?.State
             };
 
@@ -430,7 +430,7 @@ namespace AntiqueTradingSimulator.Logistics
                 state.DeliveryLog.Add(new DeliveryRecordState
                 {
                     Shipment = ShipmentState.Capture(record.Shipment, ResolveOwnerId(record.Shipment, ownerIdsByInventory)),
-                    Day = record.Day,
+                    Week = record.Week,
                     ConditionLost = record.ConditionLost
                 });
             }
@@ -445,7 +445,7 @@ namespace AntiqueTradingSimulator.Logistics
         {
             _shipments.Clear();
             _deliveryLog.Clear();
-            _zoneDelayDays.Clear();
+            _zoneDelayWeeks.Clear();
             Weather?.Restore(state?.Weather);
 
             if (state == null)
@@ -454,9 +454,9 @@ namespace AntiqueTradingSimulator.Logistics
                 return;
             }
 
-            if (state.ZoneDelayDays != null)
-                foreach (var pair in state.ZoneDelayDays)
-                    _zoneDelayDays[pair.Key] = pair.Value;
+            if (state.ZoneDelayWeeks != null)
+                foreach (var pair in state.ZoneDelayWeeks)
+                    _zoneDelayWeeks[pair.Key] = pair.Value;
 
             if (state.Shipments != null)
             {
@@ -484,7 +484,7 @@ namespace AntiqueTradingSimulator.Logistics
                     // A delivered shipment with no resolvable recipient is only a log line, so it
                     // is kept (with a null Recipient) rather than dropped.
                     var shipment = recordState.Shipment.Restore(ResolveRecipient(recordState.Shipment));
-                    _deliveryLog.Add(new DeliveryRecord(shipment, recordState.Day, recordState.ConditionLost));
+                    _deliveryLog.Add(new DeliveryRecord(shipment, recordState.Week, recordState.ConditionLost));
                 }
 
                 if (_deliveryLog.Count > MaxDeliveryLog)

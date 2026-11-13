@@ -321,7 +321,7 @@ namespace AntiqueTradingSimulator.Seasons
         /// </summary>
         public MarketConditions GetMarketConditions(DateTime date)
         {
-            int day = date.DayOfYear;
+            int dayOfYear = date.DayOfYear;
 
             for (int i = 0; i < Peaks.Length; i++)
             {
@@ -330,7 +330,7 @@ namespace AntiqueTradingSimulator.Seasons
 
                 int start = from.DayOfYear;
                 int end = to.DayOfYear > start ? to.DayOfYear : to.DayOfYear + 365;
-                int current = day >= start ? day : day + 365;
+                int current = dayOfYear >= start ? dayOfYear : dayOfYear + 365;
 
                 if (current < start || current >= end) continue;
 

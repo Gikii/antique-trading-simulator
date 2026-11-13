@@ -58,10 +58,10 @@ namespace AntiqueTradingSimulator.UI
             bool isOn = SavePreferences.AutosaveEnabled;
             if (autosaveToggle != null) autosaveToggle.SetIsOnWithoutNotify(isOn);
 
-            int days = SavePreferences.AutosaveIntervalDays;
-            if (intervalText != null) intervalText.text = days == 1 ? "Every week" : $"Every {days} weeks";
+            int weeks = SavePreferences.AutosaveIntervalWeeks;
+            if (intervalText != null) intervalText.text = weeks == 1 ? "Every week" : $"Every {weeks} weeks";
 
-            int index = StepIndex(days);
+            int index = StepIndex(weeks);
             if (intervalDownButton != null) intervalDownButton.interactable = isOn && index > 0;
             if (intervalUpButton != null) intervalUpButton.interactable = isOn && index < intervalSteps.Length - 1;
 
@@ -82,17 +82,17 @@ namespace AntiqueTradingSimulator.UI
         {
             if (intervalSteps == null || intervalSteps.Length == 0) return;
 
-            int index = Mathf.Clamp(StepIndex(SavePreferences.AutosaveIntervalDays) + direction, 0, intervalSteps.Length - 1);
-            SavePreferences.AutosaveIntervalDays = intervalSteps[index];
+            int index = Mathf.Clamp(StepIndex(SavePreferences.AutosaveIntervalWeeks) + direction, 0, intervalSteps.Length - 1);
+            SavePreferences.AutosaveIntervalWeeks = intervalSteps[index];
             Refresh();
         }
 
         /// <summary>The step equal to <paramref name="days"/>, or the nearest one below it.</summary>
-        private int StepIndex(int days)
+        private int StepIndex(int weeks)
         {
             int index = 0;
             for (int i = 0; i < intervalSteps.Length; i++)
-                if (intervalSteps[i] <= days) index = i;
+                if (intervalSteps[i] <= weeks) index = i;
             return index;
         }
     }

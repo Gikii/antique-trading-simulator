@@ -30,7 +30,7 @@ namespace AntiqueTradingSimulator.Company
         TransportCostReduction,
 
         /// <summary>Whole days taken off the player's delivery time (never below 1 day).</summary>
-        TransportDaysReduction,
+        TransportWeeksReduction,
 
         /// <summary>Market fee rate on the player's own listings (0.05 = 5% of the price).</summary>
         MarketFeeRate,
@@ -73,7 +73,8 @@ namespace AntiqueTradingSimulator.Company
         [Min(0f)] public float Cost;
 
         [Tooltip("Weekly upkeep while at this level (charged once per period).")]
-        [Min(0f)] public float DailyUpkeep;
+        [FormerlySerializedAs("DailyUpkeep")]
+        [Min(0f)] public float WeeklyUpkeep;
 
         [Tooltip("Reputation needed to upgrade TO this level (0 = none).")]
         [Min(0)] public int RequiredReputation;
@@ -88,11 +89,11 @@ namespace AntiqueTradingSimulator.Company
 
         public CompanyUpgradeLevel() { }
 
-        public CompanyUpgradeLevel(float cost, float dailyUpkeep, int requiredReputation, string note,
+        public CompanyUpgradeLevel(float cost, float weeklyUpkeep, int requiredReputation, string note,
             params UpgradeEffect[] effects)
         {
             Cost = cost;
-            DailyUpkeep = dailyUpkeep;
+            WeeklyUpkeep = weeklyUpkeep;
             RequiredReputation = requiredReputation;
             Note = note;
             Effects = new List<UpgradeEffect>(effects);
@@ -151,7 +152,7 @@ namespace AntiqueTradingSimulator.Company
     {
         private static UpgradeEffect Access(int level) => new UpgradeEffect(UpgradeStat.InfoAccessLevel, level);
         private static UpgradeEffect TransportCost(float reduction) => new UpgradeEffect(UpgradeStat.TransportCostReduction, reduction);
-        private static UpgradeEffect TransportDays(int days) => new UpgradeEffect(UpgradeStat.TransportDaysReduction, days);
+        private static UpgradeEffect TransportWeeks(int weeks) => new UpgradeEffect(UpgradeStat.TransportWeeksReduction, weeks);
         private static UpgradeEffect Fee(float rate) => new UpgradeEffect(UpgradeStat.MarketFeeRate, rate);
         private static UpgradeEffect ContractLimit(int count) => new UpgradeEffect(UpgradeStat.MaxActiveContracts, count);
         private static UpgradeEffect RestorationCost(float reduction) => new UpgradeEffect(UpgradeStat.RestorationCostReduction, reduction);
@@ -188,11 +189,11 @@ namespace AntiqueTradingSimulator.Company
             new CompanyUpgradeDefinition(CompanyUpgradeType.Logistics, "Logistics",
                 "Improve transport to reduce delivery time and costs.",
                 true,
-                new CompanyUpgradeLevel(0, 0, 0, "", TransportCost(0f), TransportDays(0)),
-                new CompanyUpgradeLevel(800, 2, 0, "", TransportCost(0.05f), TransportDays(0)),
-                new CompanyUpgradeLevel(2000, 4, 200, "", TransportCost(0.10f), TransportDays(1)),
-                new CompanyUpgradeLevel(4000, 7, 500, "", TransportCost(0.15f), TransportDays(1)),
-                new CompanyUpgradeLevel(7000, 10, 1000, "", TransportCost(0.20f), TransportDays(2))),
+                new CompanyUpgradeLevel(0, 0, 0, "", TransportCost(0f), TransportWeeks(0)),
+                new CompanyUpgradeLevel(800, 2, 0, "", TransportCost(0.05f), TransportWeeks(0)),
+                new CompanyUpgradeLevel(2000, 4, 200, "", TransportCost(0.10f), TransportWeeks(1)),
+                new CompanyUpgradeLevel(4000, 7, 500, "", TransportCost(0.15f), TransportWeeks(1)),
+                new CompanyUpgradeLevel(7000, 10, 1000, "", TransportCost(0.20f), TransportWeeks(2))),
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.Experts, "Experts",
                 "Hire experts to improve appraisals and news evaluation.",

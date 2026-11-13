@@ -15,7 +15,7 @@ namespace AntiqueTradingSimulator.Company
     public class TraderRecord
     {
         /// <summary>Snapshots kept (one per week). Keep it ≥ the campaign length for the end screen chart.</summary>
-        public const int DefaultMaxHistoryDays = 160;
+        public const int DefaultMaxHistoryWeeks = 160;
 
         private readonly List<CompanySnapshot> _history = new List<CompanySnapshot>();
 
@@ -23,13 +23,13 @@ namespace AntiqueTradingSimulator.Company
         private float _pendingSalesValue;
         private int _pendingSalesCount;
 
-        public TraderRecord(ReputationSettings settings, int maxHistoryDays = DefaultMaxHistoryDays)
+        public TraderRecord(ReputationSettings settings, int maxHistoryWeeks = DefaultMaxHistoryWeeks)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
 
             Reputation = new CompanyReputation(settings);
             Reputation.OnChanged += _ => Changed?.Invoke();
-            MaxHistoryDays = Math.Max(1, maxHistoryDays);
+            MaxHistoryWeeks = Math.Max(1, maxHistoryWeeks);
         }
 
         public CompanyReputation Reputation { get; }
@@ -43,7 +43,7 @@ namespace AntiqueTradingSimulator.Company
         /// <summary>One snapshot per day, oldest first.</summary>
         public IReadOnlyList<CompanySnapshot> History => _history;
 
-        public int MaxHistoryDays { get; set; }
+        public int MaxHistoryWeeks { get; set; }
 
         /// <summary>Reputation, credibility or a contract count changed.</summary>
         public event Action Changed;
@@ -60,7 +60,7 @@ namespace AntiqueTradingSimulator.Company
         }
 
         /// <summary>Turns the day's sales into reputation, as one entry dated <paramref name="day"/>.</summary>
-        public void FlushSales(int day)
+        public void FlushSales(int week)
         {
             int points = Mathf.RoundToInt(_pendingSalesValue * Settings.ReputationPerSaleValue);
             int count = _pendingSalesCount;
@@ -68,7 +68,7 @@ namespace AntiqueTradingSimulator.Company
             _pendingSalesCount = 0;
 
             if (points > 0)
-                Reputation.AddReputation(points, count == 1 ? "Antique sold on the market" : $"{count} antiques sold on the market", day);
+                Reputation.AddReputation(points, count == 1 ? "Antique sold on the market" : $"{count} antiques sold on the market", week);
         }
 
         // ---------------------------------------------------------------- contracts
@@ -79,7 +79,7 @@ namespace AntiqueTradingSimulator.Company
             Changed?.Invoke();
         }
 
-        public void ContractFulfilled(Contract contract, int day)
+        public void ContractFulfilled(Contract contract, int week)
         {
             ContractsFulfilled++;
             if (contract == null)
@@ -96,26 +96,26 @@ namespace AntiqueTradingSimulator.Company
                              + (exclusive ? s.ExclusiveContractBonusReputation : 0);
             float credibility = s.ContractFulfilledCredibility + (exclusive ? s.ExclusiveContractBonusCredibility : 0f);
 
-            Reputation.AddReputation(reputation, exclusive ? $"Exclusive contract fulfilled ({contract.Requirement})" : $"Contract fulfilled ({contract.Requirement})", day);
-            Reputation.AddCredibility(credibility, $"Contract delivered on time ({contract.Requirement})", day);
+            Reputation.AddReputation(reputation, exclusive ? $"Exclusive contract fulfilled ({contract.Requirement})" : $"Contract fulfilled ({contract.Requirement})", week);
+            Reputation.AddCredibility(credibility, $"Contract delivered on time ({contract.Requirement})", week);
         }
 
-        public void ContractFailed(Contract contract, int day)
+        public void ContractFailed(Contract contract, int week)
         {
             ContractsFailed++;
 
             var s = Settings;
             string what = contract != null ? $" ({contract.Requirement})" : "";
-            Reputation.AddReputation(s.ContractFailedReputation, "Failed to deliver contract" + what, day);
-            Reputation.AddCredibility(s.ContractFailedCredibility, "Contract deadline missed" + what, day);
+            Reputation.AddReputation(s.ContractFailedReputation, "Failed to deliver contract" + what, week);
+            Reputation.AddCredibility(s.ContractFailedCredibility, "Contract deadline missed" + what, week);
         }
 
         // ---------------------------------------------------------------- snapshots
 
         /// <summary>The trader's numbers right now.</summary>
-        public CompanySnapshot Capture(int day, TraderInventory inventory, float marketShare) =>
+        public CompanySnapshot Capture(int week, TraderInventory inventory, float marketShare) =>
             new CompanySnapshot(
-                day,
+                week,
                 inventory?.Cash ?? 0f,
                 inventory?.Wealth ?? 0f,
                 inventory?.TotalHoldingsValue ?? 0f,
@@ -127,23 +127,23 @@ namespace AntiqueTradingSimulator.Company
         /// <summary>Keeps <paramref name="snapshot"/> as the day's entry (replacing an earlier one of the same day).</summary>
         public void Record(CompanySnapshot snapshot)
         {
-            _history.RemoveAll(s => s.Day == snapshot.Day);
+            _history.RemoveAll(s => s.Week == snapshot.Week);
             _history.Add(snapshot);
-            if (_history.Count > MaxHistoryDays)
-                _history.RemoveRange(0, _history.Count - MaxHistoryDays);
+            if (_history.Count > MaxHistoryWeeks)
+                _history.RemoveRange(0, _history.Count - MaxHistoryWeeks);
         }
 
         /// <summary>
         /// The latest snapshot at least <paramref name="days"/> days before <paramref name="currentDay"/>,
         /// the oldest one if history doesn't reach that far back, or null with no history at all.
         /// </summary>
-        public CompanySnapshot? SnapshotDaysAgo(int currentDay, int days)
+        public CompanySnapshot? SnapshotWeeksAgo(int currentWeek, int weeks)
         {
             if (_history.Count == 0) return null;
 
-            int day = currentDay - days;
+            int week = currentWeek - weeks;
             for (int i = _history.Count - 1; i >= 0; i--)
-                if (_history[i].Day <= day)
+                if (_history[i].Week <= week)
                     return _history[i];
 
             return _history[0];
@@ -177,8 +177,8 @@ namespace AntiqueTradingSimulator.Company
             if (state?.History != null)
             {
                 _history.AddRange(state.History);
-                if (_history.Count > MaxHistoryDays)
-                    _history.RemoveRange(0, _history.Count - MaxHistoryDays);
+                if (_history.Count > MaxHistoryWeeks)
+                    _history.RemoveRange(0, _history.Count - MaxHistoryWeeks);
             }
 
             Changed?.Invoke();
@@ -206,16 +206,16 @@ namespace AntiqueTradingSimulator.Company
         /// <paramref name="inventory"/>'s share of all market trading volume (purchases + sales of
         /// every trader in <paramref name="allTraders"/>), 0..1, from <paramref name="fromDay"/> on.
         /// </summary>
-        public static float MarketShare(TraderInventory inventory, IEnumerable<TraderInventory> allTraders, int fromDay = int.MinValue)
+        public static float MarketShare(TraderInventory inventory, IEnumerable<TraderInventory> allTraders, int fromWeek = int.MinValue)
         {
             if (inventory == null || allTraders == null) return 0f;
 
             float total = 0f;
             foreach (var trader in allTraders)
                 if (trader != null)
-                    total += trader.Ledger.TradeVolume(fromDay, int.MaxValue);
+                    total += trader.Ledger.TradeVolume(fromWeek, int.MaxValue);
 
-            return total > 0f ? inventory.Ledger.TradeVolume(fromDay, int.MaxValue) / total : 0f;
+            return total > 0f ? inventory.Ledger.TradeVolume(fromWeek, int.MaxValue) / total : 0f;
         }
     }
 }

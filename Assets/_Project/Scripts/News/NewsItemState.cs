@@ -12,9 +12,9 @@ namespace AntiqueTradingSimulator.News
         public string EventDescription;
         public NewsType Type;
         public float Credibility;
-        public int DayPublished;
+        public int WeekPublished;
         public InfoAccessLevel RequiredAccessLevel;
-        public int EventTriggerDay;
+        public int EventTriggerWeek;
 
         public static NewsItemState Capture(NewsItem news)
         {
@@ -27,9 +27,9 @@ namespace AntiqueTradingSimulator.News
                 EventDescription = news.EventDescription,
                 Type = news.Type,
                 Credibility = news.Credibility,
-                DayPublished = news.DayPublished,
+                WeekPublished = news.WeekPublished,
                 RequiredAccessLevel = news.RequiredAccessLevel,
-                EventTriggerDay = news.EventTriggerDay
+                EventTriggerWeek = news.EventTriggerWeek
             };
         }
 
@@ -39,8 +39,8 @@ namespace AntiqueTradingSimulator.News
             EventDescription,
             Type,
             Credibility,
-            DayPublished,
+            WeekPublished,
             RequiredAccessLevel,
-            EventTriggerDay);
+            EventTriggerWeek);
     }
 }

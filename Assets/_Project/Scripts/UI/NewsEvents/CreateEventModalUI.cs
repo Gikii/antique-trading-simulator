@@ -52,7 +52,7 @@ namespace AntiqueTradingSimulator.UI
             new List<(EventDefinition, GameObject)>();
 
         private EventDefinition selected;
-        private int leadDays;
+        private int leadWeeks;
         private bool initialized;
         private bool pausedByModal;
 
@@ -139,8 +139,8 @@ namespace AntiqueTradingSimulator.UI
             AddListener(closeButton, Close);
             AddListener(cancelButton, Close);
             AddListener(createButton, CreateSelectedEvent);
-            AddListener(decreaseButton, () => ChangeLeadDays(-1));
-            AddListener(increaseButton, () => ChangeLeadDays(+1));
+            AddListener(decreaseButton, () => ChangeLeadWeeks(-1));
+            AddListener(increaseButton, () => ChangeLeadWeeks(+1));
         }
 
         private T FindComponent<T>(string path) where T : Component
@@ -214,7 +214,7 @@ namespace AntiqueTradingSimulator.UI
             FillDetails();
 
             if (selected != null)
-                leadDays = MinLead(selected); // start from the earliest possible day
+                leadWeeks = MinLead(selected); // start from the earliest possible day
 
             UpdateSchedule();
         }
@@ -245,7 +245,7 @@ namespace AntiqueTradingSimulator.UI
             SetText(categoryValue, NewsPresentation.JoinTargets(effects, EventEffect.TargetScope.AntiqueType, NoValue));
             SetText(regionValue, NewsPresentation.JoinTargets(effects, EventEffect.TargetScope.Country, NoValue));
             SetText(periodValue, NewsPresentation.JoinTargets(effects, EventEffect.TargetScope.Century, NoValue));
-            SetText(durationValue, NewsPresentation.WeeksLabel(Mathf.Max(1, selected.DurationDays)));
+            SetText(durationValue, NewsPresentation.WeeksLabel(Mathf.Max(1, selected.DurationWeeks)));
             SetText(newsValue, NewsPresentation.GeneratedNewsLabel(selected));
         }
 
@@ -261,15 +261,15 @@ namespace AntiqueTradingSimulator.UI
         // Schedule
         // ------------------------------------------------------------------
 
-        private static int MinLead(EventDefinition definition) => Mathf.Max(1, definition.MinLeadDays);
+        private static int MinLead(EventDefinition definition) => Mathf.Max(1, definition.MinLeadWeeks);
 
-        private static int MaxLead(EventDefinition definition) => Mathf.Max(MinLead(definition), definition.MaxLeadDays);
+        private static int MaxLead(EventDefinition definition) => Mathf.Max(MinLead(definition), definition.MaxLeadWeeks);
 
-        private void ChangeLeadDays(int delta)
+        private void ChangeLeadWeeks(int delta)
         {
             if (selected == null || !selected.PlayerSelectsLeadTime) return;
 
-            leadDays = Mathf.Clamp(leadDays + delta, MinLead(selected), MaxLead(selected));
+            leadWeeks = Mathf.Clamp(leadWeeks + delta, MinLead(selected), MaxLead(selected));
             UpdateSchedule();
         }
 
@@ -297,15 +297,15 @@ namespace AntiqueTradingSimulator.UI
 
         private void UpdateScheduleForPlayerChoice(int min, int max)
         {
-            int triggerDay = timeManager.CurrentDay + leadDays;
+            int triggerWeek = timeManager.CurrentWeek + leadWeeks;
 
-            SetText(leadText, NewsPresentation.WeeksLabel(leadDays));
-            SetText(dateText, TimeManager.FormatLong(timeManager.DayToDate(triggerDay)));
+            SetText(leadText, NewsPresentation.WeeksLabel(leadWeeks));
+            SetText(dateText, TimeManager.FormatLong(timeManager.WeekToDate(triggerWeek)));
 
-            SetInteractable(decreaseButton, leadDays > min);
-            SetInteractable(increaseButton, leadDays < max);
+            SetInteractable(decreaseButton, leadWeeks > min);
+            SetInteractable(increaseButton, leadWeeks < max);
 
-            bool afterCampaign = triggerDay > timeManager.CampaignLength;
+            bool afterCampaign = triggerWeek > timeManager.CampaignLength;
 
             // Player events are never blocked by what's already scheduled that day (Minor/Major/
             // Spontaneous/other Player events), so there's no "day taken" case to check for here.
@@ -333,8 +333,8 @@ namespace AntiqueTradingSimulator.UI
 
             // Checked against the worst case (max lead) so "Create" is never enabled for a roll
             // that could land past the end of the campaign.
-            int worstCaseDay = timeManager.CurrentDay + max;
-            bool afterCampaign = worstCaseDay > timeManager.CampaignLength;
+            int worstCaseWeek = timeManager.CurrentWeek + max;
+            bool afterCampaign = worstCaseWeek > timeManager.CampaignLength;
 
             if (afterCampaign)
                 SetHint("This date is after the end of the campaign.", true);
@@ -349,17 +349,17 @@ namespace AntiqueTradingSimulator.UI
         {
             if (selected == null || eventManager == null || timeManager == null) return;
 
-            int triggerDay = selected.PlayerSelectsLeadTime
-                ? timeManager.CurrentDay + leadDays
-                : timeManager.CurrentDay + UnityEngine.Random.Range(MinLead(selected), MaxLead(selected) + 1);
+            int triggerWeek = selected.PlayerSelectsLeadTime
+                ? timeManager.CurrentWeek + leadWeeks
+                : timeManager.CurrentWeek + UnityEngine.Random.Range(MinLead(selected), MaxLead(selected) + 1);
 
-            if (!eventManager.ScheduleEvent(selected, triggerDay))
+            if (!eventManager.ScheduleEvent(selected, triggerWeek))
             {
                 SetHint("The event could not be scheduled. Choose another week.", true);
                 return;
             }
 
-            EventCreated?.Invoke(selected, triggerDay);
+            EventCreated?.Invoke(selected, triggerWeek);
             Close();
         }
 

@@ -201,10 +201,10 @@ namespace AntiqueTradingSimulator.UI
         /// "14 May 1884" (the Monday the week starts on — news and events happen at the start of a
         /// week) when a TimeManager is available, otherwise "Week 23".
         /// </summary>
-        public static string FormatDay(int week, Core.TimeManager timeManager)
+        public static string FormatWeek(int week, Core.TimeManager timeManager)
         {
             return timeManager != null
-                ? Core.TimeManager.FormatLong(timeManager.DayToDate(week))
+                ? Core.TimeManager.FormatLong(timeManager.WeekToDate(week))
                 : $"Week {week}";
         }
 

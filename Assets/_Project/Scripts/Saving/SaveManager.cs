@@ -56,7 +56,7 @@ namespace AntiqueTradingSimulator.Saving
         public SaveSlot? LastSaveSlot { get; private set; }
 
         /// <summary>In-game day of that save; 0 when there is none.</summary>
-        public int LastSaveDay { get; private set; }
+        public int LastSaveWeek { get; private set; }
 
         /// <summary>Play time since the last save or load (since the start, in a new game never saved).</summary>
         public double SecondsSinceLastSave => Math.Max(0d, Playtime - _playtimeAtLastSave);
@@ -64,7 +64,7 @@ namespace AntiqueTradingSimulator.Saving
         /// <summary>True when leaving now would lose more than a few seconds of play — ask first.</summary>
         public bool HasUnsavedProgress => SecondsSinceLastSave > Settings.UnsavedProgressWarningSeconds;
 
-        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 0;
 
         private double Playtime => timeManager != null ? timeManager.PlaytimeSeconds : 0d;
 
@@ -102,7 +102,7 @@ namespace AntiqueTradingSimulator.Saving
                 companyManager = playerTrader != null ? playerTrader.Company : FindFirstObjectByType<CompanyManager>();
             if (campaignManager == null) campaignManager = FindFirstObjectByType<CampaignManager>();
 
-            _autosave = new AutosaveScheduler(SavePreferences.AutosaveIntervalDays, CurrentDay)
+            _autosave = new AutosaveScheduler(SavePreferences.AutosaveIntervalWeeks, CurrentWeek)
             {
                 Enabled = SavePreferences.AutosaveEnabled
             };
@@ -110,23 +110,23 @@ namespace AntiqueTradingSimulator.Saving
 
         private void OnEnable()
         {
-            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged += HandleWeekChanged;
             SavePreferences.Changed += ApplyPreferences;
         }
 
         private void OnDisable()
         {
-            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged -= HandleWeekChanged;
             SavePreferences.Changed -= ApplyPreferences;
         }
 
-        private void HandleDayChanged(int day) => _autosave?.NotifyDayChanged(day);
+        private void HandleWeekChanged(int week) => _autosave?.NotifyWeekChanged(week);
 
-        // Every OnDayChanged listener has finished by LateUpdate, so the autosave never captures
+        // Every OnWeekChanged listener has finished by LateUpdate, so the autosave never captures
         // a day that is only half processed. An open modal (a purchase in progress) delays it.
         private void LateUpdate()
         {
-            if (_autosave != null && _autosave.ShouldAutosaveNow(CurrentDay, ModalTracker.IsAnyOpen))
+            if (_autosave != null && _autosave.ShouldAutosaveNow(CurrentWeek, ModalTracker.IsAnyOpen))
                 Autosave();
         }
 
@@ -136,13 +136,13 @@ namespace AntiqueTradingSimulator.Saving
             if (_autosave == null) return;
 
             _autosave.Enabled = SavePreferences.AutosaveEnabled;
-            _autosave.IntervalDays = SavePreferences.AutosaveIntervalDays;
+            _autosave.IntervalWeeks = SavePreferences.AutosaveIntervalWeeks;
         }
 
-        private void MarkSaved(SaveSlot slot, int day)
+        private void MarkSaved(SaveSlot slot, int week)
         {
             LastSaveSlot = slot;
-            LastSaveDay = day;
+            LastSaveWeek = week;
             _playtimeAtLastSave = Playtime;
         }
 
@@ -192,10 +192,10 @@ namespace AntiqueTradingSimulator.Saving
                 return false;
             }
 
-            if (!slot.IsAutosave) _autosave?.Reset(CurrentDay);
-            MarkSaved(slot, CurrentDay);
+            if (!slot.IsAutosave) _autosave?.Reset(CurrentWeek);
+            MarkSaved(slot, CurrentWeek);
 
-            Debug.Log($"SaveManager: saved day {CurrentDay} to {Store.PathFor(slot)}");
+            Debug.Log($"SaveManager: saved week {CurrentWeek} to {Store.PathFor(slot)}");
             OnSaved?.Invoke(slot);
             return true;
         }
@@ -270,10 +270,10 @@ namespace AntiqueTradingSimulator.Saving
             }
 
             RestoreGame(state);
-            _autosave?.Reset(CurrentDay);
-            MarkSaved(slot, state.SavedOnDay);
+            _autosave?.Reset(CurrentWeek);
+            MarkSaved(slot, state.SavedOnWeek);
 
-            Debug.Log($"SaveManager: loaded {slot.DisplayName} (day {state.SavedOnDay}, saved {state.SavedAtUtc}).");
+            Debug.Log($"SaveManager: loaded {slot.DisplayName} (week {state.SavedOnWeek}, saved {state.SavedAtUtc}).");
             OnLoaded?.Invoke(slot, state);
             return true;
         }
@@ -313,7 +313,7 @@ namespace AntiqueTradingSimulator.Saving
         {
             Version = SaveSerializer.SaveFormatVersion,
             SavedAtUtc = DateTime.UtcNow.ToString("o"),
-            SavedOnDay = timeManager != null ? timeManager.CurrentDay : 0,
+            SavedOnWeek = timeManager != null ? timeManager.CurrentWeek : 0,
             CampaignLength = timeManager != null ? timeManager.CampaignLength : 0,
             PlaytimeSeconds = Playtime,
             InGameDate = timeManager != null ? TimeManager.FormatLong(timeManager.CurrentDate) : null,

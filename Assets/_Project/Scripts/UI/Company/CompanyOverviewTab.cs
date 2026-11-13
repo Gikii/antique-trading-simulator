@@ -5,6 +5,7 @@ using AntiqueTradingSimulator.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -15,7 +16,7 @@ namespace AntiqueTradingSimulator.UI
     /// </summary>
     public class CompanyOverviewTab : MonoBehaviour
     {
-        private const int TrendDays = 7;
+        private const int TrendWeeks = 7;
 
         private enum CompetitionSort
         {
@@ -33,7 +34,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private ProgressBarUI tierProgress;
         [SerializeField] private TMP_Text nextLevelText;
         [SerializeField] private TMP_Text companyDescriptionText;
-        [SerializeField] private TMP_Text dayText;
+        [FormerlySerializedAs("dayText")]
+        [SerializeField] private TMP_Text weekText;
         [SerializeField] private TMP_Text dateText;
 
         [Header("Next major event")]
@@ -125,7 +127,7 @@ namespace AntiqueTradingSimulator.UI
             if (_company == null) return;
 
             var now = _company.Capture();
-            var past = _company.SnapshotDaysAgo(TrendDays);
+            var past = _company.SnapshotWeeksAgo(TrendWeeks);
 
             RefreshCompanyCard(now);
             RefreshNextEvent();
@@ -152,16 +154,16 @@ namespace AntiqueTradingSimulator.UI
                 tierProgress.SetColor(UIFormat.AccentColor);
             }
 
-            SetText(dayText, UIFormat.WeekCounter(now.Day, _company.CampaignLength));
-            SetText(dateText, timeManager != null ? TimeManager.FormatLong(timeManager.DayToDate(now.Day)) : "");
+            SetText(weekText, UIFormat.WeekCounter(now.Week, _company.CampaignLength));
+            SetText(dateText, timeManager != null ? TimeManager.FormatLong(timeManager.WeekToDate(now.Week)) : "");
         }
 
         private void RefreshNextEvent()
         {
-            int days = _company.DaysUntilCongress;
+            int weeks = _company.WeeksUntilCongress;
             SetText(eventTitleText, "International Collectors Congress");
-            SetText(eventDescriptionText, days > 0
-                ? $"In {UIFormat.Weeks(days)} the Congress will take place. Prepare your company, expand your collection and earn a high position in the ranking."
+            SetText(eventDescriptionText, weeks > 0
+                ? $"In {UIFormat.Weeks(weeks)} the Congress will take place. Prepare your company, expand your collection and earn a high position in the ranking."
                 : "The Congress takes place this week. Your company will be evaluated.");
         }
 
@@ -213,7 +215,7 @@ namespace AntiqueTradingSimulator.UI
 
         private static string ChangeLine(string change, float delta) =>
             UIFormat.ColorBySign($"{UIFormat.TrendArrow(delta)} {change}", delta) + " " +
-            UIFormat.Colorize($"({UIFormat.Weeks(TrendDays)})", UIFormat.MutedColor);
+            UIFormat.Colorize($"({UIFormat.Weeks(TrendWeeks)})", UIFormat.MutedColor);
 
         private static string WeightLine(ScoringSettings scoring, ScoreCriterion criterion)
         {

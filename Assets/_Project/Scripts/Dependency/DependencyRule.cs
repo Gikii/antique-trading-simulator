@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Dependency
 {
@@ -60,7 +61,8 @@ namespace AntiqueTradingSimulator.Dependency
         [Min(0f)] public float ActivationThreshold = 0.5f;
 
         [Tooltip("Share of the resulting influence that fades away each week. 0.2 = roughly gone in seven weeks.")]
-        [Range(0f, 1f)] public float DecayPerDay = 0.2f;
+        [FormerlySerializedAs("DecayPerDay")]
+        [Range(0f, 1f)] public float DecayPerWeek = 0.2f;
 
         /// <summary>
         /// The kind carried by this rule's influences, read off the sign of Strength: positive
@@ -109,7 +111,8 @@ namespace AntiqueTradingSimulator.Dependency
 
         [Min(0f)] public float ActivationThreshold = 1f;
 
-        [Range(0f, 1f)] public float DecayPerDay = 0.25f;
+        [FormerlySerializedAs("DecayPerDay")]
+        [Range(0f, 1f)] public float DecayPerWeek = 0.25f;
 
         // Links cover the named enum members that at least one antique uses. That set is resolved
         // when the graph is built, so an antique added in a previously unused country needs a

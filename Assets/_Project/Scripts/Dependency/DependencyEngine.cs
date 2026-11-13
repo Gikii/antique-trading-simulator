@@ -6,7 +6,7 @@ namespace AntiqueTradingSimulator.Dependency
 {
     /// <summary>
     /// Carries a change in one category's interest over to the categories it is linked with.
-    /// Market movement is reported during the day, AdvanceDay runs once per day, and the result
+    /// Market movement is reported during the day, AdvanceWeek runs once per day, and the result
     /// lands in each affected type's TempDemandMod. Prices stay with PriceEngine.
     /// </summary>
     public class DependencyEngine
@@ -18,7 +18,7 @@ namespace AntiqueTradingSimulator.Dependency
         // Live knock-on effects, newest last.
         private readonly List<DependencyInfluence> _influences = new List<DependencyInfluence>();
 
-        // Signal reported since the last AdvanceDay, summed per category.
+        // Signal reported since the last AdvanceWeek, summed per category.
         private readonly Dictionary<MarketFacet, float> _pendingSignal = new Dictionary<MarketFacet, float>();
 
         // What this system has already added to each type's TempDemandMod.
@@ -27,7 +27,7 @@ namespace AntiqueTradingSimulator.Dependency
         private readonly List<PropagatedInfluence> _propagationBuffer = new List<PropagatedInfluence>();
 
         /// <summary>Raised after a day has been processed.</summary>
-        public event Action<int> OnDayProcessed;
+        public event Action<int> OnWeekProcessed;
 
         /// <summary>Works without a market too, which is how the rules are tuned in the editor.</summary>
         public DependencyEngine(DependencyGraphSettings settings, Market.Market market = null)
@@ -48,7 +48,7 @@ namespace AntiqueTradingSimulator.Dependency
         /// <summary>Every knock-on effect currently in play.</summary>
         public IReadOnlyList<DependencyInfluence> ActiveInfluences => _influences;
 
-        /// <summary>Signal collected since the last AdvanceDay, per category.</summary>
+        /// <summary>Signal collected since the last AdvanceWeek, per category.</summary>
         public IReadOnlyDictionary<MarketFacet, float> PendingSignal => _pendingSignal;
 
         /// <summary>What this system is currently adding to each antique type's demand.</summary>
@@ -130,16 +130,16 @@ namespace AntiqueTradingSimulator.Dependency
         /// One tick: fade what is in play, propagate what was collected, write the result out.
         /// Call once per game day, after the market has done its own daily work.
         /// </summary>
-        public void AdvanceDay(int day)
+        public void AdvanceWeek(int week)
         {
             if (_settings == null) return;
 
             DecayInfluences();
-            PropagatePending(day);
+            PropagatePending(week);
             _pendingSignal.Clear();
             ApplyToMarket();
 
-            OnDayProcessed?.Invoke(day);
+            OnWeekProcessed?.Invoke(week);
         }
 
         /// <summary>Fades every influence by its own rate and drops the ones left below the cutoff.</summary>
@@ -153,7 +153,7 @@ namespace AntiqueTradingSimulator.Dependency
             }
         }
 
-        private void PropagatePending(int day)
+        private void PropagatePending(int week)
         {
             if (_pendingSignal.Count == 0 || _graph == null) return;
 
@@ -164,7 +164,7 @@ namespace AntiqueTradingSimulator.Dependency
                                  _settings.DepthDamping, _settings.MinimumPropagatedChange, _propagationBuffer);
 
                 foreach (var propagated in _propagationBuffer)
-                    MergeInfluence(pending.Key, propagated, day);
+                    MergeInfluence(pending.Key, propagated, week);
             }
         }
 
@@ -172,7 +172,7 @@ namespace AntiqueTradingSimulator.Dependency
         /// Adds a new effect to the live list. The same link repeating adds to the influence it
         /// already produced and refreshes it.
         /// </summary>
-        private void MergeInfluence(MarketFacet origin, PropagatedInfluence propagated, int day)
+        private void MergeInfluence(MarketFacet origin, PropagatedInfluence propagated, int week)
         {
             foreach (var existing in _influences)
             {
@@ -180,9 +180,9 @@ namespace AntiqueTradingSimulator.Dependency
                     continue;
 
                 existing.Amount += propagated.Amount;
-                existing.DecayPerDay = propagated.DecayPerDay;
+                existing.DecayPerWeek = propagated.DecayPerWeek;
                 existing.Depth = Mathf.Min(existing.Depth, propagated.Depth);
-                existing.LastRefreshedOnDay = day;
+                existing.LastRefreshedOnWeek = week;
                 return;
             }
 
@@ -192,10 +192,10 @@ namespace AntiqueTradingSimulator.Dependency
                 Origin = origin,
                 Kind = propagated.Kind,
                 Amount = propagated.Amount,
-                DecayPerDay = propagated.DecayPerDay,
+                DecayPerWeek = propagated.DecayPerWeek,
                 Depth = propagated.Depth,
-                CreatedOnDay = day,
-                LastRefreshedOnDay = day
+                CreatedOnWeek = week,
+                LastRefreshedOnWeek = week
             });
         }
 

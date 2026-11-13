@@ -1,6 +1,7 @@
 using AntiqueTradingSimulator.Logistics;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Auctions
 {
@@ -14,13 +15,16 @@ namespace AntiqueTradingSimulator.Auctions
     {
         [Header("Schedule")]
         [Tooltip("Week of the first auction.")]
-        [Min(1)] public int FirstAuctionDay = 3;
+        [FormerlySerializedAs("FirstAuctionDay")]
+        [Min(1)] public int FirstAuctionWeek = 3;
 
         [Tooltip("An auction is held every this many weeks.")]
-        [Min(1)] public int IntervalDays = 3;
+        [FormerlySerializedAs("IntervalDays")]
+        [Min(1)] public int IntervalWeeks = 3;
 
         [Tooltip("The catalog is published this many weeks before the auction.")]
-        [Min(0)] public int AnnounceDaysAhead = 3;
+        [FormerlySerializedAs("AnnounceDaysAhead")]
+        [Min(0)] public int AnnounceWeeksAhead = 3;
 
         [Tooltip("Tick of the auction week at which the session starts: weekday × TicksPerDay + part of the day " +
                  "(with 4 ticks a day: 0 = Monday 08:00 … 22 = Saturday 14:00).")]
@@ -124,6 +128,6 @@ namespace AntiqueTradingSimulator.Auctions
         [Tooltip("Demand drop for a lot nobody wanted.")]
         [Min(0f)] public float UnsoldDemandPenalty = 0.1f;
 
-        public int AuctionDayFor(int index) => FirstAuctionDay + index * IntervalDays;
+        public int AuctionWeekFor(int index) => FirstAuctionWeek + index * IntervalWeeks;
     }
 }

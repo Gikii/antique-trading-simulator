@@ -135,7 +135,7 @@ namespace AntiqueTradingSimulator.Seasons
 
         private bool IsCurrentSeason(int week)
         {
-            int now = _time.CurrentDay;
+            int now = _time.CurrentWeek;
             return week >= now && week - now < MaxSeasonWeeks && _time.SeasonOf(week) == _time.SeasonOf(now)
                    && NextSeasonStart(now) > week;
         }

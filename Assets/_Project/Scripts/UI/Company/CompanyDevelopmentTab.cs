@@ -156,7 +156,7 @@ namespace AntiqueTradingSimulator.UI
                 summaryText.text =
                     $"{UIFormat.Colorize("Cash:", UIFormat.MutedColor)} {UIFormat.Money(cash)}     " +
                     $"{UIFormat.Colorize("Reputation:", UIFormat.MutedColor)} {UIFormat.Number(reputation.Reputation)} ({reputation.Title})     " +
-                    $"{UIFormat.Colorize("Total upkeep:", UIFormat.MutedColor)} {UpgradePresentation.PerDay(totalUpkeep)}";
+                    $"{UIFormat.Colorize("Total upkeep:", UIFormat.MutedColor)} {UpgradePresentation.PerWeek(totalUpkeep)}";
             }
         }
     }

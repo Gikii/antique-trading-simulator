@@ -66,7 +66,7 @@ namespace AntiqueTradingSimulator.Events
             int granted = 0;
             for (int i = 0; i < count; i++)
             {
-                if (GrantOne(playerInventory, context.CurrentDay, transport))
+                if (GrantOne(playerInventory, context.CurrentWeek, transport))
                     granted++;
             }
 
@@ -102,7 +102,7 @@ namespace AntiqueTradingSimulator.Events
             };
         }
 
-        private bool GrantOne(TraderInventory playerInventory, int currentDay, TransportManager transport)
+        private bool GrantOne(TraderInventory playerInventory, int currentWeek, TransportManager transport)
         {
             AntiqueDefinition definition = PickDefinition();
             if (definition == null) return false;
@@ -118,7 +118,7 @@ namespace AntiqueTradingSimulator.Events
 
             // Free shipping; may overflow the warehouse on purpose (see TraderInventory.GrantHolding).
             TransportQuote quote = transport != null ? transport.Quote(antique, DeliveryOption, free: true) : null;
-            if (!playerInventory.GrantHolding(antique, currentDay, quote)) return false;
+            if (!playerInventory.GrantHolding(antique, currentWeek, quote)) return false;
 
             if (quote != null)
                 transport.Dispatch(antique, playerInventory, quote, "Player");

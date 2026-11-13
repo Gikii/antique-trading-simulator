@@ -26,7 +26,7 @@ namespace AntiqueTradingSimulator.UI
         protected override void OnActionClicked() => InfoBarNavigation.OpenNews();
 
 
-        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 0;
 
         protected override void Awake()
         {
@@ -80,30 +80,30 @@ namespace AntiqueTradingSimulator.UI
             if (newsManager == null)
                 return;
 
-            int today = CurrentDay;
+            int thisWeek = CurrentWeek;
             InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(playerTrader);
 
             List<NewsItem> latest = newsManager.PublishedNews
                 .Reverse()
                 .Where(news => news != null)
-                .Where(news => !hideOnceEventStarted || !news.EventStarted(today))
+                .Where(news => !hideOnceEventStarted || !news.EventStarted(thisWeek))
                 .Where(news => NewsPresentation.CanSee(news, accessLevel))
-                .OrderByDescending(news => news.DayPublished)
+                .OrderByDescending(news => news.WeekPublished)
                 .Take(Mathf.Max(1, maxRows))
                 .ToList();
 
             foreach (NewsItem news in latest)
-                lines.Add(BuildLine(news, today));
+                lines.Add(BuildLine(news, thisWeek));
         }
 
-        private RowData BuildLine(NewsItem news, int today)
+        private RowData BuildLine(NewsItem news, int thisWeek)
         {
-            string when = NewsPresentation.RelativeWeeks(news.DayPublished - today).ToLowerInvariant();
+            string when = NewsPresentation.RelativeWeeks(news.WeekPublished - thisWeek).ToLowerInvariant();
             string type = NewsPresentation.TypeLabel(news.Type);
             string title = NewsPresentation.GetTitle(news);
 
             string tooltip = $"{title}\n" +
-                             $"{type} · {NewsPresentation.FormatDay(news.DayPublished, timeManager)}\n\n" +
+                             $"{type} · {NewsPresentation.FormatWeek(news.WeekPublished, timeManager)}\n\n" +
                              NewsPresentation.GetNewsDescription(news);
 
             return new RowData

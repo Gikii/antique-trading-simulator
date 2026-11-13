@@ -2,6 +2,7 @@ using AntiqueTradingSimulator.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -25,7 +26,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text pauseLabel;    // "||" / ">"
         [SerializeField] private Button speedButton;
         [SerializeField] private TMP_Text speedLabel;    // "x1" / "x2" / "x4"
-        [SerializeField] private Button skipDayButton;
+        [FormerlySerializedAs("skipDayButton")]
+        [SerializeField] private Button skipWeekButton;
 
         [Header("Visibility")]
         [Tooltip("Hide these controls in release (non-development) builds.")]
@@ -46,11 +48,11 @@ namespace AntiqueTradingSimulator.UI
 
             if (pauseButton != null) pauseButton.onClick.AddListener(TogglePause);
             if (speedButton != null) speedButton.onClick.AddListener(CycleSpeed);
-            if (skipDayButton != null) skipDayButton.onClick.AddListener(SkipDay);
+            if (skipWeekButton != null) skipWeekButton.onClick.AddListener(SkipWeek);
 
             SetTooltip(pauseButton, "Pause / resume time (debug)");
             SetTooltip(speedButton, "Time speed (debug)");
-            SetTooltip(skipDayButton, "Skip to the next week (debug)");
+            SetTooltip(skipWeekButton, "Skip to the next week (debug)");
         }
 
         private void OnEnable()
@@ -78,7 +80,7 @@ namespace AntiqueTradingSimulator.UI
 
             // Countdown in real seconds at the current speed, refreshed only when it changes.
             float speed = Mathf.Max(0.01f, timeManager.SpeedMultiplier);
-            int seconds = Mathf.CeilToInt(timeManager.TimeUntilNextDay / speed);
+            int seconds = Mathf.CeilToInt(timeManager.TimeUntilNextWeek / speed);
             bool running = timeManager.IsRunning;
             if (seconds == _lastShownSeconds && running == _lastShownRunning) return;
 
@@ -96,7 +98,7 @@ namespace AntiqueTradingSimulator.UI
 
         private void CycleSpeed() => timeManager?.CycleSpeed();
 
-        private void SkipDay() => timeManager?.ForceAdvanceDay();
+        private void SkipWeek() => timeManager?.ForceAdvanceWeek();
 
         private void HandleRunningChanged(bool running) => RefreshButtons();
         private void HandleSpeedChanged(float speed) => RefreshButtons();

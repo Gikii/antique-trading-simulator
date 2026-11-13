@@ -11,9 +11,9 @@ namespace AntiqueTradingSimulator.Contracts
         public ContractType Type { get; }
         public ContractRequirement Requirement { get; }
 
-        public int CreatedDay { get; }
-        public int DurationDays { get; set; }
-        public int DeadlineDay => CreatedDay + DurationDays;
+        public int CreatedWeek { get; }
+        public int DurationWeeks { get; set; }
+        public int DeadlineWeek => CreatedWeek + DurationWeeks;
 
         public float RewardPerUnit { get; }
         public float TotalReward => RewardPerUnit * Requirement.Quantity;
@@ -43,14 +43,14 @@ namespace AntiqueTradingSimulator.Contracts
 
         public event Action<Contract> OnContractExpired;
 
-        public Contract(ContractType type, ContractRequirement requirement, int createdDay, int durationDays, int maxDurationDays, float rewardPerUnit, float penalty,
+        public Contract(ContractType type, ContractRequirement requirement, int createdWeek, int durationWeeks, int maxDurationWeeks, float rewardPerUnit, float penalty,
             int requiredReputation = 0, string className = "")
         {
             ContractId = Guid.NewGuid().ToString("N");
             Type = type;
             Requirement = requirement;
-            CreatedDay = createdDay;
-            DurationDays = Mathf.Clamp(durationDays, 1, maxDurationDays);
+            CreatedWeek = createdWeek;
+            DurationWeeks = Mathf.Clamp(durationWeeks, 1, maxDurationWeeks);
             RewardPerUnit = Mathf.Max(0f, rewardPerUnit);
             Penalty = type == ContractType.Exclusive ? Mathf.Max(0f, penalty) : 0f;
             RequiredReputation = Mathf.Max(0, requiredReputation);
@@ -69,8 +69,8 @@ namespace AntiqueTradingSimulator.Contracts
             ContractId = state.ContractId;
             Type = state.Type;
             Requirement = state.Requirement ?? new ContractRequirement();
-            CreatedDay = state.CreatedDay;
-            DurationDays = state.DurationDays;
+            CreatedWeek = state.CreatedWeek;
+            DurationWeeks = state.DurationWeeks;
             RewardPerUnit = state.RewardPerUnit;
             Penalty = state.Penalty;
             // Saves from before contract classes have neither field: 0 / null → a standard contract.

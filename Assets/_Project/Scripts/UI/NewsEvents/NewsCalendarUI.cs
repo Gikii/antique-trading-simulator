@@ -40,10 +40,21 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Color cellNormal = new Color32(0x47, 0x47, 0x47, 0xFF);
         [SerializeField] private Color cellToday = new Color32(0x6B, 0x5E, 0x40, 0xFF);
         [SerializeField] private Color cellSelected = new Color32(0x5C, 0x5C, 0x5C, 0xFF);
+        [Tooltip("The other days of the current game week (today itself uses Cell Today).")]
+        [SerializeField] private Color cellCurrentWeek = new Color(0.14f, 0.11f, 0.066f, 1f);
 
         [Header("Day number colors")]
         [SerializeField] private Color textCurrentMonth = new Color32(0xEB, 0xEB, 0xEB, 0xFF);
         [SerializeField] private Color textOtherMonth = new Color32(0x94, 0x94, 0x94, 0xFF);
+
+        [Header("Today and current week (independent of the cell background, which the sprite darkens)")]
+        [Tooltip("Number of today's cell (bold).")]
+        [SerializeField] private Color textToday = new Color32(0xC9, 0x9A, 0x3C, 0xFF);
+        [Tooltip("Numbers of the other days of the current game week.")]
+        [SerializeField] private Color textCurrentWeek = new Color32(0xFF, 0xF1, 0xD0, 0xFF);
+        [Tooltip("Frame drawn around today's cell.")]
+        [SerializeField] private Color todayOutline = new Color32(0xC9, 0x9A, 0x3C, 0xFF);
+        [SerializeField] private Vector2 todayOutlineDistance = new Vector2(2f, -2f);
 
         [Header("Category colors (same as legend)")]
         [SerializeField] private Color officialColor = new Color32(0x59, 0xB8, 0x73, 0xFF);
@@ -89,6 +100,8 @@ namespace AntiqueTradingSimulator.UI
             public GameObject Root;
             public Image Background;
             public TMP_Text Number;
+            public Outline TodayFrame;
+            public FontStyles NumberStyle;   // as authored in the scene; today/selected add to it
             public Transform Markers;
             public readonly List<Image> MarkerImages = new List<Image>();
             public DateTime Date;
@@ -145,7 +158,11 @@ namespace AntiqueTradingSimulator.UI
 
         private void Subscribe()
         {
-            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            if (timeManager != null)
+            {
+                timeManager.OnWeekChanged += HandleWeekChanged;
+                timeManager.OnTick += HandleTick;
+            }
             if (newsManager != null) newsManager.OnNewsPublished += HandleNewsPublished;
             if (eventManager != null)
             {
@@ -156,7 +173,11 @@ namespace AntiqueTradingSimulator.UI
 
         private void Unsubscribe()
         {
-            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            if (timeManager != null)
+            {
+                timeManager.OnWeekChanged -= HandleWeekChanged;
+                timeManager.OnTick -= HandleTick;
+            }
             if (newsManager != null) newsManager.OnNewsPublished -= HandleNewsPublished;
             if (eventManager != null)
             {
@@ -165,7 +186,15 @@ namespace AntiqueTradingSimulator.UI
             }
         }
 
-        private void HandleDayChanged(int day)
+        private void HandleWeekChanged(int week) => FollowToday();
+
+        // The week only changes on OnWeekChanged, but the calendar day moves on with the ticks.
+        private void HandleTick(int week, int tick)
+        {
+            if (timeManager.CurrentDate != Today) FollowToday();
+        }
+
+        private void FollowToday()
         {
             bool wasViewingToday = SelectedDate == Today;
             Today = timeManager.CurrentDate;
@@ -175,10 +204,11 @@ namespace AntiqueTradingSimulator.UI
             {
                 SelectedDate = Today;
                 displayedMonth = new DateTime(Today.Year, Today.Month, 1);
-                UpdateSelectedDateTexts();
                 DateSelected?.Invoke(SelectedDate);
             }
 
+            // "Events this week" vs "in the week of …" depends on the current week, so refresh it either way.
+            UpdateSelectedDateTexts();
             dirty = true;
         }
 
@@ -288,6 +318,16 @@ namespace AntiqueTradingSimulator.UI
                 if (cell.Markers != null)
                     DestroyChildren(cell.Markers, keepFirst: false);
 
+                if (cell.Number != null) cell.NumberStyle = cell.Number.fontStyle;
+
+                // Today's frame: an Outline on the cell's own Image, switched on for today only.
+                if (cell.Background != null)
+                {
+                    cell.TodayFrame = child.GetComponent<Outline>();
+                    if (cell.TodayFrame == null) cell.TodayFrame = child.gameObject.AddComponent<Outline>();
+                    cell.TodayFrame.enabled = false;
+                }
+
                 var button = child.GetComponent<Button>();
                 if (button != null)
                     button.onClick.AddListener(() => SelectDate(cell.Date));
@@ -354,14 +394,14 @@ namespace AntiqueTradingSimulator.UI
         /// events running that day (active or already ended) and news published that day.
         /// Scheduled (future) events are intentionally NOT shown – the player learns about them only through news.
         /// </summary>
-        private void GetEntries(int day, List<DayEntry> result)
+        private void GetEntries(int week, List<DayEntry> result)
         {
             result.Clear();
 
             if (eventManager != null)
             {
-                AddEvents(eventManager.ActiveEvents, day, result);
-                AddEvents(eventManager.EndedEvents, day, result);
+                AddEvents(eventManager.ActiveEvents, week, result);
+                AddEvents(eventManager.EndedEvents, week, result);
             }
 
             if (newsManager != null)
@@ -371,20 +411,20 @@ namespace AntiqueTradingSimulator.UI
                 foreach (NewsItem news in newsManager.PublishedNews)
                 {
                     // Only news the player has access to, and only on the day it was published.
-                    if (!NewsPresentation.CanSee(news, accessLevel) || news.DayPublished != day) continue;
+                    if (!NewsPresentation.CanSee(news, accessLevel) || news.WeekPublished != week) continue;
                     result.Add(new DayEntry(KindOf(news.Type), NewsPresentation.GetTitle(news)));
                 }
             }
         }
 
-        private static void AddEvents(IReadOnlyList<ActiveEvent> events, int day, List<DayEntry> result)
+        private static void AddEvents(IReadOnlyList<ActiveEvent> events, int week, List<DayEntry> result)
         {
             if (events == null) return;
 
             foreach (ActiveEvent activeEvent in events)
             {
-                // EndDay is exclusive (the event expires at the start of EndDay).
-                if (activeEvent == null || day < activeEvent.StartDay || day >= activeEvent.EndDay) continue;
+                // EndWeek is exclusive (the event expires at the start of EndWeek).
+                if (activeEvent == null || week < activeEvent.StartWeek || week >= activeEvent.EndWeek) continue;
 
                 string title = activeEvent.Definition != null ? activeEvent.Definition.DisplayName : "Unknown event";
                 result.Add(new DayEntry(EntryKind.Event, title));
@@ -446,22 +486,42 @@ namespace AntiqueTradingSimulator.UI
 
                 bool inMonth = cell.Date.Month == displayedMonth.Month && cell.Date.Year == displayedMonth.Year;
 
+                bool isToday = cell.Date == Today;
+                bool isSelected = cell.Date == SelectedDate;
+                bool inCurrentWeek = timeManager != null && timeManager.DateToWeek(cell.Date) == timeManager.CurrentWeek;
+
                 if (cell.Number != null)
                 {
                     cell.Number.text = cell.Date.Day.ToString();
-                    cell.Number.color = inMonth ? textCurrentMonth : textOtherMonth;
+                    cell.Number.color = isToday ? textToday
+                        : inCurrentWeek ? textCurrentWeek
+                        : inMonth ? textCurrentMonth
+                        : textOtherMonth;
+
+                    var style = cell.NumberStyle;
+                    if (isToday) style |= FontStyles.Bold;
+                    if (isSelected && !isToday) style |= FontStyles.Underline;
+                    cell.Number.fontStyle = style;
+                }
+
+                if (cell.TodayFrame != null)
+                {
+                    cell.TodayFrame.enabled = isToday;
+                    cell.TodayFrame.effectColor = todayOutline;
+                    cell.TodayFrame.effectDistance = todayOutlineDistance;
                 }
 
                 if (cell.Background != null)
                 {
-                    if (cell.Date == Today) cell.Background.color = cellToday;
-                    else if (cell.Date == SelectedDate) cell.Background.color = cellSelected;
+                    if (isToday) cell.Background.color = cellToday;
+                    else if (isSelected) cell.Background.color = cellSelected;
+                    else if (inCurrentWeek) cell.Background.color = cellCurrentWeek;
                     else cell.Background.color = cellNormal;
                 }
 
                 if (timeManager != null)
                 {
-                    GetEntries(timeManager.DateToDay(cell.Date), entryBuffer);
+                    GetEntries(timeManager.DateToWeek(cell.Date), entryBuffer);
                     RenderMarkers(cell, entryBuffer);
                 }
             }
@@ -524,7 +584,7 @@ namespace AntiqueTradingSimulator.UI
             }
             spawnedItems.Clear();
 
-            GetEntries(timeManager.DateToDay(SelectedDate), entryBuffer);
+            GetEntries(timeManager.DateToWeek(SelectedDate), entryBuffer);
 
             int shown = Mathf.Min(entryBuffer.Count, maxVisibleItems);
             for (int i = 0; i < shown; i++)
@@ -576,7 +636,7 @@ namespace AntiqueTradingSimulator.UI
             if (timeManager == null) return;
 
             DateTime first = timeManager.StartDate;
-            DateTime last = timeManager.DayToDate(timeManager.CampaignLength);
+            DateTime last = timeManager.WeekToDate(timeManager.CampaignLength);
             var minMonth = new DateTime(first.Year, first.Month, 1);
             var maxMonth = new DateTime(last.Year, last.Month, 1);
 
@@ -588,11 +648,15 @@ namespace AntiqueTradingSimulator.UI
         {
             // News and events belong to a whole week, so a day shows its week's entries.
             DateTime weekStart = timeManager != null
-                ? timeManager.DayToDate(timeManager.DateToDay(SelectedDate))
+                ? timeManager.WeekToDate(timeManager.DateToWeek(SelectedDate))
                 : SelectedDate;
 
+            bool thisWeek = timeManager != null && timeManager.DateToWeek(SelectedDate) == timeManager.CurrentWeek;
+
             if (selectedDateText != null)
-                selectedDateText.text = $"Events in the week of {TimeManager.FormatLong(weekStart)}";
+                selectedDateText.text = thisWeek
+                    ? $"Events this week ({TimeManager.FormatDayMonth(weekStart)} – {TimeManager.FormatDayMonth(weekStart.AddDays(TimeManager.DaysPerWeek - 1))})"
+                    : $"Events in the week of {TimeManager.FormatLong(weekStart)}";
 
             if (viewAllEventsText != null)
                 viewAllEventsText.text = $"View all events in the week of {TimeManager.FormatDayMonth(weekStart)}  >";

@@ -62,7 +62,7 @@ namespace AntiqueTradingSimulator.UI
             }
         }
 
-        // ---------------------------------------------------------------- collecting (during OnDayChanged)
+        // ---------------------------------------------------------------- collecting (during OnWeekChanged)
 
         private bool IsPlayers(Shipment shipment) =>
             shipment != null && _player != null && shipment.Recipient == _player.Inventory;
@@ -123,7 +123,7 @@ namespace AntiqueTradingSimulator.UI
 
         // ---------------------------------------------------------------- posting (first tick of the week)
 
-        // OnDayChanged handlers run in no fixed order; the week's first tick comes after all of them.
+        // OnWeekChanged handlers run in no fixed order; the week's first tick comes after all of them.
         private void HandleTick(int week, int tick)
         {
             if (_seasonNotice != null)

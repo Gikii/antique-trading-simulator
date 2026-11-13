@@ -20,8 +20,8 @@ namespace AntiqueTradingSimulator.Logistics
         public ShippingZone Zone;
         public float Cost;
 
-        public int DispatchDay;
-        public int ArrivalDay;
+        public int DispatchWeek;
+        public int ArrivalWeek;
 
         /// <summary>Weather shift applied to this shipment: +1 = held up a week, -1 = arrived a week early, 0 = none (yet).</summary>
         public int SeasonalShiftWeeks;
@@ -32,7 +32,7 @@ namespace AntiqueTradingSimulator.Logistics
         // Runtime-only link to the owner's inventory. Will need to be re-resolved from an owner Id once save/load exists.
         [NonSerialized] public TraderInventory Recipient;
 
-        public int DaysRemaining(int currentDay) => Math.Max(0, ArrivalDay - currentDay);
+        public int WeeksRemaining(int currentWeek) => Math.Max(0, ArrivalWeek - currentWeek);
 
         public Shipment(string antiqueId, string antiqueName, TraderInventory recipient, string recipientName, TransportQuote quote)
         {
@@ -44,11 +44,11 @@ namespace AntiqueTradingSimulator.Logistics
             Option = quote.Option;
             Zone = quote.Zone;
             Cost = quote.Cost;
-            DispatchDay = quote.DispatchDay;
-            ArrivalDay = quote.ArrivalDay;
+            DispatchWeek = quote.DispatchWeek;
+            ArrivalWeek = quote.ArrivalWeek;
         }
 
         public override string ToString() =>
-            $"{AntiqueName} → {RecipientName} ({Option.ToDisplayString()}, {Zone.ToDisplayString()}), arrives week {ArrivalDay}";
+            $"{AntiqueName} → {RecipientName} ({Option.ToDisplayString()}, {Zone.ToDisplayString()}), arrives week {ArrivalWeek}";
     }
 }

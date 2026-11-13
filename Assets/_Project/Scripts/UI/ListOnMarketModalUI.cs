@@ -22,7 +22,7 @@ namespace AntiqueTradingSimulator.UI
     public class ListOnMarketModalUI : MonoBehaviour, IModalPanel
     {
         // Price range suggested to the player: the item's own value over this many days.
-        private const int SuggestedRangeDays = 30;
+        private const int SuggestedRangeWeeks = 30;
         // Used when there's not enough price history yet: current value ± this fraction.
         private const float FallbackRangeSpread = 0.1f;
         private const int MaxPriceDigits = 9;
@@ -249,7 +249,7 @@ namespace AntiqueTradingSimulator.UI
         {
             SetText(marketValueText, UIFormat.Colorize(UIFormat.Money(antique.CurrentPrice), UIFormat.PositiveColor));
 
-            List<float> history = CollectionAnalytics.ItemValueHistory(antique, CurrentMarket, SuggestedRangeDays);
+            List<float> history = CollectionAnalytics.ItemValueHistory(antique, CurrentMarket, SuggestedRangeWeeks);
             history.Add(antique.CurrentPrice);
 
             if (history.Count > 2)
@@ -318,7 +318,7 @@ namespace AntiqueTradingSimulator.UI
                     $"Too expensive for collectors (max {UIFormat.Percent(settings.MaxPriceRatio)} of value) — only traders might buy it.",
                     warningColor);
 
-            int weeks = CollectorDemand.MedianDaysToSell(chance);
+            int weeks = CollectorDemand.MedianWeeksToSell(chance);
             string when = weeks <= 1 ? "likely sells within a week" : $"usually sells within ~{UIFormat.Weeks(weeks)}";
             return UIFormat.Colorize($"Collectors: {UIFormat.Percent(chance)} chance a week, {when}.", UIFormat.MutedColor);
         }

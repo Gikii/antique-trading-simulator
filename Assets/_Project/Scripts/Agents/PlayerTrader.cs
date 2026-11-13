@@ -78,7 +78,7 @@ namespace AntiqueTradingSimulator.Agents
         {
             _timeManager = economyManager != null ? economyManager.TimeManager : FindFirstObjectByType<Core.TimeManager>();
             if (_timeManager != null)
-                _timeManager.OnDayChanged += HandleDayChanged;
+                _timeManager.OnWeekChanged += HandleWeekChanged;
 
             if (contractManager != null)
                 contractManager.OnContractExpired += HandleContractExpired;
@@ -87,7 +87,7 @@ namespace AntiqueTradingSimulator.Agents
         protected override void OnDestroy()
         {
             if (_timeManager != null)
-                _timeManager.OnDayChanged -= HandleDayChanged;
+                _timeManager.OnWeekChanged -= HandleWeekChanged;
 
             if (contractManager != null)
                 contractManager.OnContractExpired -= HandleContractExpired;
@@ -95,11 +95,11 @@ namespace AntiqueTradingSimulator.Agents
             base.OnDestroy();
         }
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
             float upkeep = Inventory.ChargeWarehouseUpkeep();
             if (upkeep > 0f)
-                Debug.Log($"PlayerTrader: warehouse upkeep {upkeep:F2} £ charged on day {newDay}. Cash: {Inventory.Cash:F2}");
+                Debug.Log($"PlayerTrader: warehouse upkeep {upkeep:F2} £ charged on week {newWeek}. Cash: {Inventory.Cash:F2}");
         }
 
         public bool UpgradeWarehouseCapacity() => Inventory.TryUpgradeWarehouseCapacity();

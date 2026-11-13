@@ -92,12 +92,12 @@ namespace AntiqueTradingSimulator.UI
         /// that week (arrival, restoration, deadline) happens. "week 37" without a TimeManager.
         /// </summary>
         public static string GameDate(int week) =>
-            GameClock != null ? TimeManager.FormatDayMonth(GameClock.DayToDate(week)) : $"week {week}";
+            GameClock != null ? TimeManager.FormatDayMonth(GameClock.WeekToDate(week)) : $"week {week}";
 
         /// <summary>"12 October" — the last day (Sunday) of a game week, e.g. the last day of an event.</summary>
         public static string WeekEndDate(int week) =>
             GameClock != null
-                ? TimeManager.FormatDayMonth(GameClock.DayToDate(week).AddDays(TimeManager.DaysPerWeek - 1))
+                ? TimeManager.FormatDayMonth(GameClock.WeekToDate(week).AddDays(TimeManager.DaysPerWeek - 1))
                 : $"week {week}";
 
         /// <summary>"Saturday 11 October, 14:00" — a tick of a game week (auction start times).</summary>
@@ -123,7 +123,7 @@ namespace AntiqueTradingSimulator.UI
         /// <summary>"arrives 7 October (in 2 weeks)" / "arrives next week (7 October)" / "arriving this week".</summary>
         public static string ArrivalLabel(int arrivalWeek)
         {
-            int thisWeek = GameClock != null ? GameClock.CurrentDay : arrivalWeek;
+            int thisWeek = GameClock != null ? GameClock.CurrentWeek : arrivalWeek;
             int weeksLeft = arrivalWeek - thisWeek;
 
             if (weeksLeft <= 0) return "arriving this week";
@@ -134,7 +134,7 @@ namespace AntiqueTradingSimulator.UI
         /// <summary>"ready 7 October (in 2 weeks)" / "ready next week (7 October)" / "ready this week" — for restorations.</summary>
         public static string ReadyLabel(int readyWeek)
         {
-            int thisWeek = GameClock != null ? GameClock.CurrentDay : readyWeek;
+            int thisWeek = GameClock != null ? GameClock.CurrentWeek : readyWeek;
             int weeksLeft = readyWeek - thisWeek;
 
             if (weeksLeft <= 0) return "ready this week";

@@ -88,7 +88,7 @@ namespace AntiqueTradingSimulator.UI
                 string delta = _kind == ReputationKind.Reputation
                     ? UIFormat.SignedNumber(change.Delta)
                     : UIFormat.SignedPercent(change.Delta);
-                _rows[i].Set(UIFormat.GameDate(change.Day), delta, change.Delta, change.Reason);
+                _rows[i].Set(UIFormat.GameDate(change.Week), delta, change.Delta, change.Reason);
             }
 
             if (emptyText != null)

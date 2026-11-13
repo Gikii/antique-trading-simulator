@@ -14,7 +14,7 @@ namespace AntiqueTradingSimulator.UI
         public static string LevelLabel(UpgradeInfo info) => $"Level {info.DisplayLevel} / {info.LevelCount}";
 
         /// <summary>"40 £ / week" — upkeep is charged once per period (week).</summary>
-        public static string PerDay(float amount) => $"{UIFormat.Money(amount)} / week";
+        public static string PerWeek(float amount) => $"{UIFormat.Money(amount)} / week";
 
         public static string CostValue(UpgradeInfo info) => info.IsMaxed ? "—" : UIFormat.Money(info.NextCost);
 
@@ -58,7 +58,7 @@ namespace AntiqueTradingSimulator.UI
                     return ("Information source", NewsPresentation.AccessLevelLabel((InfoAccessLevel)whole));
                 case UpgradeStat.TransportCostReduction:
                     return ("Transport cost", v > 0f ? "-" + UIFormat.PercentCompact(v) : "Base");
-                case UpgradeStat.TransportDaysReduction:
+                case UpgradeStat.TransportWeeksReduction:
                     return ("Delivery time", whole > 0 ? $"-{UIFormat.Weeks(whole)} (min. 1 week)" : "Base");
                 case UpgradeStat.MarketFeeRate:
                     return ("Market fee", UIFormat.PercentCompact(v));
@@ -126,7 +126,7 @@ namespace AntiqueTradingSimulator.UI
                 sb.Append('\n').Append(color.HasValue ? UIFormat.Colorize(line, color.Value) : line);
             }
 
-            sb.Append('\n').Append(UIFormat.Colorize($"Upkeep: {PerDay(upkeep)}", UIFormat.MutedColor));
+            sb.Append('\n').Append(UIFormat.Colorize($"Upkeep: {PerWeek(upkeep)}", UIFormat.MutedColor));
             return sb.ToString();
         }
 

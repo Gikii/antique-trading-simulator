@@ -12,7 +12,7 @@ namespace AntiqueTradingSimulator.UI
 {
     public class AntiqueDetailsUI : MonoBehaviour
     {
-        private const int TrendWindowDays = 30;
+        private const int TrendWindowWeeks = 30;
 
         [SerializeField] private MarketView marketView;
 
@@ -211,7 +211,7 @@ namespace AntiqueTradingSimulator.UI
         {
             Market.Market market = economyManager.Market;
 
-            List<float> history = CollectionAnalytics.ItemValueHistory(antique, market, TrendWindowDays);
+            List<float> history = CollectionAnalytics.ItemValueHistory(antique, market, TrendWindowWeeks);
 
             history.Add(antique.CurrentPrice);
 
@@ -221,7 +221,7 @@ namespace AntiqueTradingSimulator.UI
             if (changeText == null)
                 return;
 
-            float change = CollectionAnalytics.MarketValueChange(antique, market, TrendWindowDays);
+            float change = CollectionAnalytics.MarketValueChange(antique, market, TrendWindowWeeks);
             float past = antique.CurrentPrice - change;
 
             if (past <= 0f)
@@ -232,7 +232,7 @@ namespace AntiqueTradingSimulator.UI
 
             string trend = $"{UIFormat.SignedPercent(change / past)} {UIFormat.TrendArrow(change)}";
             changeText.text = UIFormat.ColorBySign(trend, change)
-                + UIFormat.Colorize($" <size=75%>({TrendWindowDays} d)</size>", UIFormat.MutedColor);
+                + UIFormat.Colorize($" <size=75%>({TrendWindowWeeks} d)</size>", UIFormat.MutedColor);
         }
 
         public void Hide()
@@ -256,7 +256,7 @@ namespace AntiqueTradingSimulator.UI
             TransportQuote quote = transportManager.Quote(antique, TransportOption.Standard,
                 buyer: playerTrader != null ? playerTrader.Inventory : null);
             return quote != null
-                ? $"{zone} · {UIFormat.Weeks(quote.DurationDays)}, ~{UIFormat.Money(quote.Cost)} (Standard)"
+                ? $"{zone} · {UIFormat.Weeks(quote.DurationWeeks)}, ~{UIFormat.Money(quote.Cost)} (Standard)"
                 : zone;
         }
 

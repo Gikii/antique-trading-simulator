@@ -11,7 +11,7 @@ namespace AntiqueTradingSimulator.Saving
     public static class SavePreferences
     {
         public const string AutosaveEnabledKey = "Settings.AutosaveEnabled";
-        public const string AutosaveIntervalDaysKey = "Settings.AutosaveIntervalDays";
+        public const string AutosaveIntervalWeeksKey = "Settings.AutosaveIntervalDays";
 
         /// <summary>Raised after any preference here changed.</summary>
         public static event Action Changed;
@@ -23,10 +23,10 @@ namespace AntiqueTradingSimulator.Saving
         }
 
         /// <summary>Autosave every this many in-game days, at least 1.</summary>
-        public static int AutosaveIntervalDays
+        public static int AutosaveIntervalWeeks
         {
-            get => Mathf.Max(1, PlayerPrefs.GetInt(AutosaveIntervalDaysKey, SaveSettings.Load().AutosaveIntervalDaysByDefault));
-            set => Set(AutosaveIntervalDaysKey, Mathf.Max(1, value));
+            get => Mathf.Max(1, PlayerPrefs.GetInt(AutosaveIntervalWeeksKey, SaveSettings.Load().AutosaveIntervalWeeksByDefault));
+            set => Set(AutosaveIntervalWeeksKey, Mathf.Max(1, value));
         }
 
         private static void Set(string key, int value)

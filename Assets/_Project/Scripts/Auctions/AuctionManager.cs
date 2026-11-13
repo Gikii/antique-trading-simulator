@@ -89,7 +89,7 @@ namespace AntiqueTradingSimulator.Auctions
         public event Action<Auction> OnAuctionFinished;
         public event Action OnAuctionsRestored;
 
-        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 1;
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 1;
         private int CurrentTick => timeManager != null ? timeManager.CurrentTick : 0;
         private TraderInventory PlayerInventory => playerTrader != null ? playerTrader.Inventory : null;
 
@@ -110,21 +110,21 @@ namespace AntiqueTradingSimulator.Auctions
         private void OnEnable()
         {
             if (timeManager == null) return;
-            timeManager.OnDayChanged += HandleDayChanged;
+            timeManager.OnWeekChanged += HandleWeekChanged;
             timeManager.OnTick += HandleTick;
         }
 
         private void OnDisable()
         {
             if (timeManager == null) return;
-            timeManager.OnDayChanged -= HandleDayChanged;
+            timeManager.OnWeekChanged -= HandleWeekChanged;
             timeManager.OnTick -= HandleTick;
         }
 
         // After every Awake, so the market and the NPCs exist. A save loaded earlier already scheduled.
         private void Start()
         {
-            if (!_restored) EnsureScheduled(CurrentDay);
+            if (!_restored) EnsureScheduled(CurrentWeek);
         }
 
         private void Update()
@@ -148,15 +148,15 @@ namespace AntiqueTradingSimulator.Auctions
             }
         }
 
-        private void HandleTick(int day, int tick)
+        private void HandleTick(int week, int tick)
         {
             if (_liveSession != null || JoinWindowAuction != null) return;
 
-            var due = _upcoming.FirstOrDefault(a => a.Status == AuctionStatus.Announced && a.Day == day && tick >= a.StartTick);
+            var due = _upcoming.FirstOrDefault(a => a.Status == AuctionStatus.Announced && a.Week == week && tick >= a.StartTick);
             if (due != null) OpenJoinWindow(due);
         }
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
             // A window still open (or an auction whose hour was never reached) is played out without the player.
             foreach (var auction in _upcoming.ToList())
@@ -166,14 +166,14 @@ namespace AntiqueTradingSimulator.Auctions
                     CloseJoinWindow(auction, joined: false);
                     RunWithoutPlayer(auction);
                 }
-                else if (auction.Status == AuctionStatus.Announced && auction.Day < newDay)
+                else if (auction.Status == AuctionStatus.Announced && auction.Week < newWeek)
                 {
                     RunWithoutPlayer(auction);
                 }
             }
 
             RevalueLots();
-            EnsureScheduled(newDay);
+            EnsureScheduled(newWeek);
         }
 
         // ---------------------------------------------------------------- player actions
@@ -378,14 +378,14 @@ namespace AntiqueTradingSimulator.Auctions
         private void SettleLot(AuctionLot lot, LotBidding bidding)
         {
             var market = economyManager != null ? economyManager.Market : null;
-            int day = CurrentDay;
+            int week = CurrentWeek;
 
             lot.BidCount = bidding.BidCount;
             if (market != null) market.RecalculatePrice(lot.Antique);
             float value = lot.Antique.CurrentPrice;
             lot.MarketValueAtSale = value;
 
-            if (bidding.IsSold && TryHandOver(lot, bidding.Leader, bidding.CurrentBid, day, out string winnerName))
+            if (bidding.IsSold && TryHandOver(lot, bidding.Leader, bidding.CurrentBid, week, out string winnerName))
             {
                 lot.Status = LotStatus.Sold;
                 lot.WinnerId = bidding.Leader.Id;
@@ -397,7 +397,7 @@ namespace AntiqueTradingSimulator.Auctions
 
                 if (market != null)
                 {
-                    market.ApplyAuctionResult(lot.Antique.DefinitionId, lot.HammerPrice, day, signal);
+                    market.ApplyAuctionResult(lot.Antique.DefinitionId, lot.HammerPrice, week, signal);
                     market.Feed.Add($"Auction: {lot.Name} sold to {winnerName} for {lot.HammerPrice:F0} £ " +
                                     $"(estimate {lot.EstimateLow:F0}–{lot.EstimateHigh:F0} £)");
                 }
@@ -408,7 +408,7 @@ namespace AntiqueTradingSimulator.Auctions
 
                 if (market != null)
                 {
-                    market.ApplyAuctionResult(lot.Antique.DefinitionId, 0f, day, -Settings.UnsoldDemandPenalty);
+                    market.ApplyAuctionResult(lot.Antique.DefinitionId, 0f, week, -Settings.UnsoldDemandPenalty);
                     market.Feed.Add($"Auction: {lot.Name} found no buyer at {lot.StartPrice:F0} £");
                 }
             }
@@ -417,7 +417,7 @@ namespace AntiqueTradingSimulator.Auctions
         }
 
         /// <summary>Charges the winner and ships the lot to them. False if they can no longer pay or store it.</summary>
-        private bool TryHandOver(AuctionLot lot, AuctionBidder winner, float hammerPrice, int day, out string winnerName)
+        private bool TryHandOver(AuctionLot lot, AuctionBidder winner, float hammerPrice, int week, out string winnerName)
         {
             winnerName = winner != null ? winner.Name : null;
             if (winner == null) return false;
@@ -441,14 +441,14 @@ namespace AntiqueTradingSimulator.Auctions
             float premium = hammerPrice * Settings.BuyersPremiumRate;
             var quote = transportManager != null ? transportManager.Quote(lot.Antique, TransportOption.Standard, buyer: inventory) : null;
 
-            if (!inventory.BuyAtAuction(lot.Antique, hammerPrice, premium, day, quote))
+            if (!inventory.BuyAtAuction(lot.Antique, hammerPrice, premium, week, quote))
             {
                 Debug.LogWarning($"AuctionManager: {winnerName} won {lot.Name} for {hammerPrice:F0} £ but can no longer pay or store it — the lot stays unsold.");
                 return false;
             }
 
             if (quote != null) transportManager.Dispatch(lot.Antique, inventory, quote, winnerName);
-            npc?.RecordAuctionPurchase(lot.Antique, day);
+            npc?.RecordAuctionPurchase(lot.Antique, week);
             return true;
         }
 
@@ -458,24 +458,24 @@ namespace AntiqueTradingSimulator.Auctions
         // ---------------------------------------------------------------- catalog
 
         /// <summary>Creates every auction whose catalog should be public by <paramref name="day"/>.</summary>
-        private void EnsureScheduled(int day)
+        private void EnsureScheduled(int week)
         {
             int guard = 0;
             while (guard++ < 1000)
             {
-                int auctionDay = Settings.AuctionDayFor(_nextScheduleIndex);
-                if (auctionDay > day + Settings.AnnounceDaysAhead) break;
+                int auctionWeek = Settings.AuctionWeekFor(_nextScheduleIndex);
+                if (auctionWeek > week + Settings.AnnounceWeeksAhead) break;
 
                 int index = _nextScheduleIndex++;
-                if (auctionDay < day) continue; // already past (e.g. a save from before auctions existed)
+                if (auctionWeek < week) continue; // already past (e.g. a save from before auctions existed)
 
-                var auction = CreateAuction(index, auctionDay, day);
+                var auction = CreateAuction(index, auctionWeek, week);
                 _upcoming.Add(auction);
                 OnAuctionAnnounced?.Invoke(auction);
             }
         }
 
-        private Auction CreateAuction(int index, int auctionDay, int today)
+        private Auction CreateAuction(int index, int auctionWeek, int thisWeek)
         {
             int ticks = timeManager != null ? timeManager.TicksPerPeriod : Core.TimeManager.DefaultTicksPerPeriod;
 
@@ -483,12 +483,12 @@ namespace AntiqueTradingSimulator.Auctions
             {
                 Id = Guid.NewGuid().ToString("N"),
                 Number = index + 1,
-                Day = auctionDay,
+                Week = auctionWeek,
                 StartTick = Mathf.Clamp(Settings.StartTick, 0, ticks - 1),
-                AnnouncedOnDay = today
+                AnnouncedOnWeek = thisWeek
             };
 
-            Vector2 band = LotValueBand(auctionDay);
+            Vector2 band = LotValueBand(auctionWeek);
             var usedDefinitions = new HashSet<string>();
 
             for (int i = 0; i < Settings.LotsPerAuction; i++)
@@ -500,7 +500,7 @@ namespace AntiqueTradingSimulator.Auctions
             if (logAuctions)
             {
                 string lots = string.Join(", ", auction.Lots.Select(l => $"{l.Name} ({l.EstimateLow:F0}–{l.EstimateHigh:F0} £)"));
-                Debug.Log($"AuctionManager: auction #{auction.Number} on day {auction.Day} announced (lot values {band.x:F0}–{band.y:F0} £): {lots}");
+                Debug.Log($"AuctionManager: auction #{auction.Number} on week {auction.Week} announced (lot values {band.x:F0}–{band.y:F0} £): {lots}");
             }
 
             return auction;
@@ -510,10 +510,10 @@ namespace AntiqueTradingSimulator.Auctions
         /// Range of market values for the lots of an auction on <paramref name="day"/>: the start range
         /// scaled by the campaign's progress, with the top capped by the second-largest NPC budget.
         /// </summary>
-        public Vector2 LotValueBand(int day)
+        public Vector2 LotValueBand(int week)
         {
             int length = timeManager != null ? timeManager.CampaignLength : 104;
-            float progress = length > 1 ? Mathf.Clamp01((day - 1) / (float)(length - 1)) : 1f;
+            float progress = length > 1 ? Mathf.Clamp01((week - 1) / (float)(length - 1)) : 1f;
             float multiplier = Mathf.Max(0.01f, Settings.ValueGrowth.Evaluate(progress));
 
             float low = Settings.StartValueRange.x * multiplier;
@@ -670,7 +670,7 @@ namespace AntiqueTradingSimulator.Auctions
             var auction = NextAuction;
             if (auction == null) return;
 
-            auction.Day = CurrentDay;
+            auction.Week = CurrentWeek;
             auction.StartTick = CurrentTick;
             OpenJoinWindow(auction);
         }
@@ -741,9 +741,9 @@ namespace AntiqueTradingSimulator.Auctions
                     }
             }
 
-            _upcoming.Sort((a, b) => a.Day.CompareTo(b.Day));
+            _upcoming.Sort((a, b) => a.Week.CompareTo(b.Week));
             RevalueLots();
-            EnsureScheduled(CurrentDay);
+            EnsureScheduled(CurrentWeek);
 
             OnAuctionsRestored?.Invoke();
         }

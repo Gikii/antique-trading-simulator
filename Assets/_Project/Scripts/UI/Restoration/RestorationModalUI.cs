@@ -127,7 +127,7 @@ namespace AntiqueTradingSimulator.UI
 
             Inventory.OnCashChanged += HandleCashChanged;
             Inventory.OnStateRestored += Close;
-            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged += HandleWeekChanged;
             _subscribed = true;
         }
 
@@ -140,13 +140,13 @@ namespace AntiqueTradingSimulator.UI
                 Inventory.OnCashChanged -= HandleCashChanged;
                 Inventory.OnStateRestored -= Close;
             }
-            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged -= HandleWeekChanged;
             _subscribed = false;
         }
 
         // Only relevant when the clock keeps running while the modal is open.
         private void HandleCashChanged(float cash) => Refresh();
-        private void HandleDayChanged(int day) => Refresh();
+        private void HandleWeekChanged(int week) => Refresh();
 
         private void EnsureInitialized()
         {
@@ -323,10 +323,10 @@ namespace AntiqueTradingSimulator.UI
         private string ReadyDate(RestorationQuote quote)
         {
             if (timeManager == null)
-                return $"Week {quote.EndDay} (in {UIFormat.Weeks(quote.DurationDays)})";
+                return $"Week {quote.EndWeek} (in {UIFormat.Weeks(quote.DurationWeeks)})";
 
-            string date = TimeManager.FormatDayMonth(timeManager.DayToDate(quote.EndDay));
-            return $"{date} (in {UIFormat.Weeks(quote.DurationDays)})";
+            string date = TimeManager.FormatDayMonth(timeManager.WeekToDate(quote.EndWeek));
+            return $"{date} (in {UIFormat.Weeks(quote.DurationWeeks)})";
         }
 
         private static string ConditionLabel(float condition) =>

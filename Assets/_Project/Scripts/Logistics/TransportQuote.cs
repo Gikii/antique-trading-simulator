@@ -11,20 +11,20 @@ namespace AntiqueTradingSimulator.Logistics
         public TransportOption Option { get; }
         public ShippingZone Zone { get; }
         public float Cost { get; }
-        public int DispatchDay { get; }
-        public int DurationDays { get; }
-        public int ArrivalDay => DispatchDay + DurationDays;
+        public int DispatchWeek { get; }
+        public int DurationWeeks { get; }
+        public int ArrivalWeek => DispatchWeek + DurationWeeks;
 
-        public TransportQuote(TransportOption option, ShippingZone zone, float cost, int dispatchDay, int durationDays)
+        public TransportQuote(TransportOption option, ShippingZone zone, float cost, int dispatchWeek, int durationWeeks)
         {
             Option = option;
             Zone = zone;
             Cost = cost;
-            DispatchDay = dispatchDay;
-            DurationDays = durationDays;
+            DispatchWeek = dispatchWeek;
+            DurationWeeks = durationWeeks;
         }
 
         public override string ToString() =>
-            $"{Option.ToDisplayString()} / {Zone.ToDisplayString()} — {Cost:F0} £, {DurationDays} week(s), arrives week {ArrivalDay}";
+            $"{Option.ToDisplayString()} / {Zone.ToDisplayString()} — {Cost:F0} £, {DurationWeeks} week(s), arrives week {ArrivalWeek}";
     }
 }

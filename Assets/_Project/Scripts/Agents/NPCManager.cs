@@ -12,7 +12,7 @@ namespace AntiqueTradingSimulator.Agents
     /// <summary>
     /// Owns the population of NPCTrader instances: spawns them from configured profile
     /// Ids, registers each with NewsManager so it can receive information, and drives
-    /// their daily decision loop off TimeManager.OnDayChanged.
+    /// their daily decision loop off TimeManager.OnWeekChanged.
     /// </summary>
     public class NPCManager : MonoBehaviour
     {
@@ -57,7 +57,7 @@ namespace AntiqueTradingSimulator.Agents
         {
             if (timeManager != null)
             {
-                timeManager.OnDayChanged += HandleDayChanged;
+                timeManager.OnWeekChanged += HandleWeekChanged;
                 timeManager.OnTick += HandleTick;
             }
             if (contractManager != null) contractManager.OnContractExpired += HandleContractExpired;
@@ -67,16 +67,16 @@ namespace AntiqueTradingSimulator.Agents
         {
             if (timeManager != null)
             {
-                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnWeekChanged -= HandleWeekChanged;
                 timeManager.OnTick -= HandleTick;
             }
             if (contractManager != null) contractManager.OnContractExpired -= HandleContractExpired;
         }
 
         // Day 1 gets its snapshot too (a loaded game replaces the history afterwards).
-        void Start() => RecordSnapshots(CurrentDay);
+        void Start() => RecordSnapshots(CurrentWeek);
 
-        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 1;
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 1;
 
         /// <summary>
         /// One NPC per entry of initialProfileIds. Name and starting cash come from the profile
@@ -111,7 +111,7 @@ namespace AntiqueTradingSimulator.Agents
             return $"{baseName} {used + 1}";
         }
 
-        private void HandleTick(int day, int tick)
+        private void HandleTick(int week, int tick)
         {
             // Seasonal activity (the London Season is busy, autumn is quiet). Set every tick so traders
             // spawned or restored mid-week pick it up too; NPCTrader reads it when planning its week.
@@ -121,7 +121,7 @@ namespace AntiqueTradingSimulator.Agents
             {
                 if (_npcs[i] == null) continue;
                 _npcs[i].ActivityScale = activity;
-                _npcs[i].RunScheduledActions(day, tick);
+                _npcs[i].RunScheduledActions(week, tick);
             }
         }
 
@@ -132,7 +132,7 @@ namespace AntiqueTradingSimulator.Agents
                 : 1f;
         }
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
             foreach (var npc in _npcs)
                 npc.FlushRemainingSlots(); ;
@@ -140,17 +140,17 @@ namespace AntiqueTradingSimulator.Agents
             // Yesterday's sales become reputation, then today's numbers are written down —
             // the same end-of-day steps the player's company takes.
             foreach (var npc in _npcs)
-                npc.Record.FlushSales(newDay - 1);
-            RecordSnapshots(newDay);
+                npc.Record.FlushSales(newWeek - 1);
+            RecordSnapshots(newWeek);
         }
 
-        private void RecordSnapshots(int day)
+        private void RecordSnapshots(int week)
         {
             var everyone = economyManager != null ? economyManager.Inventories : null;
             foreach (var npc in _npcs)
             {
                 float share = TraderStats.MarketShare(npc.Inventory, everyone);
-                npc.Record.Record(npc.Record.Capture(day, npc.Inventory, share));
+                npc.Record.Record(npc.Record.Capture(week, npc.Inventory, share));
             }
         }
 
@@ -165,7 +165,7 @@ namespace AntiqueTradingSimulator.Agents
             foreach (var npc in _npcs)
             {
                 bool took = contract.ClaimedByTraderId == npc.Id || npc.Inventory.IsCommittedToContract(contract.ContractId);
-                if (took) npc.Record.ContractFailed(contract, CurrentDay);
+                if (took) npc.Record.ContractFailed(contract, CurrentWeek);
             }
         }
 

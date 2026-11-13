@@ -82,7 +82,7 @@ namespace AntiqueTradingSimulator.UI
                 if (!visible) continue;
 
                 var entry = _entries[start + i];
-                _rows[i].Set(UIFormat.GameDate(entry.Day), entry.Category.ToString(), entry.Description, entry.Amount);
+                _rows[i].Set(UIFormat.GameDate(entry.Week), entry.Category.ToString(), entry.Description, entry.Amount);
             }
 
             if (emptyText != null)

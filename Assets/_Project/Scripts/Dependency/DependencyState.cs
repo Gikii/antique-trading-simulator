@@ -84,10 +84,10 @@ namespace AntiqueTradingSimulator.Dependency
 
         public DependencyKind Kind;
         public float Amount;
-        public float DecayPerDay;
+        public float DecayPerWeek;
         public int Depth;
-        public int CreatedOnDay;
-        public int LastRefreshedOnDay;
+        public int CreatedOnWeek;
+        public int LastRefreshedOnWeek;
 
         public static InfluenceState Capture(DependencyInfluence influence)
         {
@@ -101,10 +101,10 @@ namespace AntiqueTradingSimulator.Dependency
                 OriginValue = influence.Origin.Value,
                 Kind = influence.Kind,
                 Amount = influence.Amount,
-                DecayPerDay = influence.DecayPerDay,
+                DecayPerWeek = influence.DecayPerWeek,
                 Depth = influence.Depth,
-                CreatedOnDay = influence.CreatedOnDay,
-                LastRefreshedOnDay = influence.LastRefreshedOnDay
+                CreatedOnWeek = influence.CreatedOnWeek,
+                LastRefreshedOnWeek = influence.LastRefreshedOnWeek
             };
         }
 
@@ -114,10 +114,10 @@ namespace AntiqueTradingSimulator.Dependency
             Origin = new MarketFacet(OriginKind, OriginValue),
             Kind = Kind,
             Amount = Amount,
-            DecayPerDay = DecayPerDay,
+            DecayPerWeek = DecayPerWeek,
             Depth = Depth,
-            CreatedOnDay = CreatedOnDay,
-            LastRefreshedOnDay = LastRefreshedOnDay
+            CreatedOnWeek = CreatedOnWeek,
+            LastRefreshedOnWeek = LastRefreshedOnWeek
         };
     }
 

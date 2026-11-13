@@ -10,7 +10,7 @@ namespace AntiqueTradingSimulator.Logistics
         public List<DeliveryRecordState> DeliveryLog = new List<DeliveryRecordState>();
 
 
-        public Dictionary<ShippingZone, int> ZoneDelayDays = new Dictionary<ShippingZone, int>();
+        public Dictionary<ShippingZone, int> ZoneDelayWeeks = new Dictionary<ShippingZone, int>();
 
         /// <summary>Weather of the current season and the forecast one (null in saves made before seasons).</summary>
         public Seasons.SeasonWeatherState Weather;
@@ -31,8 +31,8 @@ namespace AntiqueTradingSimulator.Logistics
         public ShippingZone Zone;
         public float Cost;
 
-        public int DispatchDay;
-        public int ArrivalDay;
+        public int DispatchWeek;
+        public int ArrivalWeek;
 
         public int SeasonalShiftWeeks;
         public bool EarlyArrivalRolled;
@@ -51,8 +51,8 @@ namespace AntiqueTradingSimulator.Logistics
                 Option = shipment.Option,
                 Zone = shipment.Zone,
                 Cost = shipment.Cost,
-                DispatchDay = shipment.DispatchDay,
-                ArrivalDay = shipment.ArrivalDay,
+                DispatchWeek = shipment.DispatchWeek,
+                ArrivalWeek = shipment.ArrivalWeek,
                 SeasonalShiftWeeks = shipment.SeasonalShiftWeeks,
                 EarlyArrivalRolled = shipment.EarlyArrivalRolled
             };
@@ -61,12 +61,12 @@ namespace AntiqueTradingSimulator.Logistics
         public Shipment Restore(TraderInventory recipient)
         {
 
-            var quote = new TransportQuote(Option, Zone, Cost, DispatchDay, ArrivalDay - DispatchDay);
+            var quote = new TransportQuote(Option, Zone, Cost, DispatchWeek, ArrivalWeek - DispatchWeek);
 
             return new Shipment(AntiqueId, AntiqueName, recipient, RecipientName, quote)
             {
                 ShipmentId = this.ShipmentId,
-                ArrivalDay = this.ArrivalDay,
+                ArrivalWeek = this.ArrivalWeek,
                 SeasonalShiftWeeks = this.SeasonalShiftWeeks,
                 EarlyArrivalRolled = this.EarlyArrivalRolled
             };
@@ -76,7 +76,7 @@ namespace AntiqueTradingSimulator.Logistics
     public class DeliveryRecordState
     {
         public ShipmentState Shipment;
-        public int Day;
+        public int Week;
         public float ConditionLost;
     }
 

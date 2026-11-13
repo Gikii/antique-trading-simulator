@@ -95,7 +95,7 @@ namespace AntiqueTradingSimulator.UI
         private void HandleSaved(SaveSlot slot)
         {
             if (!slot.IsAutosave) return;
-            Enqueue($"Autosaved · week {saveManager.LastSaveDay}", visibleSeconds);
+            Enqueue($"Autosaved · week {saveManager.LastSaveWeek}", visibleSeconds);
         }
 
         private void HandleSaveFailed(string reason)

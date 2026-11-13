@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Logistics
 {
@@ -23,7 +24,8 @@ namespace AntiqueTradingSimulator.Logistics
         public float[] SecurityUpgradeCost = { 0f, 500f, 1200f, 3000f };
 
         [Header("Weekly upkeep (£) — charged once per period")]
-        [Min(0f)] public float BaseDailyUpkeep = 5f;
+        [FormerlySerializedAs("BaseDailyUpkeep")]
+        [Min(0f)] public float BaseWeeklyUpkeep = 5f;
         [Min(0f)] public float UpkeepPerCapacityLevel = 3f;
         [Min(0f)] public float UpkeepPerSecurityLevel = 4f;
         [Min(0f)] public float UpkeepPerUsedSlot = 1f;

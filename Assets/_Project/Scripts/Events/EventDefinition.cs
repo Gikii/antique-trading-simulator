@@ -23,11 +23,14 @@ namespace AntiqueTradingSimulator.Events
         public string Description;
 
         [Tooltip("How many weeks this event's temporary effects stay active once triggered.")]
-        public int DurationDays = 5;
+        [FormerlySerializedAs("DurationDays")]
+        public int DurationWeeks = 5;
         [Tooltip("Minimum number of weeks from 'now' this event can be scheduled to trigger.")]
-        public int MinLeadDays = 1;
+        [FormerlySerializedAs("MinLeadDays")]
+        public int MinLeadWeeks = 1;
         [Tooltip("Maximum number of weeks from 'now' this event can be scheduled to trigger.")]
-        public int MaxLeadDays = 5;
+        [FormerlySerializedAs("MaxLeadDays")]
+        public int MaxLeadWeeks = 5;
 
         [Tooltip("Whether or not the player can select when exactly the event will trigger between min/max lead weeks." +
             "If false then the event's trigger date will be randomised within the bounds of min/max lead days")]
@@ -52,7 +55,8 @@ namespace AntiqueTradingSimulator.Events
         public bool CanBeFakeNews = true;
 
         public bool CreateOfficialNews = true;
-        [Range(0, 5)] public int OfficialAnnouncementDaysBefore = 1;
+        [FormerlySerializedAs("OfficialAnnouncementDaysBefore")]
+        [Range(0, 5)] public int OfficialAnnouncementWeeksBefore = 1;
 
         public bool CreateRumour = false;
         [Range(0f, 1f)] public float RumorCredibility = 0.5f;

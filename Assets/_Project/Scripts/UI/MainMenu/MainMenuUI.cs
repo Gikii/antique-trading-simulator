@@ -109,7 +109,7 @@ namespace AntiqueTradingSimulator.UI
             {
                 continueDetailText.gameObject.SetActive(latest != null);
                 continueDetailText.text = latest != null
-                    ? $"{SaveSlotFormat.DayAndDate(latest.Header)} · {latest.Slot.DisplayName}"
+                    ? $"{SaveSlotFormat.WeekAndDate(latest.Header)} · {latest.Slot.DisplayName}"
                     : string.Empty;
             }
 

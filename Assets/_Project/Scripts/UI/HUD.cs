@@ -6,6 +6,7 @@ using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Seasons;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -23,7 +24,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TimeManager timeManager;
 
         [Header("Week")]
-        [SerializeField] private TMP_Text dayText;   // "Week 23 / 104"
+        [FormerlySerializedAs("dayText")]
+        [SerializeField] private TMP_Text weekText;   // "Week 23 / 104"
         [SerializeField] private TMP_Text dateText;  // "Tuesday, 14 May 1884" — follows the weekday through the week
 
         [Header("Stats (values only)")]
@@ -71,10 +73,10 @@ namespace AntiqueTradingSimulator.UI
 
             if (timeManager != null)
             {
-                timeManager.OnDayChanged += UpdateDay;
+                timeManager.OnWeekChanged += UpdateWeek;
                 timeManager.OnTick += HandleTick;
                 timeManager.OnTimeRestored += HandleTimeRestored;
-                UpdateDay(timeManager.CurrentDay);
+                UpdateWeek(timeManager.CurrentWeek);
             }
 
             _company = playerTrader.Company;
@@ -108,26 +110,26 @@ namespace AntiqueTradingSimulator.UI
 
             if (timeManager != null)
             {
-                timeManager.OnDayChanged -= UpdateDay;
+                timeManager.OnWeekChanged -= UpdateWeek;
                 timeManager.OnTick -= HandleTick;
                 timeManager.OnTimeRestored -= HandleTimeRestored;
             }
         }
 
-        private void UpdateDay(int week)
+        private void UpdateWeek(int week)
         {
             if (timeManager == null)
             {
-                SetText(dayText, $"Week {week}");
+                SetText(weekText, $"Week {week}");
                 return;
             }
 
             // Past the campaign (play goes on as a sandbox) there is no "/ 104" to count towards.
-            SetText(dayText, UIFormat.WeekCounter(week, timeManager.CampaignLength));
+            SetText(weekText, UIFormat.WeekCounter(week, timeManager.CampaignLength));
             UpdateDate();
         }
 
-        // The week only changes on OnDayChanged, but the calendar day moves on with the ticks.
+        // The week only changes on OnWeekChanged, but the calendar day moves on with the ticks.
         private DateTime _shownDate;
 
         private void HandleTick(int week, int tick) => UpdateDate();
@@ -249,7 +251,7 @@ namespace AntiqueTradingSimulator.UI
         private void HandleTimeRestored()
         {
             if (timeManager != null)
-                UpdateDay(timeManager.CurrentDay);
+                UpdateWeek(timeManager.CurrentWeek);
         }
 
     }

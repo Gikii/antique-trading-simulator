@@ -58,8 +58,8 @@ namespace AntiqueTradingSimulator.Agents
         public bool BuyListing(string listingId, TransportOption option)
         {
             var market = economyManager != null ? economyManager.Market : null;
-            int currentDay = economyManager != null ? economyManager.TimeManager.CurrentDay : -1;
-            return TraderHelper.BuyListing(Inventory, market, listingId, traderName, currentDay, transportManager, option);
+            int currentWeek = economyManager != null ? economyManager.TimeManager.CurrentWeek : -1;
+            return TraderHelper.BuyListing(Inventory, market, listingId, traderName, currentWeek, transportManager, option);
         }
 
         /// <summary>Shipping price/time for a market listing — null if there's no such listing or no TransportManager.</summary>
@@ -73,8 +73,8 @@ namespace AntiqueTradingSimulator.Agents
         public bool ListOnMarket(string listingId, float askingPrice)
         {
             var market = economyManager != null ? economyManager.Market : null;
-            int currentDay = economyManager != null ? economyManager.TimeManager.CurrentDay : 0;
-            return Inventory.ListForSale(market, listingId, askingPrice, currentDay);
+            int currentWeek = economyManager != null ? economyManager.TimeManager.CurrentWeek : 0;
+            return Inventory.ListForSale(market, listingId, askingPrice, currentWeek);
         }
 
         public bool CancelMarketListing(string listingId)
@@ -86,8 +86,8 @@ namespace AntiqueTradingSimulator.Agents
         public bool SellListing(string listingId)
         {
             var market = economyManager != null ? economyManager.Market : null;
-            int currentDay = economyManager != null ? economyManager.TimeManager.CurrentDay : 0;
-            return TraderHelper.SellListing(Inventory, market, listingId, traderName, currentDay);
+            int currentWeek = economyManager != null ? economyManager.TimeManager.CurrentWeek : 0;
+            return TraderHelper.SellListing(Inventory, market, listingId, traderName, currentWeek);
         }
 
         // Default: do nothing. NPCTrader overrides this with actual decision logic;

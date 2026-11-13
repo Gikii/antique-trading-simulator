@@ -14,14 +14,14 @@ namespace AntiqueTradingSimulator.UI
 
         /// <summary>"Saturday 10 May, 14:00" — when the auction's session starts.</summary>
         public static string Date(Auction auction) =>
-            auction == null ? "" : UIFormat.GameDateTime(auction.Day, auction.StartTick);
+            auction == null ? "" : UIFormat.GameDateTime(auction.Week, auction.StartTick);
 
         /// <summary>"this week · Saturday 10 May, 14:00" / "next week · …" / "in 3 weeks · …"</summary>
         public static string When(Auction auction, int thisWeek)
         {
             if (auction == null) return "";
 
-            int weeksLeft = auction.Day - thisWeek;
+            int weeksLeft = auction.Week - thisWeek;
             string at = Date(auction);
 
             if (weeksLeft <= 0) return $"this week · {at}";
@@ -82,7 +82,7 @@ namespace AntiqueTradingSimulator.UI
             return UIFormat.Colorize("within estimate", UIFormat.MutedColor);
         }
 
-        public const int TrendWindowDays = 30;
+        public const int TrendWindowWeeks = 30;
 
         /// <summary>
         /// What a bidder needs to judge a lot: the estimate, the market value (with its trend) to compare
@@ -118,7 +118,7 @@ namespace AntiqueTradingSimulator.UI
             string value = UIFormat.Money(antique.CurrentPrice);
             if (market == null) return value;
 
-            float change = CollectionAnalytics.MarketValueChange(antique, market, TrendWindowDays);
+            float change = CollectionAnalytics.MarketValueChange(antique, market, TrendWindowWeeks);
             float past = antique.CurrentPrice - change;
             if (past <= 0f) return value;
 
@@ -133,7 +133,7 @@ namespace AntiqueTradingSimulator.UI
             if (typeState == null || !typeState.HasAuctionPrice)
                 return UIFormat.Colorize("none yet", UIFormat.MutedColor);
 
-            return $"{UIFormat.Money(typeState.LastAuctionPrice)} · {UIFormat.GameDate(typeState.LastAuctionDay)}";
+            return $"{UIFormat.Money(typeState.LastAuctionPrice)} · {UIFormat.GameDate(typeState.LastAuctionWeek)}";
         }
     }
 }

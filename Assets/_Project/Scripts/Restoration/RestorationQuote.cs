@@ -25,9 +25,9 @@ namespace AntiqueTradingSimulator.Restoration
         public float WorstCondition { get; }
 
         public float Cost { get; }
-        public int StartDay { get; }
-        public int DurationDays { get; }
-        public int EndDay => StartDay + DurationDays;
+        public int StartWeek { get; }
+        public int DurationWeeks { get; }
+        public int EndWeek => StartWeek + DurationWeeks;
 
         public float SuccessChance => Option.SuccessChance;
         public float PartialChance => Option.PartialChance;
@@ -48,7 +48,7 @@ namespace AntiqueTradingSimulator.Restoration
         public bool CanStart => BlockReason == null;
 
         public RestorationQuote(RestorationOption option, float startCondition, float targetCondition, float partialCondition,
-            float worstCondition, float cost, int startDay, int durationDays, float perfectValue, string blockReason)
+            float worstCondition, float cost, int startWeek, int durationWeeks, float perfectValue, string blockReason)
         {
             Option = option;
             StartCondition = startCondition;
@@ -56,8 +56,8 @@ namespace AntiqueTradingSimulator.Restoration
             PartialCondition = partialCondition;
             WorstCondition = worstCondition;
             Cost = cost;
-            StartDay = startDay;
-            DurationDays = Mathf.Max(1, durationDays);
+            StartWeek = startWeek;
+            DurationWeeks = Mathf.Max(1, durationWeeks);
             BlockReason = blockReason;
 
             ValueNow = perfectValue * startCondition;

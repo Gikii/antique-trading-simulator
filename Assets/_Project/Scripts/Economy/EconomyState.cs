@@ -12,7 +12,7 @@ namespace AntiqueTradingSimulator.Economy
     public class TraderInventoryState
     {
         public float Cash;
-        public int LastKnownDay;
+        public int LastKnownWeek;
 
         public List<AntiqueState> Holdings = new List<AntiqueState>();
 

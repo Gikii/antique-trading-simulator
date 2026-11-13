@@ -12,8 +12,8 @@ namespace AntiqueTradingSimulator.UI
 {
     public enum FinancePeriod
     {
-        Today,
-        Last7Days,
+        ThisWeek,
+        Last7Weeks,
         Campaign
     }
 
@@ -25,7 +25,7 @@ namespace AntiqueTradingSimulator.UI
     /// </summary>
     public class CompanyFinancesTab : MonoBehaviour
     {
-        private const int MinChartDays = 7;
+        private const int MinChartWeeks = 7;
 
         private static readonly LedgerCategory[] IncomeCategories =
         {
@@ -46,7 +46,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button[] periodButtons = new Button[3];
         [SerializeField] private Color activePeriodColor = new Color32(0xC9, 0x9A, 0x3C, 0xFF);
         [SerializeField] private Color inactivePeriodColor = Color.white;
-        [SerializeField] private FinancePeriod defaultPeriod = FinancePeriod.Last7Days;
+        [SerializeField] private FinancePeriod defaultPeriod = FinancePeriod.Last7Weeks;
 
         [Header("Overview")]
         [SerializeField] private TMP_Text overviewTitleText;
@@ -163,27 +163,27 @@ namespace AntiqueTradingSimulator.UI
 
         // ------------------------------------------------------------------ periods
 
-        private int Today => _company != null ? _company.CurrentDay : 1;
+        private int ThisWeek => _company != null ? _company.CurrentWeek : 1;
 
         /// <summary>First day of the selected period (inclusive).</summary>
         private int PeriodStart => _period switch
         {
-            FinancePeriod.Today => Today,
-            FinancePeriod.Last7Days => Today - 6,
+            FinancePeriod.ThisWeek => ThisWeek,
+            FinancePeriod.Last7Weeks => ThisWeek - 6,
             _ => int.MinValue
         };
 
         private string PeriodTitle => _period switch
         {
-            FinancePeriod.Today => "THIS WEEK",
-            FinancePeriod.Last7Days => "LAST 7 WEEKS",
+            FinancePeriod.ThisWeek => "THIS WEEK",
+            FinancePeriod.Last7Weeks => "LAST 7 WEEKS",
             _ => "FULL CAMPAIGN"
         };
 
         private string ComparisonLabel => _period switch
         {
-            FinancePeriod.Today => "vs last week",
-            FinancePeriod.Last7Days => "vs previous 7 weeks",
+            FinancePeriod.ThisWeek => "vs last week",
+            FinancePeriod.Last7Weeks => "vs previous 7 weeks",
             _ => ""
         };
 
@@ -206,7 +206,7 @@ namespace AntiqueTradingSimulator.UI
 
             var ledger = _inventory.Ledger;
             int from = PeriodStart;
-            int to = Today;
+            int to = ThisWeek;
 
             RefreshOverview(ledger, from, to);
             RefreshChart();
@@ -241,8 +241,8 @@ namespace AntiqueTradingSimulator.UI
 
             // Cash at the start of the period = the snapshot taken when its first day began.
             float cash = _inventory.Cash;
-            int daysBack = _period == FinancePeriod.Campaign ? Today : Today - from;
-            float startCash = _company.SnapshotDaysAgo(daysBack).Cash;
+            int weeksBack = _period == FinancePeriod.Campaign ? ThisWeek : ThisWeek - from;
+            float startCash = _company.SnapshotWeeksAgo(weeksBack).Cash;
             SetTile(cashTile, UIFormat.Money(cash), ChangeLine(cash, startCash, false, "since period start"),
                 "Cash available right now.");
         }
@@ -267,15 +267,15 @@ namespace AntiqueTradingSimulator.UI
 
         private void RefreshChart()
         {
-            int today = Today;
-            int days = _period == FinancePeriod.Campaign ? today : MinChartDays;
+            int thisWeek = ThisWeek;
+            int weeks = _period == FinancePeriod.Campaign ? thisWeek : MinChartWeeks;
             SetText(chartTitleText, _period == FinancePeriod.Campaign ? "CASH AND ASSETS (FULL CAMPAIGN)" : "CASH AND ASSETS (LAST 7 WEEKS)");
 
             _cashValues.Clear();
             _wealthValues.Clear();
             foreach (var snapshot in _company.History)
             {
-                if (snapshot.Day <= today - days || snapshot.Day >= today) continue;
+                if (snapshot.Week <= thisWeek - weeks || snapshot.Week >= thisWeek) continue;
                 _cashValues.Add(snapshot.Cash);
                 _wealthValues.Add(snapshot.Wealth);
             }
@@ -397,7 +397,7 @@ namespace AntiqueTradingSimulator.UI
             _periodEntries.Clear();
             var entries = ledger.Entries;
             for (int i = entries.Count - 1; i >= 0; i--)
-                if (entries[i].Day >= from && entries[i].Day <= to)
+                if (entries[i].Week >= from && entries[i].Week <= to)
                     _periodEntries.Add(entries[i]);
 
             transactions.Set(_periodEntries, _expanded);

@@ -102,7 +102,7 @@ namespace AntiqueTradingSimulator.UI
         {
             if (!_subscribed && timeManager != null)
             {
-                timeManager.OnDayChanged += HandleDayChanged;
+                timeManager.OnWeekChanged += HandleWeekChanged;
                 var market = economyManager != null ? economyManager.Market : null;
                 if (market != null)
                 {
@@ -124,10 +124,10 @@ namespace AntiqueTradingSimulator.UI
         void OnDestroy()
         {
             if (_subscribed && timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnWeekChanged -= HandleWeekChanged;
         }
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
             if (gameObject.activeSelf)
                 _refreshPending = true;
@@ -304,7 +304,7 @@ namespace AntiqueTradingSimulator.UI
             {
                 var rowObj = Instantiate(listingRowPrefab, listingsContainer);
                 var rowUI = rowObj.GetComponent<MarketListingUI>();
-                rowUI.Setup(listing, this, timeManager != null ? timeManager.CurrentDay : 0);
+                rowUI.Setup(listing, this, timeManager != null ? timeManager.CurrentWeek : 0);
                 _rowsByListingId[listing.Id] = rowUI;
             }
 

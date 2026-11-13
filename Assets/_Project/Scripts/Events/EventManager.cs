@@ -30,7 +30,7 @@ namespace AntiqueTradingSimulator.Events
         /// <summary>Null-safe accessor — effects that need it (e.g. GrantAntiquesEffect) check for null themselves.</summary>
         private Economy.TraderInventory PlayerInventory => playerTrader != null ? playerTrader.Inventory : null;
 
-        private EventContext BuildContext(int day) => new EventContext(economyManager.Market, day, PlayerInventory, transportManager, dependencyManager, contractManager);
+        private EventContext BuildContext(int week) => new EventContext(economyManager.Market, week, PlayerInventory, transportManager, dependencyManager, contractManager);
 
 
         public event Action<ActiveEvent> OnEventTriggered;
@@ -55,9 +55,9 @@ namespace AntiqueTradingSimulator.Events
         {
             if (timeManager != null)
             {
-                timeManager.OnDayChanged += HandleDayChanged;
-                ScheduleAnnualEvents(timeManager.CurrentDay);
-                ScheduleNextMinorEvent(timeManager.CurrentDay);
+                timeManager.OnWeekChanged += HandleWeekChanged;
+                ScheduleAnnualEvents(timeManager.CurrentWeek);
+                ScheduleNextMinorEvent(timeManager.CurrentWeek);
             }
 
         }
@@ -65,25 +65,25 @@ namespace AntiqueTradingSimulator.Events
         void OnDisable()
         {
             if (timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnWeekChanged -= HandleWeekChanged;
 
         }
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
-            ExpireFinishedEvents(newDay);
-            TriggerScheduledEvent(newDay);
-            ScheduleAnnualEvents(newDay);
-            ScheduleNextMinorEvent(newDay);
+            ExpireFinishedEvents(newWeek);
+            TriggerScheduledEvent(newWeek);
+            ScheduleAnnualEvents(newWeek);
+            ScheduleNextMinorEvent(newWeek);
         }
 
-        private void ExpireFinishedEvents(int day)
+        private void ExpireFinishedEvents(int week)
         {
             for (int i = _activeEvents.Count - 1; i >= 0; i--)
             {
                 var active = _activeEvents[i];
-                if (!active.HasExpired(day)) continue;
+                if (!active.HasExpired(week)) continue;
 
-                active.End(BuildContext(day));
+                active.End(BuildContext(week));
                 _activeEvents.RemoveAt(i);
                 _endedEvents.Add(active);
 
@@ -92,31 +92,31 @@ namespace AntiqueTradingSimulator.Events
             }
         }
 
-        private void TriggerScheduledEvent(int day)
+        private void TriggerScheduledEvent(int week)
         {
             for (int i = _scheduledEvents.Count - 1; i >= 0; i--)
             {
                 var scheduled = _scheduledEvents[i];
-                if (scheduled.TriggerDay != day) continue;
+                if (scheduled.TriggerWeek != week) continue;
 
                 _scheduledEvents.RemoveAt(i);
 
                 var definition = scheduled.Definition;
                 if (definition == null)
                 {
-                    Debug.Log($"EventManager: Failed to scheduled trigger event for day {day}. No EventDefinition with Id {scheduled.EventDefinitionId}");
+                    Debug.Log($"EventManager: Failed to scheduled trigger event for week {week}. No EventDefinition with Id {scheduled.EventDefinitionId}");
                     continue;
                 }
 
                 if (definition.EventType == EventType.Player && UnityEngine.Random.value < definition.FailureChance)
                 {
-                    Debug.Log($"EventManager: player event failed — {definition.DisplayName} did not occur (Day {day}).");
-                    OnEventFailed?.Invoke(definition, day);
+                    Debug.Log($"EventManager: player event failed — {definition.DisplayName} did not occur (Week {week}).");
+                    OnEventFailed?.Invoke(definition, week);
                     continue;
                 }
 
-                var active = new ActiveEvent(definition, day);
-                active.Begin(BuildContext(day));
+                var active = new ActiveEvent(definition, week);
+                active.Begin(BuildContext(week));
 
                 _activeEvents.Add(active);
 
@@ -126,7 +126,7 @@ namespace AntiqueTradingSimulator.Events
         }
 
 
-        public bool ScheduleEvent(EventDefinition definition, int triggerDay)
+        public bool ScheduleEvent(EventDefinition definition, int triggerWeek)
         {
             if (definition == null)
             {
@@ -140,16 +140,16 @@ namespace AntiqueTradingSimulator.Events
             // already on the calendar that day, including other Player events.
             // Annual events are fixed in the calendar and always happen, so nothing can block them.
             if (definition.EventType != EventType.Player && !definition.Annual &&
-                _scheduledEvents.Any(s => s.EventType == definition.EventType && s.TriggerDay == triggerDay))
+                _scheduledEvents.Any(s => s.EventType == definition.EventType && s.TriggerWeek == triggerWeek))
             {
-                Debug.LogWarning($"EventManager: day {triggerDay} already has a {definition.EventType} event scheduled. '{definition.name}' was not scheduled.");
+                Debug.LogWarning($"EventManager: week {triggerWeek} already has a {definition.EventType} event scheduled. '{definition.name}' was not scheduled.");
                 return false;
             }
 
-            _scheduledEvents.Add(new ScheduledEvent(triggerDay, definition));
+            _scheduledEvents.Add(new ScheduledEvent(triggerWeek, definition));
 
-            Debug.Log($"EventManager: event scheduled — {definition.name} (Day {triggerDay})");
-            OnEventScheduled?.Invoke(definition, triggerDay);
+            Debug.Log($"EventManager: event scheduled — {definition.name} (Week {triggerWeek})");
+            OnEventScheduled?.Invoke(definition, triggerWeek);
             return true;
         }
 
@@ -166,13 +166,13 @@ namespace AntiqueTradingSimulator.Events
             {
                 if (definition == null || !definition.Annual) continue;
 
-                int lead = Mathf.Max(1, definition.MaxLeadDays);
-                int year = timeManager.DayToDate(currentWeek).Year;
+                int lead = Mathf.Max(1, definition.MaxLeadWeeks);
+                int year = timeManager.WeekToDate(currentWeek).Year;
 
                 // This year's date, or next year's if this one is already behind us.
                 for (int y = year; y <= year + 1; y++)
                 {
-                    int week = timeManager.DateToDay(AnnualDate(definition, y));
+                    int week = timeManager.DateToWeek(AnnualDate(definition, y));
                     if (week <= currentWeek) continue;          // already happened (or happening) — handled
                     if (week - currentWeek > lead) break;       // too early to announce
                     if (IsOnCalendar(definition, week)) break;
@@ -186,16 +186,16 @@ namespace AntiqueTradingSimulator.Events
         private static DateTime AnnualDate(EventDefinition definition, int year)
         {
             int month = Mathf.Clamp(definition.AnnualMonth, 1, 12);
-            int day = Mathf.Clamp(definition.AnnualDay, 1, DateTime.DaysInMonth(year, month));
-            return new DateTime(year, month, day);
+            int dayOfMonth = Mathf.Clamp(definition.AnnualDay, 1, DateTime.DaysInMonth(year, month));
+            return new DateTime(year, month, dayOfMonth);
         }
 
         private bool IsOnCalendar(EventDefinition definition, int week) =>
-            _scheduledEvents.Any(s => s.EventDefinitionId == definition.Id && s.TriggerDay == week) ||
-            _activeEvents.Any(a => a.EventDefinitionID == definition.Id && a.StartDay == week) ||
-            _endedEvents.Any(a => a.EventDefinitionID == definition.Id && a.StartDay == week);
+            _scheduledEvents.Any(s => s.EventDefinitionId == definition.Id && s.TriggerWeek == week) ||
+            _activeEvents.Any(a => a.EventDefinitionID == definition.Id && a.StartWeek == week) ||
+            _endedEvents.Any(a => a.EventDefinitionID == definition.Id && a.StartWeek == week);
 
-        private void ScheduleNextMinorEvent(int afterDay)
+        private void ScheduleNextMinorEvent(int afterWeek)
         {
             List<EventDefinition> pool = EventDatabase.GetAllByType(EventType.Minor).Where(d => !d.Annual).ToList();
             if (pool.Count == 0) return;
@@ -204,26 +204,26 @@ namespace AntiqueTradingSimulator.Events
             {
                 EventDefinition definition = pool[UnityEngine.Random.Range(0, pool.Count)];
 
-                int minLead = Mathf.Max(0, definition.MinLeadDays);
-                int maxLead = Mathf.Max(minLead, definition.MaxLeadDays);
-                int candidateDay = afterDay + UnityEngine.Random.Range(minLead, maxLead + 1);
+                int minLead = Mathf.Max(0, definition.MinLeadWeeks);
+                int maxLead = Mathf.Max(minLead, definition.MaxLeadWeeks);
+                int candidateWeek = afterWeek + UnityEngine.Random.Range(minLead, maxLead + 1);
 
                 // Seasonal events (winter storms, the summer exhibition…) only fall in their own seasons.
-                if (timeManager != null && !definition.AllowedSeasons.Contains(timeManager.SeasonOf(candidateDay))) continue;
+                if (timeManager != null && !definition.AllowedSeasons.Contains(timeManager.SeasonOf(candidateWeek))) continue;
 
-                if (_scheduledEvents.Any(s => s.EventType == EventType.Minor && s.TriggerDay == candidateDay)) continue;
+                if (_scheduledEvents.Any(s => s.EventType == EventType.Minor && s.TriggerWeek == candidateWeek)) continue;
 
-                ScheduleEvent(definition, candidateDay);
+                ScheduleEvent(definition, candidateWeek);
                 return;
             }
 
-            Debug.LogWarning("EventManager: could not find a free day to schedule the next random event.");
+            Debug.LogWarning("EventManager: could not find a free week to schedule the next random event.");
         }
 
 
-        public bool CancelScheduledEvent(int triggerDay)
+        public bool CancelScheduledEvent(int triggerWeek)
         {
-            int index = _scheduledEvents.FindIndex(s => s.TriggerDay == triggerDay);
+            int index = _scheduledEvents.FindIndex(s => s.TriggerWeek == triggerWeek);
             if (index < 0) return false;
 
             _scheduledEvents.RemoveAt(index);

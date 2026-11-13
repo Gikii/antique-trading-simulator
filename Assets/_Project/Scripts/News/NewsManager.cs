@@ -33,9 +33,9 @@ namespace AntiqueTradingSimulator.News
 
         private struct PendingNews
         {
-            public int PublishDay;
+            public int PublishWeek;
             public EventDefinition Definition;
-            public int EventTriggerDay;
+            public int EventTriggerWeek;
             public NewsType Type;
         }
 
@@ -61,13 +61,13 @@ namespace AntiqueTradingSimulator.News
         void OnEnable()
         {
             if (timeManager != null)
-                timeManager.OnDayChanged += HandleDayChanged;
+                timeManager.OnWeekChanged += HandleWeekChanged;
         }
 
         void OnDisable()
         {
             if (timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnWeekChanged -= HandleWeekChanged;
         }
 
         void OnDestroy()
@@ -78,76 +78,76 @@ namespace AntiqueTradingSimulator.News
             }
         }
 
-        private void HandleEventScheduled(EventDefinition definition, int triggerDay)
+        private void HandleEventScheduled(EventDefinition definition, int triggerWeek)
         {
-            int today = timeManager != null ? timeManager.CurrentDay : triggerDay;
-            int leadDays = triggerDay - today;
-            if (leadDays < 1) return;
+            int thisWeek = timeManager != null ? timeManager.CurrentWeek : triggerWeek;
+            int leadWeeks = triggerWeek - thisWeek;
+            if (leadWeeks < 1) return;
 
             var candidateTypes = new List<NewsType>();
             if (definition.CreateRumour) candidateTypes.Add(NewsType.Rumor);
             if (definition.CreateLeak) candidateTypes.Add(NewsType.Leak);
             if (definition.CreateOfficialNews) candidateTypes.Add(NewsType.Official);
 
-            int typesToPublish = Mathf.Min(candidateTypes.Count, leadDays);
+            int typesToPublish = Mathf.Min(candidateTypes.Count, leadWeeks);
             int startIndex = candidateTypes.Count - typesToPublish;
 
 
 
-            int[] publishDays = new int[typesToPublish];
-            int upperBoundExclusive = triggerDay;
+            int[] publishWeeks = new int[typesToPublish];
+            int upperBoundExclusive = triggerWeek;
 
             for (int i = typesToPublish - 1; i >= 0; i--)
             {
                 NewsType type = candidateTypes[startIndex + i];
-                int minDay = today + i;
-                int maxDay = upperBoundExclusive - 1;
+                int minWeek = thisWeek + i;
+                int maxWeek = upperBoundExclusive - 1;
 
-                int day;
+                int week;
                 if (type == NewsType.Official)
                 {
-                    day = Mathf.Clamp(triggerDay - definition.OfficialAnnouncementDaysBefore, minDay, maxDay);
+                    week = Mathf.Clamp(triggerWeek - definition.OfficialAnnouncementWeeksBefore, minWeek, maxWeek);
                 }
                 else
                 {
-                    day = UnityEngine.Random.Range(minDay, maxDay + 1);
+                    week = UnityEngine.Random.Range(minWeek, maxWeek + 1);
                 }
 
-                publishDays[i] = day;
-                upperBoundExclusive = day;
+                publishWeeks[i] = week;
+                upperBoundExclusive = week;
             }
 
             for (int i = 0; i < typesToPublish; i++)
             {
                 NewsType type = candidateTypes[startIndex + i];
-                int publishDay = publishDays[i];
+                int publishWeek = publishWeeks[i];
 
-                if (publishDay <= today)
+                if (publishWeek <= thisWeek)
                 {
-                    PublishNews(definition, type, today, triggerDay);
+                    PublishNews(definition, type, thisWeek, triggerWeek);
                 }
                 else
                 {
-                    _pendingNews.Add(new PendingNews { PublishDay = publishDay, Definition = definition, Type = type, EventTriggerDay = triggerDay });
-                    Debug.Log($"NewsManager: {type} queued for '{definition.DisplayName}' [{definition.name}]. publishing day: {publishDay} event trigger day: {triggerDay}.");
+                    _pendingNews.Add(new PendingNews { PublishWeek = publishWeek, Definition = definition, Type = type, EventTriggerWeek = triggerWeek });
+                    Debug.Log($"NewsManager: {type} queued for '{definition.DisplayName}' [{definition.name}]. publishing week: {publishWeek} event trigger week: {triggerWeek}.");
                 }
             }
 
         }
 
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
             for (int i = _pendingNews.Count - 1; i >= 0; i--)
             {
-                if (_pendingNews[i].PublishDay > newDay) continue;
+                if (_pendingNews[i].PublishWeek > newWeek) continue;
 
-                PublishNews(_pendingNews[i].Definition, _pendingNews[i].Type, newDay, _pendingNews[i].EventTriggerDay);
+                PublishNews(_pendingNews[i].Definition, _pendingNews[i].Type, newWeek, _pendingNews[i].EventTriggerWeek);
                 _pendingNews.RemoveAt(i);
             }
         }
 
-        private void PublishNews(EventDefinition definition, NewsType type, int day, int eventTriggerDay)
+        private void PublishNews(EventDefinition definition, NewsType type, int week, int eventTriggerWeek)
         {
             string label = type switch
             {
@@ -176,7 +176,7 @@ namespace AntiqueTradingSimulator.News
                 _ => InfoAccessLevel.LocalPress
             };
 
-            Publish(new NewsItem(newsData, definition.DisplayName, definition.Description, type, credibility, day, accessLevel, eventTriggerDay));
+            Publish(new NewsItem(newsData, definition.DisplayName, definition.Description, type, credibility, week, accessLevel, eventTriggerWeek));
         }
 
 
@@ -258,9 +258,9 @@ namespace AntiqueTradingSimulator.News
 
                 state.PendingNews.Add(new PendingNewsState
                 {
-                    PublishDay = pending.PublishDay,
+                    PublishWeek = pending.PublishWeek,
                     EventDefinitionId = pending.Definition.Id,
-                    EventTriggerDay = pending.EventTriggerDay,
+                    EventTriggerWeek = pending.EventTriggerWeek,
                     Type = pending.Type
                 });
             }
@@ -303,9 +303,9 @@ namespace AntiqueTradingSimulator.News
 
                     _pendingNews.Add(new PendingNews
                     {
-                        PublishDay = pendingState.PublishDay,
+                        PublishWeek = pendingState.PublishWeek,
                         Definition = definition,
-                        EventTriggerDay = pendingState.EventTriggerDay,
+                        EventTriggerWeek = pendingState.EventTriggerWeek,
                         Type = pendingState.Type
                     });
                 }

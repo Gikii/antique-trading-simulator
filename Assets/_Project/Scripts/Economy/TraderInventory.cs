@@ -53,10 +53,10 @@ namespace AntiqueTradingSimulator.Economy
         /// a day passed in (upkeep, contract payouts, ...). Set by EconomyManager.RegisterInventory.
         /// </summary>
         [JsonIgnore]
-        public Func<int> DayProvider { get; set; }
+        public Func<int> WeekProvider { get; set; }
 
-        // Last day seen through a method parameter — fallback when there's no DayProvider.
-        private int _lastKnownDay;
+        // Last day seen through a method parameter — fallback when there's no WeekProvider.
+        private int _lastKnownWeek;
 
         private readonly Dictionary<string, Antique> _holdings = new Dictionary<string, Antique>();
         public IReadOnlyDictionary<string, Antique> Holdings => _holdings;
@@ -77,8 +77,8 @@ namespace AntiqueTradingSimulator.Economy
         public event Action OnStateRestored;
 
         // Daily snapshot of the total market value of all holdings — feeds the
-        // "collection value over time" chart. Recorded by Market.RecordDailyPrices.
-        private const int MaxValueHistoryDays = 90;
+        // "collection value over time" chart. Recorded by Market.RecordWeeklyPrices.
+        private const int MaxValueHistoryWeeks = 90;
         private readonly List<PricePoint> _valueHistory = new List<PricePoint>();
         public IReadOnlyList<PricePoint> ValueHistory => _valueHistory;
 
@@ -153,7 +153,7 @@ namespace AntiqueTradingSimulator.Economy
         {
             if (Warehouse == null) return 0f;
 
-            float upkeep = Warehouse.CalculateDailyUpkeep(UsedSlots);
+            float upkeep = Warehouse.CalculateWeeklyUpkeep(UsedSlots);
             if (upkeep <= 0f) return 0f;
 
             RemoveCash(upkeep, LedgerCategory.Warehouse, "Warehouse maintenance");
@@ -213,21 +213,21 @@ namespace AntiqueTradingSimulator.Economy
         /// Adds an antique straight into the holdings, bypassing the Market entirely — e.g. an
         /// event reward (a financed expedition's finds), not a purchase off a listing. The antique
         /// is never added to Market.Listings, so it never appears for sale and its
-        /// MarketListedOnDay stays -1 until the owner lists it themselves.
+        /// MarketListedOnWeek stays -1 until the owner lists it themselves.
         /// </summary>
         /// <param name="transport">If given, the antique arrives via TransportManager (InTransit until
-        /// the quote's ArrivalDay); the caller dispatches the shipment. Grants ignore warehouse
+        /// the quote's ArrivalWeek); the caller dispatches the shipment. Grants ignore warehouse
         /// capacity on purpose — a reward may overflow the warehouse (see IsOverCapacity).</param>
-        public bool GrantHolding(Antique antique, int currentDay = -1, TransportQuote transport = null)
+        public bool GrantHolding(Antique antique, int currentWeek = -1, TransportQuote transport = null)
         {
             if (antique == null) return false;
 
             // Free acquisition — cost basis 0, but remember when it arrived.
-            if (currentDay >= 0 && !antique.HasPurchaseRecord)
-                antique.RecordAcquisition(0f, currentDay);
+            if (currentWeek >= 0 && !antique.HasPurchaseRecord)
+                antique.RecordAcquisition(0f, currentWeek);
 
             if (transport != null)
-                antique.MarkInTransit(transport.ArrivalDay);
+                antique.MarkInTransit(transport.ArrivalWeek);
 
             _holdings[antique.Id] = antique;
 
@@ -241,7 +241,7 @@ namespace AntiqueTradingSimulator.Economy
         /// caller then hands the same quote to TransportManager.Dispatch. Without a quote
         /// (no TransportManager in the scene) the antique is available immediately.
         /// </summary>
-        public bool Buy(Market.Market market, string listingId, int currentDay = -1, TransportQuote transport = null)
+        public bool Buy(Market.Market market, string listingId, int currentWeek = -1, TransportQuote transport = null)
         {
             var listing = market.GetById(listingId);
             if (listing == null) return false;
@@ -268,15 +268,15 @@ namespace AntiqueTradingSimulator.Economy
             if (!market.Buy(listingId, OwnerId)) return false;
 
             Cash -= cost;
-            RememberDay(currentDay);
+            RememberWeek(currentWeek);
             Record(LedgerCategory.Purchase, -price, $"Bought \"{listing.Name}\"");
             Record(LedgerCategory.Transport, -shippingCost, $"Transport cost ({listing.Name})");
             // Cost basis includes shipping, so "profit" everywhere (UI, NPC sell targets)
             // is already net of transport — as the design doc requires.
-            listing.RecordAcquisition(cost, currentDay);
+            listing.RecordAcquisition(cost, currentWeek);
             listing.TransportCost = shippingCost;
             if (transport != null)
-                listing.MarkInTransit(transport.ArrivalDay);
+                listing.MarkInTransit(transport.ArrivalWeek);
             _holdings[listing.Id] = listing;
 
             OnCashChanged?.Invoke(Cash);
@@ -296,7 +296,7 @@ namespace AntiqueTradingSimulator.Economy
         /// never on the regular market, so the Market is not involved. False (nothing changes) without a
         /// free slot or enough cash.
         /// </summary>
-        public bool BuyAtAuction(Antique antique, float hammerPrice, float buyersPremium, int currentDay, TransportQuote transport = null)
+        public bool BuyAtAuction(Antique antique, float hammerPrice, float buyersPremium, int currentWeek, TransportQuote transport = null)
         {
             if (antique == null || Owns(antique.Id)) return false;
 
@@ -311,17 +311,17 @@ namespace AntiqueTradingSimulator.Economy
             if (cost > Cash) return false;
 
             Cash -= cost;
-            RememberDay(currentDay);
+            RememberWeek(currentWeek);
             Record(LedgerCategory.Purchase, -hammerPrice, $"Bought \"{antique.Name}\" at auction");
             Record(LedgerCategory.Commission, -buyersPremium, $"Buyer's premium ({antique.Name})");
             Record(LedgerCategory.Transport, -shippingCost, $"Transport cost ({antique.Name})");
 
             antique.OwnerId = OwnerId;
             antique.AskingPrice = 0f;
-            antique.RecordAcquisition(cost, currentDay);
+            antique.RecordAcquisition(cost, currentWeek);
             antique.TransportCost = shippingCost;
             if (transport != null)
-                antique.MarkInTransit(transport.ArrivalDay);
+                antique.MarkInTransit(transport.ArrivalWeek);
             _holdings[antique.Id] = antique;
 
             OnCashChanged?.Invoke(Cash);
@@ -329,19 +329,19 @@ namespace AntiqueTradingSimulator.Economy
             return true;
         }
 
-        public bool Sell(Market.Market market, string listingId, int currentDay)
+        public bool Sell(Market.Market market, string listingId, int currentWeek)
         {
             if (!_holdings.TryGetValue(listingId, out var listing)) return false;
 
             if (listing.IsInTransit)
             {
-                Debug.LogWarning($"TraderInventory: refused to sell {listingId} — still in transit (arrives day {listing.ArrivalDay}).");
+                Debug.LogWarning($"TraderInventory: refused to sell {listingId} — still in transit (arrives week {listing.ArrivalWeek}).");
                 return false;
             }
 
             if (listing.IsInRestoration)
             {
-                Debug.LogWarning($"TraderInventory: refused to sell {listingId} — being restored (ready day {listing.RestorationEndDay}).");
+                Debug.LogWarning($"TraderInventory: refused to sell {listingId} — being restored (ready week {listing.RestorationEndWeek}).");
                 return false;
             }
 
@@ -359,9 +359,9 @@ namespace AntiqueTradingSimulator.Economy
 
             _holdings.Remove(listingId);
             listing.ClearAcquisition();
-            market.Sell(listing, currentDay);
+            market.Sell(listing, currentWeek);
             Cash += listing.CurrentPrice;
-            RememberDay(currentDay);
+            RememberWeek(currentWeek);
             Record(LedgerCategory.Sale, listing.CurrentPrice, $"Sold \"{listing.Name}\" (instant sale)");
 
             OnCashChanged?.Invoke(Cash);
@@ -380,7 +380,7 @@ namespace AntiqueTradingSimulator.Economy
         }
 
         /// <summary>Re-raises OnHoldingChanged for a holding whose data changed outside this class
-        /// (e.g. a transport delay moved its ArrivalDay).</summary>
+        /// (e.g. a transport delay moved its ArrivalWeek).</summary>
         public void NotifyHoldingUpdated(string listingId)
         {
             if (_holdings.TryGetValue(listingId, out var antique))
@@ -400,13 +400,13 @@ namespace AntiqueTradingSimulator.Economy
         /// Lists an owned antique on the market at the given price. The antique stays in
         /// the holdings until a buyer takes it (see CompleteListingSale).
         /// </summary>
-        public bool ListForSale(Market.Market market, string listingId, float askingPrice, int currentDay)
+        public bool ListForSale(Market.Market market, string listingId, float askingPrice, int currentWeek)
         {
             if (market == null || askingPrice <= 0f) return false;
             if (!_holdings.TryGetValue(listingId, out var antique)) return false;
             if (antique.IsListedForSale || antique.IsReservedForContract || antique.IsInTransit || antique.IsInRestoration) return false;
 
-            if (!market.ListForSale(antique, askingPrice, currentDay)) return false;
+            if (!market.ListForSale(antique, askingPrice, currentWeek)) return false;
 
             OnHoldingChanged?.Invoke(listingId, antique);
             return true;
@@ -472,10 +472,10 @@ namespace AntiqueTradingSimulator.Economy
                 OnHoldingsRevalued?.Invoke();
         }
 
-        public void RecordValue(int day)
+        public void RecordValue(int week)
         {
-            _valueHistory.Add(new PricePoint(day, TotalHoldingsValue));
-            if (_valueHistory.Count > MaxValueHistoryDays)
+            _valueHistory.Add(new PricePoint(week, TotalHoldingsValue));
+            if (_valueHistory.Count > MaxValueHistoryWeeks)
                 _valueHistory.RemoveAt(0);
         }
 
@@ -511,15 +511,15 @@ namespace AntiqueTradingSimulator.Economy
 
         // ---------------------------------------------------------------- ledger helpers
 
-        private int CurrentDay => DayProvider != null ? DayProvider() : _lastKnownDay;
+        private int CurrentWeek => WeekProvider != null ? WeekProvider() : _lastKnownWeek;
 
-        private void RememberDay(int day)
+        private void RememberWeek(int week)
         {
-            if (day >= 0) _lastKnownDay = day;
+            if (week >= 0) _lastKnownWeek = week;
         }
 
         private void Record(LedgerCategory category, float amount, string description) =>
-            Ledger.Add(new LedgerEntry(CurrentDay, category, amount, description));
+            Ledger.Add(new LedgerEntry(CurrentWeek, category, amount, description));
 
         /// <summary>
         /// Tags an owned listing as being gathered for a specific contract. Returns false if the listing isn't
@@ -586,7 +586,7 @@ namespace AntiqueTradingSimulator.Economy
             var state = new TraderInventoryState
             {
                 Cash = Cash,
-                LastKnownDay = _lastKnownDay,
+                LastKnownWeek = _lastKnownWeek,
                 Ledger = Ledger.CaptureState(),
                 ValueHistory = new List<PricePoint>(_valueHistory),
                 CommittedContractIds = new List<string>(_committedContractIds),
@@ -613,7 +613,7 @@ namespace AntiqueTradingSimulator.Economy
             if (state == null) return;
 
             Cash = state.Cash;
-            _lastKnownDay = state.LastKnownDay;
+            _lastKnownWeek = state.LastKnownWeek;
 
             _holdings.Clear();
             if (state.Holdings != null)

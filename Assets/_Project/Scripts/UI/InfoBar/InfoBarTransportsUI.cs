@@ -6,6 +6,7 @@ using AntiqueTradingSimulator.Restoration;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -22,7 +23,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private PlayerTrader playerTrader;
 
         [Tooltip("Deliveries from the last N weeks are listed after the shipments in transit. 1 = this week only.")]
-        [SerializeField] private int recentDeliveryDays = 1;
+        [FormerlySerializedAs("recentDeliveryDays")]
+        [SerializeField] private int recentDeliveryWeeks = 1;
 
         protected override string EmptyLabel => restorationManager != null ? "No shipments or restorations" : "No shipments";
 
@@ -79,9 +81,9 @@ namespace AntiqueTradingSimulator.UI
 
         private void HandleShipmentChanged(Shipment shipment) => Refresh();
         private void HandleShipmentDelivered(Shipment shipment, Antique antique, float conditionLost) => Refresh();
-        private void HandleShipmentsDelayed(ShippingZone zone, int days) => Refresh();
+        private void HandleShipmentsDelayed(ShippingZone zone, int weeks) => Refresh();
         private void HandleShipmentShifted(Shipment shipment, int weeks, Seasons.Season season) => Refresh();
-        private void HandleDayChanged(int day) => Refresh();
+        private void HandleWeekChanged(int week) => Refresh();
         private void HandleRestorationStarted(RestorationJob job) => Refresh();
         private void HandleRestorationCompleted(RestorationRecord record) => Refresh();
 
@@ -94,34 +96,34 @@ namespace AntiqueTradingSimulator.UI
             if (inventory == null)
                 return;
 
-            int today = CurrentDay;
-            int sinceDay = today - Mathf.Max(1, recentDeliveryDays) + 1;
+            int thisWeek = CurrentWeek;
+            int sinceWeek = thisWeek - Mathf.Max(1, recentDeliveryWeeks) + 1;
 
             if (transportManager != null)
-                AddShipmentLines(lines, inventory, today, sinceDay);
+                AddShipmentLines(lines, inventory, thisWeek, sinceWeek);
 
             if (restorationManager != null)
-                AddRestorationLines(lines, inventory, today, sinceDay);
+                AddRestorationLines(lines, inventory, thisWeek, sinceWeek);
         }
 
-        private void AddRestorationLines(List<RowData> lines, Economy.TraderInventory inventory, int today, int sinceDay)
+        private void AddRestorationLines(List<RowData> lines, Economy.TraderInventory inventory, int thisWeek, int sinceWeek)
         {
-            foreach (var job in restorationManager.GetJobsFor(inventory).OrderBy(j => j.EndDay))
+            foreach (var job in restorationManager.GetJobsFor(inventory).OrderBy(j => j.EndWeek))
             {
-                int daysLeft = job.DaysRemaining(today);
+                int weeksLeft = job.WeeksRemaining(thisWeek);
                 lines.Add(new RowData
                 {
                     Label = job.AntiqueName,
                     Detail = UIFormat.Colorize(
-                        daysLeft <= 0 ? "restoring · this week" : $"restoring · {UIFormat.Weeks(daysLeft)}",
+                        weeksLeft <= 0 ? "restoring · this week" : $"restoring · {UIFormat.Weeks(weeksLeft)}",
                         UIFormat.InRestorationColor),
-                    Tooltip = $"{job.AntiqueName}\nAt {job.OptionName}\nReady: {UIFormat.GameDate(job.EndDay)}"
+                    Tooltip = $"{job.AntiqueName}\nAt {job.OptionName}\nReady: {UIFormat.GameDate(job.EndWeek)}"
                 });
             }
 
-            foreach (var record in restorationManager.GetCompletedSince(sinceDay))
+            foreach (var record in restorationManager.GetCompletedSince(sinceWeek))
             {
-                string when = record.Day == today ? "today" : UIFormat.GameDate(record.Day);
+                string when = record.Week == thisWeek ? "this week" : UIFormat.GameDate(record.Week);
                 string change = $"{UIFormat.ConditionLabel(record.StartCondition)} → {UIFormat.ConditionLabel(record.ResultCondition)} " +
                                 $"({UIFormat.SignedMoney(record.ValueChange)})";
 
@@ -144,13 +146,13 @@ namespace AntiqueTradingSimulator.UI
             }
         }
 
-        private void AddShipmentLines(List<RowData> lines, Economy.TraderInventory inventory, int today, int sinceDay)
+        private void AddShipmentLines(List<RowData> lines, Economy.TraderInventory inventory, int thisWeek, int sinceWeek)
         {
-            foreach (var shipment in transportManager.GetShipmentsFor(inventory).OrderBy(s => s.ArrivalDay))
+            foreach (var shipment in transportManager.GetShipmentsFor(inventory).OrderBy(s => s.ArrivalWeek))
             {
-                int daysLeft = shipment.DaysRemaining(today);
+                int weeksLeft = shipment.WeeksRemaining(thisWeek);
                 bool heldUp = shipment.SeasonalShiftWeeks > 0;
-                string when = daysLeft <= 0 ? "this week" : $"{UIFormat.GameDate(shipment.ArrivalDay)} · {UIFormat.Weeks(daysLeft)}";
+                string when = weeksLeft <= 0 ? "this week" : $"{UIFormat.GameDate(shipment.ArrivalWeek)} · {UIFormat.Weeks(weeksLeft)}";
                 lines.Add(new RowData
                 {
                     Label = shipment.AntiqueName,
@@ -158,14 +160,14 @@ namespace AntiqueTradingSimulator.UI
                         ? UIFormat.Colorize($"delayed · {when}", UIFormat.NegativeColor)
                         : UIFormat.Colorize(when, UIFormat.InTransitColor),
                     Tooltip = $"{shipment.AntiqueName}\n{shipment.Option.ToDisplayString()} transport from {shipment.Zone.ToDisplayString()}\n" +
-                              $"Arrival: {UIFormat.GameDate(shipment.ArrivalDay)}" +
+                              $"Arrival: {UIFormat.GameDate(shipment.ArrivalWeek)}" +
                               (heldUp ? "\nHeld up a week by the weather." : "")
                 });
             }
 
-            foreach (var delivery in transportManager.GetDeliveriesFor(inventory, sinceDay))
+            foreach (var delivery in transportManager.GetDeliveriesFor(inventory, sinceWeek))
             {
-                string when = delivery.Day == today ? "this week" : UIFormat.GameDate(delivery.Day);
+                string when = delivery.Week == thisWeek ? "this week" : UIFormat.GameDate(delivery.Week);
                 bool early = delivery.Shipment.SeasonalShiftWeeks < 0;
                 lines.Add(new RowData
                 {

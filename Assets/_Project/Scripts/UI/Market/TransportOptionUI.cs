@@ -54,7 +54,7 @@ namespace AntiqueTradingSimulator.UI
             gameObject.SetActive(true);
             SetText(nameText, option.ToDisplayString());
             SetText(costText, UIFormat.Money(quote.Cost));
-            SetText(durationText, UIFormat.Weeks(quote.DurationDays));
+            SetText(durationText, UIFormat.Weeks(quote.DurationWeeks));
             SetText(riskText, damageChance > 0f
                 ? $"{UIFormat.Percent(damageChance)} damage risk"
                 : "No damage risk");

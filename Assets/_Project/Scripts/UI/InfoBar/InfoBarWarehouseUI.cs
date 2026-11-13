@@ -144,7 +144,7 @@ namespace AntiqueTradingSimulator.UI
             int inTransit = inventory.GetInTransitHoldings().Count;
             AddRow("In transit", inTransit > 0 ? UIFormat.Colorize(inTransit.ToString(), UIFormat.InTransitColor) : "0");
 
-            float upkeep = warehouse.CalculateDailyUpkeep(used);
+            float upkeep = warehouse.CalculateWeeklyUpkeep(used);
             AddRow("Upkeep", $"{UIFormat.Money(upkeep)} / week",
                 $"Capacity level {warehouse.CapacityLevel} · security level {warehouse.SecurityLevel}.\n" +
                 "Upkeep grows with the warehouse size, security and the number of stored items.");

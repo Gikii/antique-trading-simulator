@@ -198,7 +198,7 @@ namespace AntiqueTradingSimulator.UI
             // No slot list wired up: the quick save of the first version.
             SaveSlot quickSlot = SaveSlot.Manual(1);
             if (saveManager.Save(quickSlot))
-                SetStatus($"Saved week {saveManager.LastSaveDay} to {quickSlot.DisplayName}.");
+                SetStatus($"Saved week {saveManager.LastSaveWeek} to {quickSlot.DisplayName}.");
             RefreshButtons(); // Load becomes available after the first save
         }
 
@@ -285,7 +285,7 @@ namespace AntiqueTradingSimulator.UI
             string since = SaveSlotFormat.Playtime(saveManager.SecondsSinceLastSave);
 
             return saveManager.LastSaveSlot.HasValue
-                ? $"Your last save is from week {saveManager.LastSaveDay} ({saveManager.LastSaveSlot.Value.DisplayName}). " +
+                ? $"Your last save is from week {saveManager.LastSaveWeek} ({saveManager.LastSaveSlot.Value.DisplayName}). " +
                   $"The last {since} of play will be lost."
                 : "This game hasn't been saved yet. Everything since the start will be lost.";
         }
