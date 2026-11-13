@@ -508,7 +508,7 @@ namespace AntiqueTradingSimulator.Contracts
 
             inventory.ReleaseAllReservationsForContract(contract.ContractId);
 
-            Debug.Log($"ContractManager: {traderId} fulfilled {contract.Type} contract {contract.ContractId} in full for {contract.TotalReward:F2} on day {timeManager.CurrentDay}.");
+            Debug.Log($"ContractManager: {traderId} fulfilled {contract.Type} contract {contract.ContractId} in full for {contract.TotalReward:F2} on week {timeManager.CurrentWeek}.");
             OnContractFulfilled?.Invoke(contract);
             Feed.AddFulfilled(contract);
 

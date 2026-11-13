@@ -11,6 +11,9 @@ namespace AntiqueTradingSimulator.Contracts
         public ContractType Type { get; }
         public ContractRequirement Requirement { get; }
 
+        public string DisplayName => Requirement != null ? Requirement.ToString() : "";
+
+
         public int CreatedWeek { get; }
         public int DurationWeeks { get; set; }
         public int DeadlineWeek => CreatedWeek + DurationWeeks;
