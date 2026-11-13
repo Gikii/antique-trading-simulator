@@ -100,7 +100,7 @@ namespace AntiqueTradingSimulator.Contracts
         [SerializeField] private int minQuantity = 1;
         [SerializeField] private int maxQuantity = 5;
 
-        [SerializeField] private int minDurationDays = 1;
+        [SerializeField] private int minDurationDays = 3;
         [SerializeField] private int maxDurationDays = 10;
 
         [Header("Compensation")]
@@ -160,6 +160,8 @@ namespace AntiqueTradingSimulator.Contracts
         /// </summary>
         public Func<int> PlayerReputationProvider { get; set; }
 
+        public ContractFeed Feed { get; } = new ContractFeed();
+
 
         void Awake()
         {
@@ -214,6 +216,7 @@ namespace AntiqueTradingSimulator.Contracts
                 _contracts.Remove(contract);
 
                 Debug.Log($"ContractManager: contract {contract.ContractId} expired unfulfilled on day {currentDay}.");
+                Feed.AddExpired(contract);
                 OnContractExpired?.Invoke(contract);
             }
         }
@@ -296,6 +299,7 @@ namespace AntiqueTradingSimulator.Contracts
 
             Debug.Log($"ContractManager: generated {contract.Type} contract ({contract.ContractId}) on day {currentDay} for {requirement.Quantity} antiques at average price {requirement.AverageReferenceUnitPrice(economyManager.Market)} to be fullfilled by day {contract.DeadlineDay} with total payout {contract.TotalReward}");
             OnContractCreated?.Invoke(contract);
+            Feed.AddListed(contract);
             return contract;
         }
 
@@ -404,14 +408,11 @@ namespace AntiqueTradingSimulator.Contracts
             return Mathf.Lerp(maxUrgencyBonusMultiplier, 1f, t);
         }
 
-
         public Contract GetById(string contractId)
         {
             _contractsById.TryGetValue(contractId, out var contract);
             return contract;
         }
-
-
 
         public void RegisterTrader(string traderId, TraderInventory inventory)
         {
@@ -504,8 +505,9 @@ namespace AntiqueTradingSimulator.Contracts
 
             inventory.ReleaseAllReservationsForContract(contract.ContractId);
 
-            Debug.Log($"ContractManager: {traderId} fulfilled contract {contract.ContractId} in full for {contract.TotalReward:F2}.");
+            Debug.Log($"ContractManager: {traderId} fulfilled {contract.Type} contract {contract.ContractId} in full for {contract.TotalReward:F2} on day {timeManager.CurrentDay}.");
             OnContractFulfilled?.Invoke(contract);
+            Feed.AddFulfilled(contract);
 
             return true;
         }
@@ -518,6 +520,7 @@ namespace AntiqueTradingSimulator.Contracts
 
             Debug.Log($"ContractManager: contract {contract.ContractId} claimed by {traderId}.");
             OnContractClaimed?.Invoke(contract, traderId);
+            Feed.AddExclusiveClaimed(contract);
             return true;
         }
 
@@ -544,6 +547,8 @@ namespace AntiqueTradingSimulator.Contracts
                 state.ListedContractIds.Add(contract.ContractId);
             }
 
+            state.FeedMessages = Feed.CaptureState();
+
             return state;
         }
 
@@ -562,6 +567,8 @@ namespace AntiqueTradingSimulator.Contracts
                 OnContractsRestored?.Invoke();
                 return;
             }
+
+            Feed.RestoreState(state.FeedMessages);
 
             if (state.Contracts != null)
             {

@@ -8,6 +8,8 @@ namespace AntiqueTradingSimulator.UI
         public static string ToDisplayString(this ContractType type) =>
             type == ContractType.Exclusive ? "Exclusive" : "Open";
 
+        public static string ContractName(Contract contract) => contract != null ? contract.DisplayName : "";
+
         /// <summary>"Exclusive", or "Exclusive · Premium" for a contract of a reputation-gated class.</summary>
         public static string TypeLabel(Contract contract)
         {

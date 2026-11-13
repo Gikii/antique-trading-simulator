@@ -10,7 +10,7 @@ namespace AntiqueTradingSimulator.Contracts
         public string ContractId { get; }
         public ContractType Type { get; }
         public ContractRequirement Requirement { get; }
-
+        public string DisplayName => Requirement != null ? Requirement.ToString() : "";
         public int CreatedDay { get; }
         public int DurationDays { get; set; }
         public int DeadlineDay => CreatedDay + DurationDays;

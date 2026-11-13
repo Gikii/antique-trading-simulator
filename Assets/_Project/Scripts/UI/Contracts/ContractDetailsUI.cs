@@ -12,6 +12,8 @@ namespace AntiqueTradingSimulator.UI
     {
         [SerializeField] private TimeManager timeManager;
 
+        [SerializeField] private Button closeButton;
+
         [Header("Header")]
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private Image contractImage;
@@ -40,10 +42,12 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private GameObject myContractsContent;
 
         [Header("Empty state")]
-        [SerializeField] private GameObject noSelectionState;
+        [SerializeField] private GameObject feedPanel;
         [SerializeField] private GameObject detailsContent;
 
         private const string DefaultFulfillLabel = "Fulfill Contract";
+
+        public event Action Closed;
 
         private Contract _contract;
         private Action<Contract> _onAccept;
@@ -63,6 +67,10 @@ namespace AntiqueTradingSimulator.UI
 
             if (fulfillButton != null)
                 fulfillButton.onClick.AddListener(HandleFulfillClicked);
+
+            if (closeButton != null)
+                closeButton.onClick.AddListener(Close);
+
 
             ShowEmptyState();
         }
@@ -99,7 +107,7 @@ namespace AntiqueTradingSimulator.UI
             _contract = contract;
 
             if (detailsContent != null) detailsContent.SetActive(true);
-            if (noSelectionState != null) noSelectionState.SetActive(false);
+            if (feedPanel != null) feedPanel.SetActive(false);
 
             if (nameText != null)
                 nameText.text = string.Empty;
@@ -154,7 +162,13 @@ namespace AntiqueTradingSimulator.UI
         {
             _contract = null;
             if (detailsContent != null) detailsContent.SetActive(false);
-            if (noSelectionState != null) noSelectionState.SetActive(true);
+            if (feedPanel != null) feedPanel.SetActive(true);
+        }
+
+        public void Close()
+        {
+            ShowEmptyState();
+            Closed?.Invoke();
         }
 
         private void HandleAcceptClicked()

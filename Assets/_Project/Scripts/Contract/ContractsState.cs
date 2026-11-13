@@ -7,6 +7,8 @@ namespace AntiqueTradingSimulator.Contracts
         public List<ContractState> Contracts = new List<ContractState>();
 
         public List<string> ListedContractIds = new List<string>();
+
+        public List<string> FeedMessages = new List<string>();
     }
 
     public class ContractState
