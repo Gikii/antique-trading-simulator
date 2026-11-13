@@ -56,13 +56,26 @@ namespace AntiqueTradingSimulator.UI
 
         // Quality buckets, expressed as an inclusive [min, max] Condition range
         // (dropdown option order matches this array).
-        private static readonly (string Label, float Min, float Max)[] QualityOptions =
+        private static readonly (string Label, int MinPercent, int MaxPercent)[] QualityOptions =
+            BuildQualityOptions();
+
+        private static (string Label, int MinPercent, int MaxPercent)[] BuildQualityOptions()
         {
-            ("Excellent (90-100%)", 0.9f, 1f),
-            ("Good (70-89%)", 0.7f, 0.8999f),
-            ("Fair (50-69%)", 0.5f, 0.6999f),
-            ("Poor (30-49%)", Antique.MinCondition, 0.4999f),
-        };
+            var tiers = ConditionTiers.All;
+            var options = new (string, int, int)[tiers.Length];
+            int ceiling = Mathf.RoundToInt(Antique.MaxCondition * 100f);
+
+            for (int i = 0; i < tiers.Length; i++)
+            {
+                var tier = tiers[tiers.Length - 1 - i];
+                int from = tier.ThresholdPercent();
+                int to = Mathf.Min(ceiling, Mathf.RoundToInt(tier.UpperBound() * 100f) - 1);
+
+                options[i] = ($"{tier.ToDisplayString()} ({from}-{to}%)", from, to);
+            }
+
+            return options;
+        }
 
         // Each set holds the currently-selected option indices for that
         // dropdown; an empty set means "don't filter on this field".
@@ -267,8 +280,12 @@ namespace AntiqueTradingSimulator.UI
                 result = result.Where(l => _countryFilters.Contains(l.Country));
 
             if (_qualityFilterIndices.Count > 0)
-                result = result.Where(l => _qualityFilterIndices.Any(i =>
-                    l.Condition >= QualityOptions[i].Min && l.Condition <= QualityOptions[i].Max));
+                result = result.Where(l =>
+                {
+                    int percent = Antique.ConditionPercent(l.Condition);
+                    return _qualityFilterIndices.Any(i =>
+                        percent >= QualityOptions[i].MinPercent && percent <= QualityOptions[i].MaxPercent);
+                });
 
             result = _sortMode switch
             {

@@ -1,3 +1,4 @@
+using AntiqueTradingSimulator.Market;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -43,7 +44,7 @@ namespace AntiqueTradingSimulator.Restoration
 
         [Tooltip("Reputation the player needs to use this workshop (0 = anyone). Reputation gives access, never better prices.")]
         [Min(0)] public int RequiredReputation;
-
+        public float TargetCondition => Antique.QuantizeCondition(MaxCondition);
         public float FailureChance => Mathf.Max(0f, 1f - SuccessChance - PartialChance);
 
         public RestorationOption() { }

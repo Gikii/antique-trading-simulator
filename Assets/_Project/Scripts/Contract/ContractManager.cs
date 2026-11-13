@@ -66,16 +66,17 @@ namespace AntiqueTradingSimulator.Contracts
         [Min(1)] public int MinQuantity = 1;
         [Min(1)] public int MaxQuantity = 5;
 
-        [Tooltip("Range the required minimum condition is rolled from (0..1). The reward is based on the value " +
-                 "of an antique in exactly that condition.")]
-        public Vector2 MinConditionRange = new Vector2(0.6f, 0.9f);
+        [Tooltip("Range the required minimum condition is rolled from. The reward is based on the value of an antique in exactly that condition.")]
+        public ConditionTier MinTier = ConditionTier.Fair;
+        public ConditionTier MaxTier = ConditionTier.Excellent;
 
         public ContractClassDefinition() { }
 
         public ContractClassDefinition(string name, string clientDescription, int requiredReputation, float weight,
-            float minRewardMultiplier, float maxRewardMultiplier, int minQuantity, int maxQuantity, Vector2 minConditionRange)
+            float minRewardMultiplier, float maxRewardMultiplier, int minQuantity, int maxQuantity, ConditionTier minTier, ConditionTier maxTier)
         {
-            MinConditionRange = minConditionRange;
+            MinTier = minTier;
+            MaxTier = maxTier;
             Name = name;
             ClientDescription = clientDescription;
             RequiredReputation = requiredReputation;
@@ -113,9 +114,9 @@ namespace AntiqueTradingSimulator.Contracts
         [SerializeField] private float maxUrgencyBonusMultiplier = 1.5f;
 
         [Header("Condition required")]
-        [Tooltip("Range the minimum condition of a standard contract is rolled from (0..1). Rewards are based on the " +
-                 "value of an antique in exactly that condition, so poor items can't be passed off at a perfect item's price.")]
-        [SerializeField] private Vector2 standardMinCondition = new Vector2(0.6f, 0.9f);
+        [Tooltip("Range the minimum condition of a standard contract is rolled from. Rewards are based on the value of an antique in exactly that condition.")]
+        [SerializeField] private ConditionTier standardMinTier = ConditionTier.Fair;
+        [SerializeField] private ConditionTier standardMaxTier = ConditionTier.Excellent;
 
         [Header("Exclusive contracts")]
         [Range(0f, 1f)]
@@ -128,10 +129,13 @@ namespace AntiqueTradingSimulator.Contracts
 
         [Tooltip("Higher classes of contract. Only the player can take them, and only with enough reputation; " +
                  "the reputation unlock lists are generated from this list.")]
-        [SerializeField] private List<ContractClassDefinition> reputationClasses = new()
+        [SerializeField]
+        private List<ContractClassDefinition> reputationClasses = new()
         {
-            new ContractClassDefinition("Premium", "Wealthy private collectors", 500, 1.2f, 1.3f, 1.8f, 1, 5, new Vector2(0.7f, 0.9f)),
-            new ContractClassDefinition("Prestige", "Museums and foundations", 1500, 0.8f, 1.6f, 2.2f, 3, 6, new Vector2(0.8f, 0.95f)),
+            new ContractClassDefinition("Premium", "Wealthy private collectors", 500, 1.2f, 1.3f, 1.8f, 1, 5,
+                ConditionTier.Good, ConditionTier.Excellent),
+            new ContractClassDefinition("Prestige", "Museums and foundations", 1500, 0.8f, 1.6f, 2.2f, 3, 6,
+                ConditionTier.Excellent, ConditionTier.Excellent),
         };
 
         [Tooltip("Weight multiplier for the lowest class the player hasn't unlocked yet, so a few locked offers " +
@@ -269,8 +273,10 @@ namespace AntiqueTradingSimulator.Contracts
                 ? Mathf.Max(1, fixedQuantity)
                 : UnityEngine.Random.Range(minQ, maxQ + 1);
             requirement.MinCondition = overrides?.MinCondition is float fixedCondition
-                ? Mathf.Clamp(fixedCondition, Antique.MinCondition, Antique.MaxCondition)
-                : RollMinCondition(contractClass != null ? contractClass.MinConditionRange : standardMinCondition);
+                ? Antique.QuantizeCondition(fixedCondition)
+                : contractClass != null
+                    ? RollRequiredCondition(contractClass.MinTier, contractClass.MaxTier, contractClass.Name)
+                    : RollRequiredCondition(standardMinTier, standardMaxTier, null);
             int duration = overrides?.DurationWeeks is int fixedDuration
                 ? Mathf.Max(1, fixedDuration)
                 : UnityEngine.Random.Range(minDurationWeeks, maxDurationWeeks + 1);
@@ -395,14 +401,24 @@ namespace AntiqueTradingSimulator.Contracts
             }
         }
 
-        /// <summary>Rolled within the range and rounded to 5%, clamped to what antiques can have.</summary>
-        private static float RollMinCondition(Vector2 range)
+        /// <summary>Minimum condition required for the contract.</summary>
+        private static float RollRequiredCondition(ConditionTier minTier, ConditionTier maxTier, string className)
         {
-            float min = Mathf.Min(range.x, range.y);
-            float max = Mathf.Max(range.x, range.y);
-            float rolled = Mathf.Round(UnityEngine.Random.Range(min, max) * 20f) / 20f;
-            return Mathf.Clamp(rolled, Antique.MinCondition, Antique.MaxCondition);
+            // A class saved before these fields existed can come back Unset. Fall back to the full
+            // range of tiers rather than refusing to generate, and say so once so it gets fixed.
+            if (!minTier.IsSet() && !maxTier.IsSet())
+            {
+                if (_warnedUnsetTiers.Add(className ?? string.Empty))
+                    Debug.LogWarning($"ContractManager: the {className ?? "standard"} contract class has no quality tiers set. Default values used.");
+
+                minTier = ConditionTiers.Lowest;
+                maxTier = ConditionTiers.Highest;
+            }
+
+            return Antique.QuantizeCondition(ConditionTiers.Random(minTier, maxTier).Threshold());
         }
+
+        private static readonly HashSet<string> _warnedUnsetTiers = new();
 
         private float UrgencyFactor(int duration)
         {

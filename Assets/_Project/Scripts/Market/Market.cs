@@ -90,7 +90,7 @@ namespace AntiqueTradingSimulator.Market
             if (definitionId == null)
                 return null;
 
-            float condition = Random.Range(Antique.MinCondition, Antique.MaxCondition);
+            float condition = Antique.RandomCondition();
             float priceFactor = Random.Range(Antique.MinPriceFactor, Antique.MaxPriceFactor);
 
             return CreateListing(definitionId, condition, priceFactor, RollShippingZone(), currentWeek, addSupply);

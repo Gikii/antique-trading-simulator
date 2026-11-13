@@ -137,10 +137,10 @@ namespace AntiqueTradingSimulator.Restoration
             var modifiers = inventory?.Modifiers;
 
             float start = antique.Condition;
-            float target = Mathf.Clamp(option.MaxCondition, Antique.MinCondition, Antique.MaxCondition);
+            float target = option.TargetCondition;
             float gain = Mathf.Max(0f, target - start);
-            float partial = start + gain * 0.5f;
-            float worst = Mathf.Max(Antique.MinCondition, start - Mathf.Max(option.FailureLossMin, option.FailureLossMax));
+            float partial = Antique.QuantizeCondition(start + gain * 0.5f);
+            float worst = Antique.QuantizeConditionDown(start - Mathf.Max(option.FailureLossMin, option.FailureLossMax));
 
             // Value the antique would have in perfect condition, at today's prices.
             float perfectValue = start > 0f ? antique.CurrentPrice / start : 0f;
@@ -233,7 +233,7 @@ namespace AntiqueTradingSimulator.Restoration
             float min = Mathf.Min(option.FailureLossMin, option.FailureLossMax);
             float max = Mathf.Max(option.FailureLossMin, option.FailureLossMax);
             float loss = UnityEngine.Random.Range(min, max);
-            return (RestorationOutcome.Failure, Mathf.Max(Antique.MinCondition, quote.StartCondition - loss));
+            return (RestorationOutcome.Failure, Antique.QuantizeConditionDown(quote.StartCondition - loss));
         }
 
         // ---------------------------------------------------------------- completing
@@ -260,7 +260,7 @@ namespace AntiqueTradingSimulator.Restoration
             float before = antique.Condition;
             float valueBefore = antique.CurrentPrice;
 
-            antique.Condition = Mathf.Clamp(job.ResultCondition, Antique.MinCondition, Antique.MaxCondition);
+            antique.Condition = Antique.QuantizeCondition(job.ResultCondition);
             antique.CompleteRestoration();
 
             // Condition affects price — re-value before anyone is notified.
