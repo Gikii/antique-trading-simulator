@@ -50,7 +50,7 @@ namespace AntiqueTradingSimulator.Restoration
         public event Action<RestorationRecord> OnRestorationCompleted;
         public event Action OnRestorationsRestored;
 
-        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 0;
         private Market.Market CurrentMarket => economyManager != null ? economyManager.Market : null;
 
         private void Awake()
@@ -73,13 +73,13 @@ namespace AntiqueTradingSimulator.Restoration
         private void OnEnable()
         {
             if (timeManager != null)
-                timeManager.OnDayChanged += HandleDayChanged;
+                timeManager.OnWeekChanged += HandleWeekChanged;
         }
 
         private void OnDisable()
         {
             if (timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnWeekChanged -= HandleWeekChanged;
         }
 
         // ---------------------------------------------------------------- player context
@@ -105,7 +105,7 @@ namespace AntiqueTradingSimulator.Restoration
             if (antique == null || inventory == null || !inventory.Owns(antique.Id))
                 return "You don't own this antique.";
             if (antique.IsInRestoration)
-                return $"Already being restored — ready on day {antique.RestorationEndDay}.";
+                return $"Already being restored — ready in week {antique.RestorationEndWeek}.";
             if (antique.IsInTransit)
                 return "In transit — it can be restored once it reaches your warehouse.";
             if (antique.IsListedForSale)
@@ -149,10 +149,10 @@ namespace AntiqueTradingSimulator.Restoration
             if (modifiers != null)
                 cost *= 1f - modifiers.RestorationCostReduction;
 
-            int days = option.DurationDays;
+            int weeks = option.DurationWeeks;
             if (modifiers != null)
-                days = Mathf.RoundToInt(days * (1f - modifiers.RestorationTimeReduction));
-            days = Mathf.Max(1, days);
+                weeks = Mathf.RoundToInt(weeks * (1f - modifiers.RestorationTimeReduction));
+            weeks = Mathf.Max(1, weeks);
 
             string reason = ItemBlockReason(antique);
             if (reason == null && gain <= ConditionEpsilon)
@@ -165,7 +165,7 @@ namespace AntiqueTradingSimulator.Restoration
             if (reason == null && inventory != null && cost > inventory.Cash)
                 reason = $"Not enough cash — {Mathf.CeilToInt(cost - inventory.Cash)} £ short.";
 
-            return new RestorationQuote(option, start, target, partial, worst, cost, CurrentDay, days, perfectValue, reason);
+            return new RestorationQuote(option, start, target, partial, worst, cost, CurrentWeek, weeks, perfectValue, reason);
         }
 
         public RestorationQuote Quote(Antique antique, string optionId) => Quote(antique, Settings.Get(optionId));
@@ -187,13 +187,13 @@ namespace AntiqueTradingSimulator.Restoration
             }
 
             var inventory = PlayerInventory;
-            int today = CurrentDay;
+            int thisWeek = CurrentWeek;
 
             var (outcome, result) = RollOutcome(quote);
 
             inventory.RemoveCash(quote.Cost, LedgerCategory.Restoration, $"Restoration of \"{antique.Name}\" ({option.DisplayName})");
-            antique.AddRestorationCost(quote.Cost, today);
-            antique.MarkInRestoration(quote.EndDay);
+            antique.AddRestorationCost(quote.Cost, thisWeek);
+            antique.MarkInRestoration(quote.EndWeek);
 
             var job = new RestorationJob
             {
@@ -202,8 +202,8 @@ namespace AntiqueTradingSimulator.Restoration
                 AntiqueName = antique.Name,
                 OptionId = option.Id,
                 OptionName = option.DisplayName,
-                StartDay = today,
-                EndDay = quote.EndDay,
+                StartWeek = thisWeek,
+                EndWeek = quote.EndWeek,
                 Cost = quote.Cost,
                 StartCondition = quote.StartCondition,
                 TargetCondition = quote.TargetCondition,
@@ -213,7 +213,7 @@ namespace AntiqueTradingSimulator.Restoration
             _jobs.Add(job);
 
             inventory.NotifyHoldingUpdated(antique.Id);
-            Debug.Log($"RestorationManager: {antique.Name} sent to {option.DisplayName} until day {job.EndDay} for {quote.Cost:F2}.");
+            Debug.Log($"RestorationManager: {antique.Name} sent to {option.DisplayName} until week {job.EndWeek} for {quote.Cost:F2}.");
             OnRestorationStarted?.Invoke(job);
             return true;
         }
@@ -238,17 +238,17 @@ namespace AntiqueTradingSimulator.Restoration
 
         // ---------------------------------------------------------------- completing
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
-            var due = _jobs.Where(j => j.EndDay <= newDay).ToList();
+            var due = _jobs.Where(j => j.EndWeek <= newWeek).ToList();
             foreach (var job in due)
             {
                 _jobs.Remove(job);
-                Complete(job, newDay);
+                Complete(job, newWeek);
             }
         }
 
-        private void Complete(RestorationJob job, int day)
+        private void Complete(RestorationJob job, int week)
         {
             var antique = job.Owner?.GetHolding(job.AntiqueId);
             if (antique == null)
@@ -267,14 +267,14 @@ namespace AntiqueTradingSimulator.Restoration
             if (CurrentMarket != null)
                 CurrentMarket.RecalculatePrice(antique);
 
-            antique.AppendHistory(HistoryLine(job, before, antique.Condition, day));
+            antique.AppendHistory(HistoryLine(job, before, antique.Condition, week));
 
             var record = new RestorationRecord
             {
                 AntiqueId = job.AntiqueId,
                 AntiqueName = job.AntiqueName,
                 OptionName = job.OptionName,
-                Day = day,
+                Week = week,
                 Outcome = job.Outcome,
                 StartCondition = before,
                 ResultCondition = antique.Condition,
@@ -287,14 +287,14 @@ namespace AntiqueTradingSimulator.Restoration
             OnRestorationCompleted?.Invoke(record);
         }
 
-        private static string HistoryLine(RestorationJob job, float before, float after, int day)
+        private static string HistoryLine(RestorationJob job, float before, float after, int week)
         {
             string change = $"condition {Mathf.RoundToInt(before * 100f)}% → {Mathf.RoundToInt(after * 100f)}%";
             return job.Outcome switch
             {
-                RestorationOutcome.Success => $"Restored by {job.OptionName} (day {day}), {change}.",
-                RestorationOutcome.Partial => $"Partly restored by {job.OptionName} (day {day}), {change}.",
-                _ => $"Damaged during restoration by {job.OptionName} (day {day}), {change}."
+                RestorationOutcome.Success => $"Restored by {job.OptionName} (week {week}), {change}.",
+                RestorationOutcome.Partial => $"Partly restored by {job.OptionName} (week {week}), {change}.",
+                _ => $"Damaged during restoration by {job.OptionName} (week {week}), {change}."
             };
         }
 
@@ -313,8 +313,8 @@ namespace AntiqueTradingSimulator.Restoration
         public IEnumerable<RestorationJob> GetJobsFor(TraderInventory owner) => _jobs.Where(j => j.Owner == owner);
 
         /// <summary>Restorations finished on or after the given day, newest first.</summary>
-        public IEnumerable<RestorationRecord> GetCompletedSince(int sinceDay) =>
-            _completed.Where(r => r.Day >= sinceDay).Reverse();
+        public IEnumerable<RestorationRecord> GetCompletedSince(int sinceWeek) =>
+            _completed.Where(r => r.Week >= sinceWeek).Reverse();
 
         // ---------------------------------------------------------------- save / load
 
@@ -362,7 +362,7 @@ namespace AntiqueTradingSimulator.Restoration
                     }
 
                     if (!antique.IsInRestoration)
-                        antique.MarkInRestoration(jobState.EndDay);
+                        antique.MarkInRestoration(jobState.EndWeek);
 
                     _jobs.Add(jobState.Restore(owner));
                 }
@@ -403,11 +403,11 @@ namespace AntiqueTradingSimulator.Restoration
         [ContextMenu("Debug/Finish all restorations now")]
         private void DebugFinishAll()
         {
-            int today = CurrentDay;
+            int thisWeek = CurrentWeek;
             foreach (var job in _jobs.ToList())
             {
                 _jobs.Remove(job);
-                Complete(job, today);
+                Complete(job, thisWeek);
             }
         }
 #endif

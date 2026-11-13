@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Economy
 {
@@ -31,10 +32,12 @@ namespace AntiqueTradingSimulator.Economy
 
         [Header("Listing spawning")]
         [SerializeField] private int initialListingCount = 6;
-        [SerializeField] private int newListingsPerDay = 3;
+        [FormerlySerializedAs("newListingsPerDay")]
+        [SerializeField] private int newListingsPerWeek = 3;
 
-        [Tooltip("Anonymous offers are withdrawn after this many days on the market, so it keeps refreshing. 0 = never.")]
-        [Min(0)] [SerializeField] private int anonymousListingLifetimeDays = 14;
+        [Tooltip("Anonymous offers are withdrawn after this many weeks on the market, so it keeps refreshing. 0 = never.")]
+        [FormerlySerializedAs("anonymousListingLifetimeDays")]
+        [Min(0)] [SerializeField] private int anonymousListingLifetimeWeeks = 14;
 
         [Header("Private collectors (in-memory defaults if empty)")]
         [Tooltip("Outside buyers for owner-set listings — see CollectorDemandSettings.")]
@@ -56,7 +59,40 @@ namespace AntiqueTradingSimulator.Economy
         public float CollectorSaleChance(Antique antique, float askingPrice) =>
             antique == null || Market == null
                 ? 0f
-                : CollectorDemand.DailyChance(antique, askingPrice, Market.GetTypeState(antique.DefinitionId), CollectorSettings);
+                : CollectorDemand.WeeklyChance(antique, askingPrice, Market.GetTypeState(antique.DefinitionId), CollectorSettings,
+                    CurrentMarketSeason.CollectorChance);
+
+        /// <summary>
+        /// The season's effect on the market this week (demand per type, NPC activity, collectors,
+        /// new offers), blended between the seasons around the current date — see SeasonSettings.
+        /// </summary>
+        public Seasons.SeasonSettings.MarketConditions CurrentMarketSeason =>
+            _timeManager != null
+                ? _timeManager.SeasonSettings.GetMarketConditions(MidWeek(_timeManager.CurrentWeek))
+                : default;
+
+        /// <summary>
+        /// Expected price change of an antique type from the seasons alone, <paramref name="weeksAhead"/> weeks
+        /// from now: 1.12 = 12% higher (its season is coming), 0.9 = 10% lower. Everything else held equal.
+        /// </summary>
+        public float SeasonalPriceOutlook(string definitionId, int weeksAhead)
+        {
+            if (_timeManager == null || Market == null || weeksAhead <= 0) return 1f;
+
+            var typeState = Market.GetTypeState(definitionId);
+            var definition = AntiqueDatabase.GetById(definitionId);
+            if (typeState == null || definition == null) return 1f;
+
+            var seasons = _timeManager.SeasonSettings;
+            float now = seasons.GetMarketConditions(MidWeek(_timeManager.CurrentWeek)).DemandMultiplier(definition.Type);
+            float later = seasons.GetMarketConditions(MidWeek(_timeManager.CurrentWeek + weeksAhead)).DemandMultiplier(definition.Type);
+
+            float futureDemand = typeState.EffectiveDemand + typeState.BaselineDemand * (later - now);
+            return PriceEngine.PriceRatioForDemand(typeState, futureDemand);
+        }
+
+        // The middle of a week (Thursday) stands for the whole week.
+        private DateTime MidWeek(int week) => _timeManager.WeekToDate(week).AddDays(3);
 
         public Market.Market Market { get; private set; }
 
@@ -90,8 +126,8 @@ namespace AntiqueTradingSimulator.Economy
             }
 
             // Ledger entries need the game day; read lazily since this may run before our Awake.
-            if (inventory.DayProvider == null)
-                inventory.DayProvider = () => _timeManager != null ? _timeManager.CurrentDay : 1;
+            if (inventory.WeekProvider == null)
+                inventory.WeekProvider = () => _timeManager != null ? _timeManager.CurrentWeek : 1;
         }
 
 
@@ -125,12 +161,12 @@ namespace AntiqueTradingSimulator.Economy
 
         void OnEnable()
         {
-            _timeManager.OnDayChanged += HandleDayChanged;
+            _timeManager.OnWeekChanged += HandleWeekChanged;
         }
 
         void OnDisable()
         {
-            _timeManager.OnDayChanged -= HandleDayChanged;
+            _timeManager.OnWeekChanged -= HandleWeekChanged;
         }
 
         private void InitializeMarket()
@@ -144,49 +180,67 @@ namespace AntiqueTradingSimulator.Economy
                 Market.RegisterType(definition.Id, defaultInitialSupply, defaultInitialDemand);
             }
 
+            // The campaign starts mid-season: price the opening market with its seasonal demand.
+            var season = CurrentMarketSeason;
+            Market.ApplySeasonalDemand(season.DemandMultiplier);
+            Market.RecalculateAllPrices();
+
             for (int i = 0; i < initialListingCount; i++)
             {
-                Market.GenerateListing(_timeManager.CurrentDay, addSupply: false);
+                Market.GenerateListing(_timeManager.CurrentWeek, addSupply: false);
             }
 
             Debug.Log($"EconomyManager: market initialized with {Market.Listings.Count} listings across {allDefinitions.Count} antique types.");
         }
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
-            Market.ApplyMeanReversion(supplyReversionRate, demandReversionRate);
-            Market.RecordDailyPrices(newDay);
+            var season = CurrentMarketSeason;
 
-            int expired = Market.RemoveExpiredListings(newDay, anonymousListingLifetimeDays);
+            // Seasonal demand first, so this week's revaluation (in ApplyMeanReversion) already includes it.
+            Market.ApplySeasonalDemand(season.DemandMultiplier);
+            Market.ApplyMeanReversion(supplyReversionRate, demandReversionRate);
+            Market.RecordWeeklyPrices(newWeek);
+
+            int expired = Market.RemoveExpiredListings(newWeek, anonymousListingLifetimeWeeks);
             if (expired > 0)
                 Debug.Log($"EconomyManager: {expired} old listing(s) withdrawn from the market.");
 
-            for (int i = 0; i < newListingsPerDay; i++)
+            int newListings = RollCount(newListingsPerWeek * season.NewListings);
+            for (int i = 0; i < newListings; i++)
             {
-                var listing = Market.GenerateListing(newDay);
+                var listing = Market.GenerateListing(newWeek);
                 if (listing != null)
                     Debug.Log($"EconomyManager: new listing appeared — {listing}");
             }
 
-            RollCollectorPurchases(newDay);
+            RollCollectorPurchases(newWeek, season.CollectorChance);
+        }
+
+        /// <summary>2.6 → 2 or 3 (3 with a 60% chance), so fractional seasonal counts still average out.</summary>
+        private static int RollCount(float expected)
+        {
+            if (expected <= 0f) return 0;
+            int whole = Mathf.FloorToInt(expected);
+            return whole + (UnityEngine.Random.value < expected - whole ? 1 : 0);
         }
 
 
         /// <summary>
         /// Each owner-set listing that has been on the market for at least a day gets one roll per
-        /// day against CollectorDemand.DailyChance. Runs after the day's revaluation, so the price
+        /// day against CollectorDemand.WeeklyChance. Runs after the day's revaluation, so the price
         /// ratio uses today's market value.
         /// </summary>
-        private void RollCollectorPurchases(int day)
+        private void RollCollectorPurchases(int week, float seasonFactor)
         {
             var settings = CollectorSettings;
             if (!settings.Enabled) return;
 
             foreach (var listing in Market.Listings.ToList())
             {
-                if (!listing.IsListedForSale || listing.MarketListedOnDay >= day) continue;
+                if (!listing.IsListedForSale || listing.MarketListedOnWeek >= week) continue;
 
-                float chance = CollectorDemand.DailyChance(listing, listing.AskingPrice, Market.GetTypeState(listing.DefinitionId), settings);
+                float chance = CollectorDemand.WeeklyChance(listing, listing.AskingPrice, Market.GetTypeState(listing.DefinitionId), settings, seasonFactor);
                 if (chance <= 0f || UnityEngine.Random.value >= chance) continue;
 
                 float price = listing.AskingPrice;

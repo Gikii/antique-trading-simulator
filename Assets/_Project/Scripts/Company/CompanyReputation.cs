@@ -14,15 +14,15 @@ namespace AntiqueTradingSimulator.Company
     /// <summary>One recorded change of reputation (points) or credibility (0..1 ratio).</summary>
     public readonly struct ReputationChange
     {
-        public readonly int Day;
+        public readonly int Week;
         public readonly ReputationKind Kind;
         public readonly float Delta;
         public readonly string Reason;
 
         [JsonConstructor]
-        public ReputationChange(int day, ReputationKind kind, float delta, string reason)
+        public ReputationChange(int week, ReputationKind kind, float delta, string reason)
         {
-            Day = day;
+            Week = week;
             Kind = kind;
             Delta = delta;
             Reason = reason ?? "";
@@ -57,18 +57,18 @@ namespace AntiqueTradingSimulator.Company
             Credibility = Mathf.Clamp01(settings.StartingCredibility);
         }
 
-        public void AddReputation(int delta, string reason, int day)
+        public void AddReputation(int delta, string reason, int week)
         {
             int before = Reputation;
             Reputation = Mathf.Max(0, Reputation + delta);
-            Record(new ReputationChange(day, ReputationKind.Reputation, Reputation - before, reason));
+            Record(new ReputationChange(week, ReputationKind.Reputation, Reputation - before, reason));
         }
 
-        public void AddCredibility(float delta, string reason, int day)
+        public void AddCredibility(float delta, string reason, int week)
         {
             float before = Credibility;
             Credibility = Mathf.Clamp01(Credibility + delta);
-            Record(new ReputationChange(day, ReputationKind.Credibility, Credibility - before, reason));
+            Record(new ReputationChange(week, ReputationKind.Credibility, Credibility - before, reason));
         }
 
         private void Record(ReputationChange change)

@@ -16,7 +16,7 @@ namespace AntiqueTradingSimulator.Saving
         /// <summary>Real-world time of the save, ISO 8601 round-trip format, UTC.</summary>
         public string SavedAtUtc;
 
-        public int SavedOnDay;
+        public int SavedOnWeek;
 
         /// <summary>Length of the campaign the save belongs to, for "Day 34 / 90". 0 in older saves.</summary>
         public int CampaignLength;

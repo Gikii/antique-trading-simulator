@@ -8,7 +8,7 @@ namespace AntiqueTradingSimulator.Market
         public string ListingId;
         public string DefinitionId;
 
-        public int MarketListedOnDay = -1;
+        public int MarketListedOnWeek = -1;
         public int EditionNumber;
         public string OwnerId = "";
 
@@ -19,7 +19,7 @@ namespace AntiqueTradingSimulator.Market
         public string History = "";
 
         public float PurchasePrice;
-        public int PurchasedOnDay = -1;
+        public int PurchasedOnWeek = -1;
         public float TransportCost;
         public float RestorationCost;
 
@@ -28,8 +28,8 @@ namespace AntiqueTradingSimulator.Market
 
         public ShippingZone ShippingZone = ShippingZone.Domestic;
         public AntiqueStatus Status = AntiqueStatus.Available;
-        public int ArrivalDay = -1;
-        public int RestorationEndDay = -1;
+        public int ArrivalWeek = -1;
+        public int RestorationEndWeek = -1;
 
         public static AntiqueState Capture(Antique antique)
         {
@@ -39,7 +39,7 @@ namespace AntiqueTradingSimulator.Market
             {
                 ListingId = antique.ListingId,
                 DefinitionId = antique.DefinitionId,
-                MarketListedOnDay = antique.MarketListedOnDay,
+                MarketListedOnWeek = antique.MarketListedOnWeek,
                 EditionNumber = antique.EditionNumber,
                 OwnerId = antique.OwnerId,
                 CurrentPrice = antique.CurrentPrice,
@@ -47,15 +47,15 @@ namespace AntiqueTradingSimulator.Market
                 PriceFactor = antique.PriceFactor,
                 History = antique.History,
                 PurchasePrice = antique.PurchasePrice,
-                PurchasedOnDay = antique.PurchasedOnDay,
+                PurchasedOnWeek = antique.PurchasedOnWeek,
                 TransportCost = antique.TransportCost,
                 RestorationCost = antique.RestorationCost,
                 AskingPrice = antique.AskingPrice,
                 ReservedForContractId = antique.ReservedForContractId,
                 ShippingZone = antique.ShippingZone,
                 Status = antique.Status,
-                ArrivalDay = antique.ArrivalDay,
-                RestorationEndDay = antique.RestorationEndDay
+                ArrivalWeek = antique.ArrivalWeek,
+                RestorationEndWeek = antique.RestorationEndWeek
             };
         }
 
@@ -64,22 +64,22 @@ namespace AntiqueTradingSimulator.Market
             var antique = new Antique(DefinitionId, Condition, PriceFactor, History, EditionNumber, OwnerId)
             {
                 ListingId = this.ListingId,
-                MarketListedOnDay = this.MarketListedOnDay,
+                MarketListedOnWeek = this.MarketListedOnWeek,
 
                 Condition = this.Condition,
                 PriceFactor = this.PriceFactor,
                 CurrentPrice = this.CurrentPrice,
 
                 PurchasePrice = this.PurchasePrice,
-                PurchasedOnDay = this.PurchasedOnDay,
+                PurchasedOnWeek = this.PurchasedOnWeek,
                 TransportCost = this.TransportCost,
                 RestorationCost = this.RestorationCost,
                 AskingPrice = this.AskingPrice,
                 ReservedForContractId = this.ReservedForContractId,
                 ShippingZone = this.ShippingZone,
                 Status = this.Status,
-                ArrivalDay = this.ArrivalDay,
-                RestorationEndDay = this.RestorationEndDay
+                ArrivalWeek = this.ArrivalWeek,
+                RestorationEndWeek = this.RestorationEndWeek
             };
 
             return antique;

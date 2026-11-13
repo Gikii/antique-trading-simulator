@@ -25,11 +25,11 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>Reputation, contract counts and daily history. Null in saves from before NPC records.</summary>
         public TraderRecordState Record;
 
-        public int PlanDay;
+        public int PlanWeek;
 
         public List<int> SlotTicks = new List<int>();
 
-        public float DayBudget;
+        public float WeekBudget;
 
         public float ContractReserve;
 
@@ -40,12 +40,12 @@ namespace AntiqueTradingSimulator.Agents
     {
         public string ListingId;
         public float PurchasePrice;
-        public int Day;
+        public int Week;
     }
 
     public class PendingReactionState
     {
-        public int ReactionDay;
+        public int ReactionWeek;
         public NewsItemState News;
     }
 }

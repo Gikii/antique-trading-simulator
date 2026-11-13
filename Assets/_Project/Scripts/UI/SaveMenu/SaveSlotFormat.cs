@@ -9,18 +9,18 @@ namespace AntiqueTradingSimulator.UI
     {
         private static readonly CultureInfo English = CultureInfo.InvariantCulture;
 
-        /// <summary>"Day 34 / 90 · 3 February 1885" (no "/ 90" for saves that don't know the campaign length).</summary>
-        public static string DayAndDate(SaveHeader header)
+        /// <summary>"Week 34 / 104 · 3 February 1885" (no "/ 104" for saves that don't know the campaign length).</summary>
+        public static string WeekAndDate(SaveHeader header)
         {
             if (header == null) return string.Empty;
 
-            string day = header.CampaignFinished
-                ? $"Day {header.SavedOnDay} · Sandbox"
+            string week = header.CampaignFinished
+                ? $"Week {header.SavedOnWeek} · Sandbox"
                 : header.CampaignLength > 0
-                    ? $"Day {header.SavedOnDay} / {header.CampaignLength}"
-                    : $"Day {header.SavedOnDay}";
+                    ? $"Week {header.SavedOnWeek} / {header.CampaignLength}"
+                    : $"Week {header.SavedOnWeek}";
 
-            return string.IsNullOrEmpty(header.InGameDate) ? day : $"{day} · {header.InGameDate}";
+            return string.IsNullOrEmpty(header.InGameDate) ? week : $"{week} · {header.InGameDate}";
         }
 
         /// <summary>"Cash 12,400 · Net worth 48,900 · Played 2 h 15 min".</summary>

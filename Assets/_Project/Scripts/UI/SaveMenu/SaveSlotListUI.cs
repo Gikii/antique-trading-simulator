@@ -162,7 +162,7 @@ namespace AntiqueTradingSimulator.UI
                 return;
             }
 
-            string what = info.CanLoad ? SaveSlotFormat.DayAndDate(info.Header) : SaveSlotFormat.Problem(info);
+            string what = info.CanLoad ? SaveSlotFormat.WeekAndDate(info.Header) : SaveSlotFormat.Problem(info);
             Confirm($"Overwrite {info.Slot.DisplayName}?",
                     $"{what}\nThis save will be replaced.",
                     "Overwrite",
@@ -181,7 +181,7 @@ namespace AntiqueTradingSimulator.UI
 
         private void AskDelete(SaveSlotInfo info)
         {
-            string what = info.CanLoad ? SaveSlotFormat.DayAndDate(info.Header) : SaveSlotFormat.Problem(info);
+            string what = info.CanLoad ? SaveSlotFormat.WeekAndDate(info.Header) : SaveSlotFormat.Problem(info);
             Confirm($"Delete {info.Slot.DisplayName}?",
                     $"{what}\nA deleted save can't be brought back.",
                     "Delete",

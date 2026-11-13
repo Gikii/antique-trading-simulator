@@ -14,8 +14,8 @@ namespace AntiqueTradingSimulator.Events
     public class ActiveEventState
     {
         public string EventDefinitionId;
-        public int StartDay;
-        public int EndDay;
+        public int StartWeek;
+        public int EndWeek;
 
         public static ActiveEventState Capture(ActiveEvent activeEvent)
         {
@@ -24,14 +24,14 @@ namespace AntiqueTradingSimulator.Events
             return new ActiveEventState
             {
                 EventDefinitionId = activeEvent.EventDefinitionID,
-                StartDay = activeEvent.StartDay,
-                EndDay = activeEvent.EndDay
+                StartWeek = activeEvent.StartWeek,
+                EndWeek = activeEvent.EndWeek
             };
         }
 
         public ActiveEvent Restore()
         {
-            var activeEvent = new ActiveEvent(EventDefinitionId, StartDay, EndDay);
+            var activeEvent = new ActiveEvent(EventDefinitionId, StartWeek, EndWeek);
             activeEvent.RebuildEffectInstances();
             return activeEvent;
         }

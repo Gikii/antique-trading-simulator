@@ -80,7 +80,7 @@ namespace AntiqueTradingSimulator.UI
         /// Today, or a day so early that nothing counts as started — without a TimeManager the
         /// view cannot tell what is in the past, and showing every item beats hiding every item.
         /// </summary>
-        private int CurrentDayOrNone => timeManager != null ? timeManager.CurrentDay : int.MinValue;
+        private int CurrentWeekOrNone => timeManager != null ? timeManager.CurrentWeek : int.MinValue;
 
 
         // =====================================================
@@ -200,22 +200,22 @@ namespace AntiqueTradingSimulator.UI
         private void SubscribeToTimeManager()
         {
             if (timeManager != null)
-                timeManager.OnDayChanged += HandleDayChanged;
+                timeManager.OnWeekChanged += HandleWeekChanged;
         }
 
         private void UnsubscribeFromTimeManager()
         {
             if (timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnWeekChanged -= HandleWeekChanged;
         }
 
         /// <summary>
         /// A new day can push announced events into the past, which drops their news out of
         /// the list. If the open details panel is showing one of those, it closes.
         /// </summary>
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
-            if (shownNews != null && shownNews.EventStarted(newDay))
+            if (shownNews != null && shownNews.EventStarted(newWeek))
                 CloseNewsDetails();
 
             if (!isActiveAndEnabled)
@@ -357,13 +357,13 @@ namespace AntiqueTradingSimulator.UI
             // Newest first (PublishedNews is stored in publishing order).
             var publishedNews = newsManager.PublishedNews;
             InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
-            int currentDay = CurrentDayOrNone;
+            int currentWeek = CurrentWeekOrNone;
 
             for (int i = publishedNews.Count - 1; i >= 0; i--)
             {
                 NewsItem news = publishedNews[i];
 
-                if (news.EventStarted(currentDay))
+                if (news.EventStarted(currentWeek))
                     continue;
 
                 if (!NewsPresentation.CanSee(news, accessLevel) || !MatchesCurrentFilter(news))
@@ -404,7 +404,7 @@ namespace AntiqueTradingSimulator.UI
         {
             Debug.Log(
                 $"News clicked: {news.Type}, " +
-                $"published day {news.DayPublished}"
+                $"published week {news.WeekPublished}"
             );
 
             OpenNewsDetails();
@@ -515,7 +515,7 @@ namespace AntiqueTradingSimulator.UI
 
             Debug.Log(
                 $"NewsEventsView: refreshing Active Events. " +
-                $"Current day: {timeManager.CurrentDay}, " +
+                $"Current week: {timeManager.CurrentWeek}, " +
                 $"active events: {eventManager.ActiveEvents.Count}"
             );
 
@@ -531,7 +531,7 @@ namespace AntiqueTradingSimulator.UI
 
                 item.Setup(
                     activeEvent,
-                    timeManager.CurrentDay,
+                    timeManager.CurrentWeek,
                     HandleActiveEventClicked
                 );
             }
@@ -564,7 +564,7 @@ namespace AntiqueTradingSimulator.UI
 
             Debug.Log(
                 $"Active event clicked: {eventName} " +
-                $"(Day {activeEvent.StartDay}-{activeEvent.EndDay})"
+                $"(Week {activeEvent.StartWeek}-{activeEvent.EndWeek})"
             );
 
             OpenEventDetails();
@@ -658,12 +658,12 @@ namespace AntiqueTradingSimulator.UI
             if (newsManager != null)
             {
                 InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
-                int currentDay = CurrentDayOrNone;
+                int currentWeek = CurrentWeekOrNone;
 
                 foreach (NewsItem news in newsManager.PublishedNews)
                 {
                     // Same rule as RefreshNewsList, so the counts match the rows on screen.
-                    if (news.EventStarted(currentDay) || !NewsPresentation.CanSee(news, accessLevel))
+                    if (news.EventStarted(currentWeek) || !NewsPresentation.CanSee(news, accessLevel))
                         continue;
 
                     all++;

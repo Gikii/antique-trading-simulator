@@ -37,9 +37,9 @@ namespace AntiqueTradingSimulator.Auctions
     {
         public string Id;
         public int Number;
-        public int Day;
+        public int Week;
         public int StartTick;
-        public int AnnouncedOnDay;
+        public int AnnouncedOnWeek;
         public AuctionStatus Status = AuctionStatus.Announced;
 
         /// <summary>True once the player joined the live session (kept for the results).</summary>

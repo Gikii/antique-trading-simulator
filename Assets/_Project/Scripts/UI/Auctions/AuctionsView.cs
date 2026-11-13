@@ -66,7 +66,7 @@ namespace AntiqueTradingSimulator.UI
         private bool _subscribed;
         private bool _wasJoinWindowOpen;
 
-        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 1;
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 1;
         private Market.Market CurrentMarket => economyManager != null ? economyManager.Market : null;
 
         private void Awake()
@@ -108,7 +108,7 @@ namespace AntiqueTradingSimulator.UI
                 auctionManager.OnAuctionsRestored += Refresh;
             }
 
-            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged += HandleWeekChanged;
             _subscribed = true;
         }
 
@@ -126,14 +126,14 @@ namespace AntiqueTradingSimulator.UI
                 auctionManager.OnAuctionsRestored -= Refresh;
             }
 
-            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged -= HandleWeekChanged;
             _subscribed = false;
         }
 
         private void HandleAuctionChanged(Auction auction) => Refresh();
         private void HandleJoinWindowClosed(Auction auction, bool joined) => Refresh();
         private void HandleLotSettled(Auction auction, AuctionLot lot) => Refresh();
-        private void HandleDayChanged(int day) => Refresh();
+        private void HandleWeekChanged(int week) => Refresh();
 
         private void Update()
         {
@@ -211,13 +211,13 @@ namespace AntiqueTradingSimulator.UI
             if (next == null)
             {
                 SetText(headerTitleText, "No auction announced");
-                SetText(headerSubtitleText, UIFormat.Colorize("Catalogs are published a few days before each auction.", UIFormat.MutedColor));
+                SetText(headerSubtitleText, UIFormat.Colorize("Catalogs are published a few weeks before each auction.", UIFormat.MutedColor));
                 return;
             }
 
-            SetText(headerTitleText, $"{AuctionPresentation.Title(next)} · {UIFormat.GameDate(next.Day)}, {AuctionPresentation.Hour(next.StartTick)}");
+            SetText(headerTitleText, $"{AuctionPresentation.Title(next)} · {AuctionPresentation.Date(next)}");
             SetText(headerSubtitleText,
-                $"{Capitalize(AuctionPresentation.When(next, CurrentDay))} · {next.Lots.Count} lots · estimates {AuctionPresentation.TotalEstimate(next)} in total");
+                $"{Capitalize(AuctionPresentation.When(next, CurrentWeek))} · {next.Lots.Count} lots · estimates {AuctionPresentation.TotalEstimate(next)} in total");
         }
 
         private void SetJoin(bool visible, string label)
@@ -255,12 +255,12 @@ namespace AntiqueTradingSimulator.UI
             if (auctionManager == null) return 0;
 
             int rows = 0;
-            int today = CurrentDay;
+            int thisWeek = CurrentWeek;
 
             foreach (var auction in auctionManager.Upcoming)
             {
-                AddSection($"{AuctionPresentation.Title(auction)} · {UIFormat.GameDate(auction.Day)}, {AuctionPresentation.Hour(auction.StartTick)}" +
-                           UIFormat.Colorize($"  ({AuctionPresentation.When(auction, today)})", UIFormat.MutedColor));
+                AddSection($"{AuctionPresentation.Title(auction)} · {AuctionPresentation.Date(auction)}" +
+                           UIFormat.Colorize($"  ({AuctionPresentation.When(auction, thisWeek)})", UIFormat.MutedColor));
 
                 foreach (var lot in auction.Lots)
                 {
@@ -284,7 +284,7 @@ namespace AntiqueTradingSimulator.UI
             foreach (var auction in auctionManager.History)
             {
                 string attendance = auction.PlayerJoined ? "you took part" : "held without you";
-                AddSection($"{AuctionPresentation.Title(auction)} · {UIFormat.GameDate(auction.Day)}" +
+                AddSection($"{AuctionPresentation.Title(auction)} · {UIFormat.GameDate(auction.Week)}" +
                            UIFormat.Colorize($"  ({auction.SoldCount}/{auction.Lots.Count} sold · {attendance})", UIFormat.MutedColor));
 
                 foreach (var lot in auction.Lots)
@@ -391,7 +391,7 @@ namespace AntiqueTradingSimulator.UI
         {
             if (auction == null) return "";
 
-            string when = AuctionPresentation.When(auction, CurrentDay);
+            string when = AuctionPresentation.When(auction, CurrentWeek);
             return UIFormat.Colorize(
                 $"Bidding is live only. When the auction starts ({when}) you'll have a few seconds to join.",
                 UIFormat.MutedColor);

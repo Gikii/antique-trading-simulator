@@ -7,7 +7,7 @@ namespace AntiqueTradingSimulator.Events
     [Serializable]
     public class ScheduledEvent
     {
-        public int TriggerDay;
+        public int TriggerWeek;
         public string EventDefinitionId;
         public EventType EventType;
 
@@ -18,9 +18,9 @@ namespace AntiqueTradingSimulator.Events
 
         public ScheduledEvent() { }
 
-        public ScheduledEvent(int triggerDay, EventDefinition eventDefinition)
+        public ScheduledEvent(int triggerWeek, EventDefinition eventDefinition)
         {
-            TriggerDay = triggerDay;
+            TriggerWeek = triggerWeek;
             EventDefinitionId = eventDefinition.Id;
             _definitionCache = eventDefinition;
             EventType = eventDefinition.EventType;

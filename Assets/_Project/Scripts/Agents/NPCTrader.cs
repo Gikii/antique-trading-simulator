@@ -41,7 +41,7 @@ namespace AntiqueTradingSimulator.Agents
 
         public InfoAccessLevel AccessLevel => Profile != null ? Profile.AccessLevel : InfoAccessLevel.LocalPress;
 
-        private const int NewsActionWindowDays = 2;
+        private const int NewsActionWindowWeeks = 2;
 
         /// <summary>Exclusive contracts must leave at least this share of the reward as profit (they carry a penalty).</summary>
         private const float ExclusiveMinProfitShare = 0.15f;
@@ -54,18 +54,21 @@ namespace AntiqueTradingSimulator.Agents
 
         private const float CommittedBargainPenalty = 2f;
 
+        /// <summary>Expected seasonal rise (fall) beyond which a far-sighted NPC holds (sells) an antique.</summary>
+        private const float SeasonalHoldThreshold = 0.03f;
+
         public float ActivityScale { get; set; } = 1f;
 
         private struct PendingReaction
         {
             public NewsItem News;
-            public int ReactionDay;
+            public int ReactionWeek;
         }
 
         private struct Acquisition
         {
             public float PurchasePrice;
-            public int Day;
+            public int Week;
         }
 
         private readonly struct Offer
@@ -73,25 +76,25 @@ namespace AntiqueTradingSimulator.Agents
             public readonly Antique Listing;
             public readonly TransportOption Option;
             public readonly float Cost;
-            public readonly int ArrivalDay;
-            public readonly int DurationDays;
+            public readonly int ArrivalWeek;
+            public readonly int DurationWeeks;
 
-            public Offer(Antique listing, TransportOption option, float cost, int arrivalDay, int durationDays)
+            public Offer(Antique listing, TransportOption option, float cost, int arrivalWeek, int durationWeeks)
             {
                 Listing = listing;
                 Option = option;
                 Cost = cost;
-                ArrivalDay = arrivalDay;
-                DurationDays = durationDays;
+                ArrivalWeek = arrivalWeek;
+                DurationWeeks = durationWeeks;
             }
         }
 
         private readonly List<PendingReaction> _pendingReactions = new();
         private readonly Dictionary<string, Acquisition> _acquisitions = new();
 
-        private int _planDay = -1;
+        private int _planWeek = -1;
         private readonly List<int> _slotTicks = new();
-        private float _dayBudget;
+        private float _weekBudget;
         private float _contractReserve;
         private int _contractSlotsUsed;
         private int _lastObligationTick = -1;
@@ -139,8 +142,8 @@ namespace AntiqueTradingSimulator.Agents
                 _transportManager.OnShipmentDelivered -= HandleShipmentDelivered;
         }
 
-        private int CurrentDay => _economyManager != null && _economyManager.TimeManager != null
-            ? _economyManager.TimeManager.CurrentDay
+        private int CurrentWeek => _economyManager != null && _economyManager.TimeManager != null
+            ? _economyManager.TimeManager.CurrentWeek
             : 0;
 
         private int TicksPerPeriod => _economyManager != null && _economyManager.TimeManager != null
@@ -149,62 +152,62 @@ namespace AntiqueTradingSimulator.Agents
 
         // ---------------------------------------------------------------- actions on tick
 
-        public void RunScheduledActions(int day, int tick)
+        public void RunScheduledActions(int week, int tick)
         {
             var profile = Profile;
             if (profile == null || _economyManager.Market == null) return;
 
-            if (_planDay != day) PlanPeriod(day, tick, profile);
+            if (_planWeek != week) PlanPeriod(week, tick, profile);
 
             if (_lastObligationTick != tick)
             {
                 _lastObligationTick = tick;
-                RunObligations(day, profile);
+                RunObligations(week, profile);
             }
 
             while (_slotTicks.Count > 0 && _slotTicks[0] <= tick)
             {
                 _slotTicks.RemoveAt(0);
-                RunOneBudgetedAction(day, profile);
+                RunOneBudgetedAction(week, profile);
             }
         }
 
         public void FlushRemainingSlots()
         {
             var profile = Profile;
-            if (profile == null || _economyManager.Market == null || _planDay < 0) return;
+            if (profile == null || _economyManager.Market == null || _planWeek < 0) return;
 
             while (_slotTicks.Count > 0)
             {
                 _slotTicks.RemoveAt(0);
-                RunOneBudgetedAction(_planDay, profile);
+                RunOneBudgetedAction(_planWeek, profile);
             }
         }
 
-        public void EvaluateDay(int currentDay)
+        public void EvaluateWeek(int currentWeek)
         {
             var profile = Profile;
             if (profile == null || _economyManager.Market == null) return;
 
-            PlanPeriod(currentDay, 0, profile);
-            RunObligations(currentDay, profile);
+            PlanPeriod(currentWeek, 0, profile);
+            RunObligations(currentWeek, profile);
             FlushRemainingSlots();
         }
 
         // ---------------------------------------------------------------- planning
 
-        private void PlanPeriod(int day, int fromTick, NpcBehaviorProfile profile)
+        private void PlanPeriod(int week, int fromTick, NpcBehaviorProfile profile)
         {
-            _planDay = day;
+            _planWeek = week;
             _contractSlotsUsed = 0;
             _lastObligationTick = -1;
-            _rng = new System.Random(SeedFor(day));
+            _rng = new System.Random(SeedFor(week));
 
             DropInactiveContracts();
-            DropExpiredReactions(day);
+            DropExpiredReactions(week);
 
             _contractReserve = CalculateContractReserve();
-            _dayBudget = Mathf.Max(0f, Inventory.Cash - _contractReserve) * profile.DailyBudgetFraction;
+            _weekBudget = Mathf.Max(0f, Inventory.Cash - _contractReserve) * profile.WeeklyBudgetFraction;
 
             RollSlotTicks(fromTick, profile);
         }
@@ -246,7 +249,7 @@ namespace AntiqueTradingSimulator.Agents
                 if (taken[t]) _slotTicks.Add(t);
         }
 
-        private int SeedFor(int day)
+        private int SeedFor(int week)
         {
             unchecked
             {
@@ -254,7 +257,7 @@ namespace AntiqueTradingSimulator.Agents
                 string id = Id ?? TraderName ?? "npc";
                 for (int i = 0; i < id.Length; i++)
                     hash = (hash ^ id[i]) * 16777619;
-                return hash ^ (day * 397);
+                return hash ^ (week * 397);
             }
         }
 
@@ -281,14 +284,14 @@ namespace AntiqueTradingSimulator.Agents
 
         // ---------------------------------------------------------------- non-tick actions
 
-        private void RunObligations(int day, NpcBehaviorProfile profile)
+        private void RunObligations(int week, NpcBehaviorProfile profile)
         {
             DropInactiveContracts();
             ReserveMatchingHoldings();
-            DropUnfullfillableOpenContracts(day, profile);
-            FulfillReadyContracts(day);
+            DropUnfullfillableOpenContracts(week, profile);
+            FulfillReadyContracts(week);
             RunStopLoss(profile);
-            WithdrawStaleListings(day, profile);
+            WithdrawStaleListings(week, profile);
         }
 
         private void DropInactiveContracts()
@@ -310,10 +313,10 @@ namespace AntiqueTradingSimulator.Agents
             Inventory.ReleaseCommittedContract(dead);
         }
 
-        private void DropExpiredReactions(int day)
+        private void DropExpiredReactions(int week)
         {
             for (int i = _pendingReactions.Count - 1; i >= 0; i--)
-                if (day > _pendingReactions[i].ReactionDay + NewsActionWindowDays)
+                if (week > _pendingReactions[i].ReactionWeek + NewsActionWindowWeeks)
                     _pendingReactions.RemoveAt(i);
         }
 
@@ -343,7 +346,7 @@ namespace AntiqueTradingSimulator.Agents
             }
         }
 
-        private void FulfillReadyContracts(int day)
+        private void FulfillReadyContracts(int week)
         {
             if (_contractManager == null || Inventory.CommittedContractIds.Count == 0) return;
 
@@ -358,10 +361,10 @@ namespace AntiqueTradingSimulator.Agents
                 break;
             }
 
-            if (ready != null) TryFulfillContract(ready, day);
+            if (ready != null) TryFulfillContract(ready, week);
         }
 
-        private void TryFulfillContract(Contract contract, int day)
+        private void TryFulfillContract(Contract contract, int week)
         {
             var listingIds = new List<string>(contract.Requirement.Quantity);
 
@@ -384,11 +387,11 @@ namespace AntiqueTradingSimulator.Agents
                     _acquisitions.Remove(listingId);
 
                 Inventory.ReleaseCommittedContract(contract.ContractId);
-                Record.ContractFulfilled(contract, day);
+                Record.ContractFulfilled(contract, week);
             }
         }
 
-        private void DropUnfullfillableOpenContracts(int day, NpcBehaviorProfile profile)
+        private void DropUnfullfillableOpenContracts(int week, NpcBehaviorProfile profile)
         {
             if (_contractManager == null || Inventory.CommittedContractIds.Count == 0) return;
 
@@ -401,8 +404,8 @@ namespace AntiqueTradingSimulator.Agents
 
                 int missing = MissingFor(contract);
                 if (missing <= 0) continue;
-                if (UrgencyOf(contract, day, profile) != ContractUrgency.Critical) continue;
-                if (IsStillReachable(contract, missing, day, profile)) continue;
+                if (UrgencyOf(contract, week, profile) != ContractUrgency.Critical) continue;
+                if (IsStillReachable(contract, missing, week, profile)) continue;
 
                 hopeless = contract;
                 break;
@@ -413,7 +416,7 @@ namespace AntiqueTradingSimulator.Agents
             Debug.Log($"{TraderName} dropped open contract {hopeless.ContractId}. They cannot aquire missing antiques in remaining time.");
             Inventory.ReleaseAllReservationsForContract(hopeless.ContractId);
             Inventory.ReleaseCommittedContract(hopeless.ContractId);
-            Record.ContractFailed(hopeless, day);
+            Record.ContractFailed(hopeless, week);
         }
 
         private void RunStopLoss(NpcBehaviorProfile profile)
@@ -443,8 +446,8 @@ namespace AntiqueTradingSimulator.Agents
             if (SellListing(victim)) _acquisitions.Remove(victim);
         }
 
-        /// <summary>Withdraws one of its own listings that has sat unsold past RelistAfterDays.</summary>
-        private void WithdrawStaleListings(int day, NpcBehaviorProfile profile)
+        /// <summary>Withdraws one of its own listings that has sat unsold past RelistAfterWeeks.</summary>
+        private void WithdrawStaleListings(int week, NpcBehaviorProfile profile)
         {
             if (!profile.ListsOnMarket) return;
 
@@ -453,8 +456,8 @@ namespace AntiqueTradingSimulator.Agents
             {
                 var holding = pair.Value;
                 if (!holding.IsListedForSale) continue;
-                if (holding.MarketListedOnDay < 0) continue;
-                if (day - holding.MarketListedOnDay < Mathf.Max(1, profile.RelistAfterDays)) continue;
+                if (holding.MarketListedOnWeek < 0) continue;
+                if (week - holding.MarketListedOnWeek < Mathf.Max(1, profile.RelistAfterWeeks)) continue;
 
                 stale = holding.Id;
                 break;
@@ -465,15 +468,15 @@ namespace AntiqueTradingSimulator.Agents
 
         // ---------------------------------------------------------------- tick action priority ladder
 
-        private void RunOneBudgetedAction(int day, NpcBehaviorProfile profile)
+        private void RunOneBudgetedAction(int week, NpcBehaviorProfile profile)
         {
-            if (TierContractRescue(day, profile)) return;
-            if (TierDamageControl(day, profile)) return;
-            if (TierNewsBuy(day, profile)) return;
-            if (TierContractWork(day, profile)) return;
-            if (TierReviewHoldings(day, profile)) return;
-            if (TierTakeContract(day, profile)) return;
-            if (TierBrowseMarket(day, profile)) return;
+            if (TierContractRescue(week, profile)) return;
+            if (TierDamageControl(week, profile)) return;
+            if (TierNewsBuy(week, profile)) return;
+            if (TierContractWork(week, profile)) return;
+            if (TierReviewHoldings(week, profile)) return;
+            if (TierTakeContract(week, profile)) return;
+            if (TierBrowseMarket(week, profile)) return;
         }
 
         private int ContractSlotsAllowed(NpcBehaviorProfile profile)
@@ -484,20 +487,20 @@ namespace AntiqueTradingSimulator.Agents
 
         // ---------------------------------------------------------------- contract tick actions
 
-        private bool TierContractRescue(int day, NpcBehaviorProfile profile) =>
-            WorkOnContracts(day, profile, urgentOnly: true);
+        private bool TierContractRescue(int week, NpcBehaviorProfile profile) =>
+            WorkOnContracts(week, profile, urgentOnly: true);
 
-        private bool TierContractWork(int day, NpcBehaviorProfile profile)
+        private bool TierContractWork(int week, NpcBehaviorProfile profile)
         {
             if (_contractSlotsUsed >= ContractSlotsAllowed(profile)) return false;
-            return WorkOnContracts(day, profile, urgentOnly: false);
+            return WorkOnContracts(week, profile, urgentOnly: false);
         }
 
-        private bool WorkOnContracts(int day, NpcBehaviorProfile profile, bool urgentOnly)
+        private bool WorkOnContracts(int week, NpcBehaviorProfile profile, bool urgentOnly)
         {
             if (_contractManager == null) return false;
 
-            CollectActiveContracts(day, profile);
+            CollectActiveContracts(week, profile);
             if (_contractScratch.Count == 0) return false;
 
             foreach (var contract in _contractScratch)
@@ -505,11 +508,11 @@ namespace AntiqueTradingSimulator.Agents
                 int missing = MissingFor(contract);
                 if (missing <= 0) continue;
 
-                var urgency = UrgencyOf(contract, day, profile);
+                var urgency = UrgencyOf(contract, week, profile);
                 if (urgentOnly && urgency == ContractUrgency.Normal) continue;
                 if (!urgentOnly && urgency != ContractUrgency.Normal) continue;
 
-                var offer = BestOfferFor(contract, day, profile, urgency);
+                var offer = BestOfferFor(contract, week, profile, urgency);
                 if (offer.Listing == null) continue;
 
                 float cost = offer.Cost;
@@ -517,20 +520,20 @@ namespace AntiqueTradingSimulator.Agents
 
                 if (!BuyListing(offer.Listing.Id, offer.Option)) continue;
 
-                _acquisitions[offer.Listing.Id] = new Acquisition { PurchasePrice = offer.Listing.PurchasePrice, Day = day };
+                _acquisitions[offer.Listing.Id] = new Acquisition { PurchasePrice = offer.Listing.PurchasePrice, Week = week };
                 Inventory.ReserveForContract(offer.Listing.Id, contract.ContractId);
 
                 _contractReserve = CalculateContractReserve();
                 if (!urgentOnly) _contractSlotsUsed++;
 
-                Debug.Log($"{TraderName} bought {offer.Listing.Name} for contract {contract.ContractId} ({urgency}, {offer.Option} transport, arrives day {offer.ArrivalDay}).");
+                Debug.Log($"{TraderName} bought {offer.Listing.Name} for contract {contract.ContractId} ({urgency}, {offer.Option} transport, arrives week {offer.ArrivalWeek}).");
                 return true;
             }
 
             return false;
         }
 
-        private void CollectActiveContracts(int day, NpcBehaviorProfile profile)
+        private void CollectActiveContracts(int week, NpcBehaviorProfile profile)
         {
             _contractScratch.Clear();
             if (_contractManager == null) return;
@@ -543,44 +546,44 @@ namespace AntiqueTradingSimulator.Agents
             }
 
             // Tightest deadline first.
-            _contractScratch.Sort((a, b) => a.DeadlineDay.CompareTo(b.DeadlineDay));
+            _contractScratch.Sort((a, b) => a.DeadlineWeek.CompareTo(b.DeadlineWeek));
         }
 
-        private bool TierTakeContract(int day, NpcBehaviorProfile profile)
+        private bool TierTakeContract(int week, NpcBehaviorProfile profile)
         {
             if (!profile.TakesContracts || _contractManager == null) return false;
-            return ConsiderNewContract(day, profile);
+            return ConsiderNewContract(week, profile);
         }
 
         // ---------------------------------------------------------------- news tick actions
 
-        private bool TierDamageControl(int day, NpcBehaviorProfile profile)
+        private bool TierDamageControl(int week, NpcBehaviorProfile profile)
         {
             if (profile.NeverSells) return false;
 
             for (int i = _pendingReactions.Count - 1; i >= 0; i--)
             {
                 var pending = _pendingReactions[i];
-                if (pending.ReactionDay > day) continue;
-                if (SellOnNews(pending.News, day, profile)) return true;
+                if (pending.ReactionWeek > week) continue;
+                if (SellOnNews(pending.News, week, profile)) return true;
             }
 
             return false;
         }
 
-        private bool TierNewsBuy(int day, NpcBehaviorProfile profile)
+        private bool TierNewsBuy(int week, NpcBehaviorProfile profile)
         {
             for (int i = _pendingReactions.Count - 1; i >= 0; i--)
             {
                 var pending = _pendingReactions[i];
-                if (pending.ReactionDay > day) continue;
-                if (BuyOnNews(pending.News, day, profile)) return true;
+                if (pending.ReactionWeek > week) continue;
+                if (BuyOnNews(pending.News, week, profile)) return true;
             }
 
             return false;
         }
 
-        private bool SellOnNews(NewsItem news, int day, NpcBehaviorProfile profile)
+        private bool SellOnNews(NewsItem news, int week, NpcBehaviorProfile profile)
         {
             foreach (var effect in news.NewsData)
             {
@@ -609,14 +612,14 @@ namespace AntiqueTradingSimulator.Agents
                 if (!SellListing(victim)) continue;
 
                 _acquisitions.Remove(victim);
-                Debug.Log($"{TraderName} sold {victimName} ahead of {news.Type} news from day {news.DayPublished}.");
+                Debug.Log($"{TraderName} sold {victimName} ahead of {news.Type} news from week {news.WeekPublished}.");
                 return true;
             }
 
             return false;
         }
 
-        private bool BuyOnNews(NewsItem news, int day, NpcBehaviorProfile profile)
+        private bool BuyOnNews(NewsItem news, int week, NpcBehaviorProfile profile)
         {
             foreach (var effect in news.NewsData)
             {
@@ -631,12 +634,12 @@ namespace AntiqueTradingSimulator.Agents
                     if (!CanConsider(listing, profile)) continue;
 
                     float cost = EstimateTotalCost(listing, NpcTransportOption);
-                    if (cost > _dayBudget || !IsAcceptablePrice(listing, profile)) continue;
+                    if (cost > _weekBudget || !IsAcceptablePrice(listing, profile)) continue;
                     if (!PassesCashFloor(cost)) continue;
 
-                    if (!TryBuyForStock(listing, day, cost)) continue;
+                    if (!TryBuyForStock(listing, week, cost)) continue;
 
-                    Debug.Log($"{TraderName} bought {listing.Name} on {news.Type} news from day {news.DayPublished}.");
+                    Debug.Log($"{TraderName} bought {listing.Name} on {news.Type} news from week {news.WeekPublished}.");
                     return true;
                 }
             }
@@ -668,7 +671,7 @@ namespace AntiqueTradingSimulator.Agents
 
         // ---------------------------------------------------------------- sell holdings tick actions
 
-        private bool TierReviewHoldings(int day, NpcBehaviorProfile profile)
+        private bool TierReviewHoldings(int week, NpcBehaviorProfile profile)
         {
             if (profile.NeverSells) return false;
 
@@ -684,14 +687,20 @@ namespace AntiqueTradingSimulator.Agents
                 if (holding.IsInTransit || holding.IsInRestoration) continue;
                 if (!_acquisitions.TryGetValue(holding.Id, out var acquisition)) continue;
 
-                int held = day - acquisition.Day;
-                if (held < profile.MinHoldingDaysBeforeSell) continue;
+                int held = week - acquisition.Week;
+                if (held < profile.MinHoldingWeeksBeforeSell) continue;
 
                 float value = holding.CurrentPrice;
-                bool patient = profile.PatientSellAfterDays > 0 && held >= profile.PatientSellAfterDays;
+                bool patient = profile.PatientSellAfterWeeks > 0 && held >= profile.PatientSellAfterWeeks;
                 float target = patient
                     ? Mathf.Min(profile.PatientProfitMultiplier, profile.ProfitTargetMultiplier)
                     : profile.ProfitTargetMultiplier;
+
+                // A far-sighted trader waits for a coming season and cashes in before one ends.
+                float seasonal = SeasonalOutlook(holding.DefinitionId, profile);
+                if (seasonal >= SeasonalHoldThreshold && !patient) continue;
+                if (seasonal <= -SeasonalHoldThreshold)
+                    target = Mathf.Min(target, profile.PatientProfitMultiplier);
 
                 if (value < acquisition.PurchasePrice * target) continue;
 
@@ -706,7 +715,7 @@ namespace AntiqueTradingSimulator.Agents
 
             if (profile.ListsOnMarket)
             {
-                if (!Inventory.ListForSale(_economyManager.Market, chosen, askingPrice, day)) return false;
+                if (!Inventory.ListForSale(_economyManager.Market, chosen, askingPrice, week)) return false;
 
                 Debug.Log($"{TraderName} listed {chosenName} for {askingPrice:F0} £ (value {estimatedValue:F0} £).");
                 return true;
@@ -720,9 +729,9 @@ namespace AntiqueTradingSimulator.Agents
 
         // ---------------------------------------------------------------- buy from market tick actions
 
-        private bool TierBrowseMarket(int day, NpcBehaviorProfile profile)
+        private bool TierBrowseMarket(int week, NpcBehaviorProfile profile)
         {
-            if (_dayBudget <= 0f) return false;
+            if (_weekBudget <= 0f) return false;
 
             var market = _economyManager.Market;
             if (market == null) return false;
@@ -741,7 +750,7 @@ namespace AntiqueTradingSimulator.Agents
                 if (!IsInterestedIn(listing.Definition, profile)) continue;
 
                 float cost = EstimateTotalCost(listing, NpcTransportOption);
-                if (cost <= 0f || cost > _dayBudget) continue;
+                if (cost <= 0f || cost > _weekBudget) continue;
                 if (!IsAcceptablePrice(listing, profile)) continue;
                 if (!PassesCashFloor(cost)) continue;
 
@@ -755,7 +764,7 @@ namespace AntiqueTradingSimulator.Agents
 
             if (best == null) return false;
 
-            if (!TryBuyForStock(best, day, bestCost)) return false;
+            if (!TryBuyForStock(best, week, bestCost)) return false;
 
             Debug.Log($"{TraderName} bought {best.Name} on the open market (score {bestScore:P0}, cost {bestCost:F0} £).");
             return true;
@@ -768,9 +777,9 @@ namespace AntiqueTradingSimulator.Agents
             if (totalCost <= 0f) return 0f;
 
             float fair = FairValue(listing, profile);
-            int holdPeriods = profile.PatientSellAfterDays > 0
-                ? profile.PatientSellAfterDays
-                : Mathf.Max(1, profile.MinHoldingDaysBeforeSell);
+            int holdPeriods = profile.PatientSellAfterWeeks > 0
+                ? profile.PatientSellAfterWeeks
+                : Mathf.Max(1, profile.MinHoldingWeeksBeforeSell);
 
             float carry = holdPeriods * MarginalUpkeepPerItem();
             return (fair - totalCost - carry) / totalCost;
@@ -792,15 +801,31 @@ namespace AntiqueTradingSimulator.Agents
             if (warehouse == null) return 0f;
 
             int used = Inventory.UsedSlots;
-            return Mathf.Max(0f, warehouse.CalculateDailyUpkeep(used + 1) - warehouse.CalculateDailyUpkeep(used));
+            return Mathf.Max(0f, warehouse.CalculateWeeklyUpkeep(used + 1) - warehouse.CalculateWeeklyUpkeep(used));
         }
 
-        /// <summary>What the antique is worth in its condition, with the profile's condition premium.</summary>
+        /// <summary>
+        /// What the antique is worth in its condition, with the profile's condition premium — and, for a
+        /// far-sighted trader, the part of the coming seasonal price change it believes in.
+        /// </summary>
         private float FairValue(Antique listing, NpcBehaviorProfile profile)
         {
             var typeState = _economyManager.Market?.GetTypeState(listing.DefinitionId);
             float baseValue = PriceEngine.CalculateReferencePrice(listing.BasePrice, typeState) * listing.Condition;
-            return baseValue * (1f + profile.ConditionPremium * Mathf.Max(0f, listing.Condition - 0.5f));
+            return baseValue * (1f + profile.ConditionPremium * Mathf.Max(0f, listing.Condition - 0.5f))
+                             * (1f + SeasonalOutlook(listing.DefinitionId, profile));
+        }
+
+        /// <summary>
+        /// The seasonal price change this trader expects for a type over its horizon, weighted by its
+        /// foresight: 0.06 = expects (and prices in) +6%. 0 for traders who ignore the calendar.
+        /// </summary>
+        private float SeasonalOutlook(string definitionId, NpcBehaviorProfile profile)
+        {
+            if (profile.SeasonalForesight <= 0f || profile.SeasonalHorizonWeeks <= 0 || _economyManager == null) return 0f;
+
+            float ratio = _economyManager.SeasonalPriceOutlook(definitionId, profile.SeasonalHorizonWeeks);
+            return profile.SeasonalForesight * (ratio - 1f);
         }
         private bool IsAcceptablePrice(Antique listing, NpcBehaviorProfile profile) =>
             listing.SalePrice <= FairValue(listing, profile) * profile.MaxPriceMultiplierWillingToPay;
@@ -845,7 +870,7 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>
         /// Latest day an item may arrive and still be handed in.
         /// </summary>
-        private static int LatestUsefulArrivalDay(Contract contract) => contract.DeadlineDay - 1;
+        private static int LatestUsefulArrivalWeek(Contract contract) => contract.DeadlineWeek - 1;
 
         /// <summary>Items still needed: quantity minus what is reserved and still qualifies.</summary>
         private int MissingFor(Contract contract) =>
@@ -884,14 +909,14 @@ namespace AntiqueTradingSimulator.Agents
         /// Slack is the deadline minus today minus the worst transit still ahead of this contract —
         /// both the shipments already flying and the trips the missing items have yet to make.
         /// </summary>
-        private ContractUrgency UrgencyOf(Contract contract, int day, NpcBehaviorProfile profile)
+        private ContractUrgency UrgencyOf(Contract contract, int week, NpcBehaviorProfile profile)
         {
             if (MissingFor(contract) <= 0) return ContractUrgency.Normal;
 
-            int slack = LatestUsefulArrivalDay(contract) - day - WorstTransitAhead(contract);
+            int slack = LatestUsefulArrivalWeek(contract) - week - WorstTransitAhead(contract);
 
             if (slack <= 0) return ContractUrgency.Critical;
-            if (slack <= profile.ContractPanicDays) return ContractUrgency.Pressing;
+            if (slack <= profile.ContractPanicWeeks) return ContractUrgency.Pressing;
             return ContractUrgency.Normal;
         }
 
@@ -904,11 +929,11 @@ namespace AntiqueTradingSimulator.Agents
                 var holding = pair.Value;
                 if (holding.ReservedForContractId != contract.ContractId) continue;
                 if (!holding.IsInTransit) continue;
-                worst = Mathf.Max(worst, holding.ArrivalDay - CurrentDay);
+                worst = Mathf.Max(worst, holding.ArrivalWeek - CurrentWeek);
             }
 
             if (MissingFor(contract) > 0 && _transportManager != null && _transportManager.Settings != null)
-                worst = Mathf.Max(worst, _transportManager.Settings.GetBaseDurationDays(ShippingZone.Domestic, NpcTransportOption));
+                worst = Mathf.Max(worst, _transportManager.Settings.GetBaseDurationWeeks(ShippingZone.Domestic, NpcTransportOption));
 
             return Mathf.Max(1, worst);
         }
@@ -917,12 +942,12 @@ namespace AntiqueTradingSimulator.Agents
         /// Cheapest matching listing that can still land in time, re-quoted now. The transport option
         /// escalates with urgency and with how little condition margin the item has to lose.
         /// </summary>
-        private Offer BestOfferFor(Contract contract, int day, NpcBehaviorProfile profile, ContractUrgency urgency)
+        private Offer BestOfferFor(Contract contract, int week, NpcBehaviorProfile profile, ContractUrgency urgency)
         {
             var market = _economyManager.Market;
             if (market == null) return default;
 
-            int latestArrival = LatestUsefulArrivalDay(contract);
+            int latestArrival = LatestUsefulArrivalWeek(contract);
             var listings = market.Listings;
 
             Offer best = default;
@@ -937,8 +962,8 @@ namespace AntiqueTradingSimulator.Agents
 
                 var option = TransportOptionFor(listing, contract, urgency);
                 var quote = QuoteFor(listing, option);
-                int arrival = quote != null ? quote.ArrivalDay : day;
-                int duration = quote != null ? quote.DurationDays : 0;
+                int arrival = quote != null ? quote.ArrivalWeek : week;
+                int duration = quote != null ? quote.DurationWeeks : 0;
                 if (arrival > latestArrival) continue;
 
                 float cost = listing.SalePrice + (quote != null ? quote.Cost : 0f);
@@ -972,31 +997,31 @@ namespace AntiqueTradingSimulator.Agents
             _transportManager != null ? _transportManager.Quote(listing, option, buyer: Inventory) : null;
 
 
-        private bool IsStillReachable(Contract contract, int missing, int day, NpcBehaviorProfile profile)
+        private bool IsStillReachable(Contract contract, int missing, int week, NpcBehaviorProfile profile)
         {
             int perPeriod = Mathf.Max(1, ContractSlotsAllowed(profile));
-            int latestArrival = LatestUsefulArrivalDay(contract);
+            int latestArrival = LatestUsefulArrivalWeek(contract);
 
-            BuildOfferPlan(contract, day, profile, missing);
+            BuildOfferPlan(contract, week, profile, missing);
             if (_offerScratch.Count < missing) return false;
 
             for (int k = 0; k < missing; k++)
             {
-                int buyDay = day + k / perPeriod;
-                if (buyDay + _offerScratch[k].DurationDays > latestArrival) return false;
+                int buyWeek = week + k / perPeriod;
+                if (buyWeek + _offerScratch[k].DurationWeeks > latestArrival) return false;
             }
 
             return true;
         }
 
-        private void BuildOfferPlan(Contract contract, int day, NpcBehaviorProfile profile, int missing)
+        private void BuildOfferPlan(Contract contract, int week, NpcBehaviorProfile profile, int missing)
         {
             _offerScratch.Clear();
 
             var market = _economyManager.Market;
             if (market == null || missing <= 0) return;
 
-            int latestArrival = LatestUsefulArrivalDay(contract);
+            int latestArrival = LatestUsefulArrivalWeek(contract);
             var listings = market.Listings;
             var urgency = ContractUrgency.Normal;
 
@@ -1009,25 +1034,25 @@ namespace AntiqueTradingSimulator.Agents
 
                 var option = TransportOptionFor(listing, contract, urgency);
                 var quote = QuoteFor(listing, option);
-                int arrival = quote != null ? quote.ArrivalDay : day;
+                int arrival = quote != null ? quote.ArrivalWeek : week;
                 if (arrival > latestArrival) continue;
 
                 float cost = listing.SalePrice + (quote != null ? quote.Cost : 0f);
                 if (cost > contract.RewardPerUnit) continue;
 
-                _offerScratch.Add(new Offer(listing, option, cost, arrival, quote != null ? quote.DurationDays : 0));
+                _offerScratch.Add(new Offer(listing, option, cost, arrival, quote != null ? quote.DurationWeeks : 0));
             }
 
             _offerScratch.Sort((a, b) => a.Cost.CompareTo(b.Cost));
             if (_offerScratch.Count > missing) _offerScratch.RemoveRange(missing, _offerScratch.Count - missing);
 
-            _offerScratch.Sort((a, b) => b.DurationDays.CompareTo(a.DurationDays));
+            _offerScratch.Sort((a, b) => b.DurationWeeks.CompareTo(a.DurationWeeks));
         }
 
         /// <summary>
         /// Takes the most profitable contract the NPC can actually finish.
         /// </summary>
-        private bool ConsiderNewContract(int day, NpcBehaviorProfile profile)
+        private bool ConsiderNewContract(int week, NpcBehaviorProfile profile)
         {
             int reputation = Record.Reputation.Reputation;
 
@@ -1050,14 +1075,14 @@ namespace AntiqueTradingSimulator.Agents
                 int missing = contract.Requirement.Quantity - ReservedCountFor(contract);
                 if (missing <= 0) continue;
 
-                BuildOfferPlan(contract, day, profile, missing);
+                BuildOfferPlan(contract, week, profile, missing);
                 if (_offerScratch.Count < missing) continue;
 
                 float purchaseCost = 0f;
                 for (int k = 0; k < _offerScratch.Count; k++) purchaseCost += _offerScratch[k].Cost;
                 if (purchaseCost > cashLimit) continue;
 
-                if (!IsStillReachable(contract, missing, day, profile)) continue;
+                if (!IsStillReachable(contract, missing, week, profile)) continue;
 
                 float minProfit = contract.Type == ContractType.Exclusive
                     ? contract.TotalReward * ExclusiveMinProfitShare
@@ -1082,9 +1107,9 @@ namespace AntiqueTradingSimulator.Agents
             Record.ContractAccepted();
 
             _contractReserve = CalculateContractReserve();
-            _dayBudget = Mathf.Min(_dayBudget, Mathf.Max(0f, Inventory.Cash - _contractReserve));
+            _weekBudget = Mathf.Min(_weekBudget, Mathf.Max(0f, Inventory.Cash - _contractReserve));
 
-            Debug.Log($"{TraderName} picked up {chosen.Type} contract {chosen.ContractId} — needs {chosen.Requirement.Quantity}, due day {chosen.DeadlineDay}, expected profit {bestProfit:F0}.");
+            Debug.Log($"{TraderName} picked up {chosen.Type} contract {chosen.ContractId} — needs {chosen.Requirement.Quantity}, due week {chosen.DeadlineWeek}, expected profit {bestProfit:F0}.");
             return true;
         }
 
@@ -1113,6 +1138,9 @@ namespace AntiqueTradingSimulator.Agents
             var profile = Profile;
             if (profile == null || _economyManager == null || _economyManager.TimeManager == null) return;
 
+            // Nothing to trade on (e.g. a weather forecast) — no reaction to plan.
+            if (news?.NewsData == null || news.NewsData.Count == 0) return;
+
             float trust = news.Type switch
             {
                 NewsType.Official => 1f,
@@ -1126,30 +1154,30 @@ namespace AntiqueTradingSimulator.Agents
 
             if (UnityEngine.Random.value > actionChance)
             {
-                Debug.Log($"Trader {TraderName} dismissed the {news.Type} news from Day {news.DayPublished} based on actionChance");
+                Debug.Log($"Trader {TraderName} dismissed the {news.Type} news from Week {news.WeekPublished} based on actionChance");
                 return;
             }
 
-            int delay = UnityEngine.Random.Range(profile.MinReactionDelayDays, profile.MaxReactionDelayDays + 1);
-            int reactionDay = _economyManager.TimeManager.CurrentDay + delay;
+            int delay = UnityEngine.Random.Range(profile.MinReactionDelayWeeks, profile.MaxReactionDelayWeeks + 1);
+            int reactionWeek = _economyManager.TimeManager.CurrentWeek + delay;
 
-            if (news.EventTriggerDay <= reactionDay)
+            if (news.EventTriggerWeek <= reactionWeek)
             {
-                Debug.Log($"Trader {TraderName} dismissed the {news.Type} news from Day {news.DayPublished} because the day it would react ({reactionDay}) is later than the day the event starts ({news.EventTriggerDay})");
+                Debug.Log($"Trader {TraderName} dismissed the {news.Type} news from Week {news.WeekPublished} because the week it would react ({reactionWeek}) is later than the week the event starts ({news.EventTriggerWeek})");
                 return;
             }
 
-            _pendingReactions.Add(new PendingReaction { News = news, ReactionDay = reactionDay });
+            _pendingReactions.Add(new PendingReaction { News = news, ReactionWeek = reactionWeek });
         }
 
         // ---------------------------------------------------------------- transactions
 
-        private bool TryBuyForStock(Antique listing, int day, float cost)
+        private bool TryBuyForStock(Antique listing, int week, float cost)
         {
             if (!BuyListing(listing.Id, NpcTransportOption)) return false;
 
-            _acquisitions[listing.Id] = new Acquisition { PurchasePrice = listing.PurchasePrice, Day = day };
-            _dayBudget = Mathf.Max(0f, _dayBudget - cost);
+            _acquisitions[listing.Id] = new Acquisition { PurchasePrice = listing.PurchasePrice, Week = week };
+            _weekBudget = Mathf.Max(0f, _weekBudget - cost);
             return true;
         }
 
@@ -1159,10 +1187,10 @@ namespace AntiqueTradingSimulator.Agents
         public bool BuyListing(string listingId) => BuyListing(listingId, NpcTransportOption);
 
         public bool BuyListing(string listingId, TransportOption option) =>
-            TraderHelper.BuyListing(Inventory, _economyManager.Market, listingId, TraderName, CurrentDay, _transportManager, option);
+            TraderHelper.BuyListing(Inventory, _economyManager.Market, listingId, TraderName, CurrentWeek, _transportManager, option);
 
         public bool SellListing(string listingId) =>
-            TraderHelper.SellListing(Inventory, _economyManager.Market, listingId, TraderName, CurrentDay);
+            TraderHelper.SellListing(Inventory, _economyManager.Market, listingId, TraderName, CurrentWeek);
 
         // ---------------------------------------------------------------- auctions
 
@@ -1220,10 +1248,10 @@ namespace AntiqueTradingSimulator.Agents
         }
 
         /// <summary>Remembers a won lot like a market purchase, so the usual selling rules apply to it.</summary>
-        public void RecordAuctionPurchase(Antique antique, int day)
+        public void RecordAuctionPurchase(Antique antique, int week)
         {
             if (antique == null) return;
-            _acquisitions[antique.Id] = new Acquisition { PurchasePrice = antique.PurchasePrice, Day = day };
+            _acquisitions[antique.Id] = new Acquisition { PurchasePrice = antique.PurchasePrice, Week = week };
         }
 
         /// <summary>
@@ -1234,12 +1262,12 @@ namespace AntiqueTradingSimulator.Agents
         {
             if (profile.AuctionNewsPremium <= 0f) return 0f;
 
-            int day = CurrentDay;
+            int week = CurrentWeek;
             float bias = 0f;
 
             foreach (var pending in _pendingReactions)
             {
-                if (pending.ReactionDay > day || pending.News?.NewsData == null) continue;
+                if (pending.ReactionWeek > week || pending.News?.NewsData == null) continue;
 
                 foreach (var effect in pending.News.NewsData)
                 {
@@ -1265,9 +1293,9 @@ namespace AntiqueTradingSimulator.Agents
                 // Informational only: the inventory saves and restores the commitments (EconomyState).
                 CommittedContractIds = new List<string>(Inventory.CommittedContractIds),
                 Record = Record.CaptureState(),
-                PlanDay = _planDay,
+                PlanWeek = _planWeek,
                 SlotTicks = new List<int>(_slotTicks),
-                DayBudget = _dayBudget,
+                WeekBudget = _weekBudget,
                 ContractReserve = _contractReserve,
                 ContractSlotsUsed = _contractSlotsUsed
             };
@@ -1278,7 +1306,7 @@ namespace AntiqueTradingSimulator.Agents
                 {
                     ListingId = pair.Key,
                     PurchasePrice = pair.Value.PurchasePrice,
-                    Day = pair.Value.Day
+                    Week = pair.Value.Week
                 });
             }
 
@@ -1286,7 +1314,7 @@ namespace AntiqueTradingSimulator.Agents
             {
                 state.PendingReactions.Add(new PendingReactionState
                 {
-                    ReactionDay = pending.ReactionDay,
+                    ReactionWeek = pending.ReactionWeek,
                     News = NewsItemState.Capture(pending.News)
                 });
             }
@@ -1317,7 +1345,7 @@ namespace AntiqueTradingSimulator.Agents
                     _acquisitions[acquisition.ListingId] = new Acquisition
                     {
                         PurchasePrice = acquisition.PurchasePrice,
-                        Day = acquisition.Day
+                        Week = acquisition.Week
                     };
                 }
             }
@@ -1330,18 +1358,18 @@ namespace AntiqueTradingSimulator.Agents
                     var news = pending?.News?.Restore();
                     if (news == null) continue;
 
-                    _pendingReactions.Add(new PendingReaction { News = news, ReactionDay = pending.ReactionDay });
+                    _pendingReactions.Add(new PendingReaction { News = news, ReactionWeek = pending.ReactionWeek });
                 }
             }
 
-            // The period in progress. A save from before intra-period acting carries PlanDay 0,
-            // which leaves _planDay at -1 and makes the next tick plan the period from scratch.
-            _planDay = state.PlanDay > 0 ? state.PlanDay : -1;
-            _dayBudget = state.DayBudget;
+            // The period in progress. A save from before intra-period acting carries PlanWeek 0,
+            // which leaves _planWeek at -1 and makes the next tick plan the period from scratch.
+            _planWeek = state.PlanWeek > 0 ? state.PlanWeek : -1;
+            _weekBudget = state.WeekBudget;
             _contractReserve = state.ContractReserve;
             _contractSlotsUsed = state.ContractSlotsUsed;
             _lastObligationTick = -1;
-            _rng = new System.Random(SeedFor(Mathf.Max(1, _planDay)));
+            _rng = new System.Random(SeedFor(Mathf.Max(1, _planWeek)));
 
             _slotTicks.Clear();
             if (state.SlotTicks != null)
@@ -1358,9 +1386,9 @@ namespace AntiqueTradingSimulator.Agents
 
     public enum ContractUrgency
     {
-        /// <summary> There are more days left than ContractPanicDays.</summary>
+        /// <summary> There are more days left than ContractPanicWeeks.</summary>
         Normal,
-        /// <summary>Equal or fewer days than ContractPanicDays. Handling contracts is done by every slot.</summary>
+        /// <summary>Equal or fewer days than ContractPanicWeeks. Handling contracts is done by every slot.</summary>
         Pressing,
         /// <summary>The contract may already be unfinishable.</summary>
         Critical

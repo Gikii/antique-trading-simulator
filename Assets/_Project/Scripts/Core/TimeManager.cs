@@ -1,36 +1,60 @@
 ﻿using System;
 using System.Globalization;
+using AntiqueTradingSimulator.Seasons;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Core
 {
     /// <summary>
-    /// Minimal time system: tracks the current in-game day and advances it
+    /// Minimal time system: tracks the current in-game week (one market step) and advances it
     /// after a fixed real-time duration. Can be paused/resumed. Other systems
-    /// subscribe to OnDayChanged to react to the passage of time.
-    /// Also maps game days to calendar dates (Day 1 = campaign start date).
+    /// subscribe to OnWeekChanged to react to the passage of time.
+    ///
+    /// The economy steps once per week; everything scheduled (arrivals, deadlines, events…) is a
+    /// week number. Inside a week the ticks walk through the 7 calendar days (TicksPerDay ticks
+    /// each), which is used for display (weekday, hour) and for auction start times.
+    /// Maps weeks to calendar dates: week 1 = the week starting on the campaign start date.
     /// </summary>
     public class TimeManager : MonoBehaviour
     {
+        public const int DaysPerWeek = 7;
+        public const int DefaultTicksPerDay = 4;
+        public const int DefaultTicksPerPeriod = DaysPerWeek * DefaultTicksPerDay;
+
+        /// <summary>Hour of the first tick of a calendar day; the day's ticks spread over WorkingHours.</summary>
+        public const int DayStartHour = 8;
+        public const int WorkingHours = 12;
+
         [Header("Real-time")]
-        [Tooltip("Real-time seconds one game day lasts at 1x speed. 180 = 3 minutes (≈4.5 h for a 90-day campaign).")]
-        [SerializeField] private float secondsPerDay = 180f;
+        [Tooltip("Real-time seconds one game week lasts at 1x speed. 150 = 2.5 minutes (≈4.3 h for a 104-week campaign).")]
+        [FormerlySerializedAs("secondsPerDay")]
+        [SerializeField] private float secondsPerWeek = 150f;
         [SerializeField] private float[] speedSteps = { 1f, 2f, 4f };
 
         [Header("Ticks")]
-        public const int DefaultTicksPerPeriod = 24;
-        [SerializeField] [Min(1)] private int ticksPerPeriod = DefaultTicksPerPeriod;
+        [Tooltip("Ticks per calendar day. A week has 7 × this many ticks (NPC actions and auctions happen on ticks).")]
+        [SerializeField] [Min(1)] private int ticksPerDay = DefaultTicksPerDay;
 
         [Header("Calendar")]
-        [Tooltip("Calendar date of Day 1.")]
+        [Tooltip("Calendar date of the first day of week 1 (a Monday keeps weeks Monday–Sunday).")]
         [SerializeField] private int startYear = 1884;
         [SerializeField] private int startMonth = 4;
-        [SerializeField] private int startDay = 22; // Day 23 = 14 May 1884
-        [SerializeField] private int campaignLength = 90;
+        [SerializeField] private int startDay = 21; // Monday 21 April 1884
+        [Tooltip("Campaign length in weeks. 104 = two years.")]
+        [SerializeField] private int campaignLength = 104;
 
-        public int CurrentDay { get; private set; } = 1;
+        [Header("Seasons")]
+        [Tooltip("What each season changes (transport weather, …). Optional — defaults are used if empty.")]
+        [SerializeField] private SeasonSettings seasonSettings;
+        private SeasonSettings _defaultSeasonSettings;
+
+        /// <summary>The current period = the current in-game week (1-based).</summary>
+        public int CurrentWeek { get; private set; } = 1;
+
         public bool IsRunning { get; private set; } = true;
 
+        /// <summary>Tick within the current week, 0 .. TicksPerPeriod - 1.</summary>
         public int CurrentTick { get; private set; }
 
         /// <summary>True while AdvanceToNextPeriod is running out a period's ticks in one frame.</summary>
@@ -43,7 +67,9 @@ namespace AntiqueTradingSimulator.Core
         public double PlaytimeSeconds { get; private set; }
         public float SpeedMultiplier { get; private set; } = 1f;
 
-        public event Action<int> OnDayChanged;
+        public event Action<int> OnWeekChanged;
+        /// <summary>Raised after OnWeekChanged when the new week starts a new season.</summary>
+        public event Action<Season> OnSeasonChanged;
         public event Action<float> OnSpeedChanged;
         /// <summary>Raised when the clock is paused or resumed (true = running).</summary>
         public event Action<bool> OnRunningChanged;
@@ -56,19 +82,54 @@ namespace AntiqueTradingSimulator.Core
 
         private bool _firstTickRaised;
 
-        public int TicksPerPeriod => ticksPerPeriod;
-        public float SecondsPerDay => secondsPerDay;
-        public float TimeUntilNextDay => Mathf.Max(0f, secondsPerDay - _timer);
-        public float DayProgress01 => Mathf.Clamp01(_timer / secondsPerDay);
+        public int TicksPerDay => Mathf.Max(1, ticksPerDay);
+        /// <summary>Ticks in one period (week): 7 × TicksPerDay.</summary>
+        public int TicksPerPeriod => DaysPerWeek * TicksPerDay;
+        public float SecondsPerWeek => secondsPerWeek;
+        /// <summary>Real seconds (at 1x) until the next period, i.e. the next week.</summary>
+        public float TimeUntilNextWeek => Mathf.Max(0f, secondsPerWeek - _timer);
+        public float WeekProgress01 => Mathf.Clamp01(_timer / secondsPerWeek);
 
         private static readonly CultureInfo English = CultureInfo.InvariantCulture;
 
+        /// <summary>Campaign length in periods (weeks).</summary>
         public int CampaignLength => campaignLength;
         public DateTime StartDate => new DateTime(startYear, startMonth, startDay);
-        public DateTime CurrentDate => DayToDate(CurrentDay);
 
-        public DateTime DayToDate(int day) => StartDate.AddDays(day - 1);
-        public int DateToDay(DateTime date) => (date.Date - StartDate).Days + 1;
+        /// <summary>Today's calendar date: the current week's first day plus the weekday reached by the ticks.</summary>
+        public DateTime CurrentDate => TickToDate(CurrentWeek, CurrentTick);
+
+        /// <summary>First calendar day (Monday) of a period/week.</summary>
+        public DateTime WeekToDate(int week) => StartDate.AddDays((week - 1) * DaysPerWeek);
+
+        /// <summary>The period/week a calendar date falls into.</summary>
+        public int DateToWeek(DateTime date) =>
+            (int)Math.Floor((date.Date - StartDate).Days / (double)DaysPerWeek) + 1;
+
+        /// <summary>Calendar date of a tick of a week (tick / TicksPerDay = days after the week's Monday).</summary>
+        public DateTime TickToDate(int week, int tick) =>
+            WeekToDate(week).AddDays(Mathf.Clamp(tick, 0, TicksPerPeriod - 1) / TicksPerDay);
+
+        /// <summary>Season of a period/week — decided by the week's first day, so a week never spans two seasons.</summary>
+        public Season SeasonOf(int week) => SeasonCalendar.Of(WeekToDate(week));
+
+        public Season CurrentSeason => SeasonOf(CurrentWeek);
+
+        /// <summary>The assigned SeasonSettings, or an in-memory instance with the default values.</summary>
+        public SeasonSettings SeasonSettings
+        {
+            get
+            {
+                if (seasonSettings != null) return seasonSettings;
+                if (_defaultSeasonSettings == null)
+                    _defaultSeasonSettings = ScriptableObject.CreateInstance<SeasonSettings>();
+                return _defaultSeasonSettings;
+            }
+        }
+
+        /// <summary>Hour of the day a tick falls on: the day's ticks spread evenly from DayStartHour over WorkingHours.</summary>
+        public int TickToHour(int tick) =>
+            DayStartHour + (Mathf.Max(0, tick) % TicksPerDay) * WorkingHours / TicksPerDay;
 
         public static string FormatLong(DateTime date) => date.ToString("d MMMM yyyy", English);
 
@@ -85,19 +146,19 @@ namespace AntiqueTradingSimulator.Core
             if (!_firstTickRaised)
             {
                 _firstTickRaised = true;
-                OnTick?.Invoke(CurrentDay, CurrentTick);
+                OnTick?.Invoke(CurrentWeek, CurrentTick);
             }
 
             if (!IsRunning) return;
 
             _timer += Time.deltaTime * SpeedMultiplier;
 
-            if (_timer >= secondsPerDay)
+            if (_timer >= secondsPerWeek)
             {
-                FastForwardDay();
+                FastForwardWeek();
             }
 
-            if (Mathf.FloorToInt(_timer / secondsPerDay * TicksPerPeriod) > CurrentTick)
+            if (Mathf.FloorToInt(_timer / secondsPerWeek * TicksPerPeriod) > CurrentTick)
             {
                 IncrementTick();
             }
@@ -106,36 +167,45 @@ namespace AntiqueTradingSimulator.Core
         private void IncrementTick()
         {
             CurrentTick++;
-            OnTick?.Invoke(CurrentDay, CurrentTick);
+            OnTick?.Invoke(CurrentWeek, CurrentTick);
         }
 
-        private void AdvanceDay()
+        private void AdvanceWeek()
         {
+            Season previousSeason = CurrentSeason;
+
             _timer = 0f;
-            CurrentDay++;
+            CurrentWeek++;
             CurrentTick = 0;
-            Debug.Log("Day " + CurrentDay);
-            OnDayChanged?.Invoke(CurrentDay);
+            Debug.Log("Week " + CurrentWeek);
+            OnWeekChanged?.Invoke(CurrentWeek);
+
+            if (CurrentSeason != previousSeason)
+            {
+                Debug.Log($"Season: {CurrentSeason}");
+                OnSeasonChanged?.Invoke(CurrentSeason);
+            }
+
             _firstTickRaised = true;
-            OnTick?.Invoke(CurrentDay, CurrentTick);
+            OnTick?.Invoke(CurrentWeek, CurrentTick);
         }
 
-        private void FastForwardDay()
+        private void FastForwardWeek()
         {
             while (CurrentTick < TicksPerPeriod - 1)
             {
                 IncrementTick();
             }
 
-            AdvanceDay();
+            AdvanceWeek();
         }
 
         /// <summary>
-        /// Manually advances the day by one, bypassing the timer. Useful for debug UI and testing.
+        /// Manually advances the period (week) by one, bypassing the timer. Useful for debug UI and testing.
         /// </summary>
-        public void ForceAdvanceDay()
+        public void ForceAdvanceWeek()
         {
-            FastForwardDay();
+            FastForwardWeek();
         }
 
         public void Pause() => SetRunning(false);
@@ -163,9 +233,9 @@ namespace AntiqueTradingSimulator.Core
 
         public TimeManagerState CaptureState() => new TimeManagerState
         {
-            CurrentDay = CurrentDay,
+            CurrentWeek = CurrentWeek,
             CurrentTick = CurrentTick,
-            DayTimer = _timer,
+            WeekTimer = _timer,
             SpeedIndex = _speedIndex,
             IsRunning = IsRunning,
             PlaytimeSeconds = PlaytimeSeconds
@@ -175,8 +245,8 @@ namespace AntiqueTradingSimulator.Core
         {
             if (state == null) return;
 
-            CurrentDay = Mathf.Max(1, state.CurrentDay);
-            _timer = Mathf.Clamp(state.DayTimer, 0f, secondsPerDay);
+            CurrentWeek = Mathf.Max(1, state.CurrentWeek);
+            _timer = Mathf.Clamp(state.WeekTimer, 0f, secondsPerWeek);
 
             CurrentTick = Mathf.Clamp(state.CurrentTick, 0, TicksPerPeriod - 1);
 

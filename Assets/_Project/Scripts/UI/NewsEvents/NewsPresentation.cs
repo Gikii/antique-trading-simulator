@@ -4,7 +4,6 @@ using AntiqueTradingSimulator.News;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
-using static UnityEditor.Progress;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -47,7 +46,7 @@ namespace AntiqueTradingSimulator.UI
         public static string GetTitle(NewsItem item)
         {
             if (item.NewsData == null || item.NewsData.Count == 0)
-                return "Market information";
+                return string.IsNullOrWhiteSpace(item.OfficialName) ? "Market information" : item.OfficialName;
 
             if (item.Type == NewsType.Official)
                 return $"{item.OfficialName} official announcement";
@@ -55,6 +54,9 @@ namespace AntiqueTradingSimulator.UI
 
             NewsEventData data = item.NewsData[0];
             string subject = GetSubject(data);
+
+            if (data.IsTransportDisruption)
+                return $"{subject} facing delays";
 
             return data.affectsPriceUp
                 ? $"{subject} gaining market interest"
@@ -65,7 +67,9 @@ namespace AntiqueTradingSimulator.UI
         public static string GetPreview(NewsItem item)
         {
             if (item.NewsData == null || item.NewsData.Count == 0)
-                return "No additional information available.";
+                return string.IsNullOrWhiteSpace(item.EventDescription)
+                    ? "No additional information available."
+                    : item.EventDescription;
 
             var builder = new StringBuilder();
 
@@ -83,6 +87,9 @@ namespace AntiqueTradingSimulator.UI
         /// <summary>What the news is about: antique type, country, century or the market in general.</summary>
         public static string GetSubject(NewsEventData data)
         {
+            if (data.IsTransportDisruption)
+                return $"{data.Zone} shipping";
+
             switch (data.targetScope)
             {
                 case Events.EventEffect.TargetScope.AntiqueType:
@@ -109,6 +116,10 @@ namespace AntiqueTradingSimulator.UI
 
         public static string GetNewsDescription(NewsItem item)
         {
+            // News that isn't about an event's market effects (e.g. a weather forecast) carries its own text.
+            if ((item.NewsData == null || item.NewsData.Count == 0) && !string.IsNullOrWhiteSpace(item.EventDescription))
+                return $"{item.EventDescription} Credibility: {UIFormat.Percent(item.Credibility)}.";
+
             if (item.Type == NewsType.Official)
             {
                 return string.IsNullOrWhiteSpace(item.EventDescription)
@@ -137,14 +148,18 @@ namespace AntiqueTradingSimulator.UI
         {
             var up = new List<string>();
             var down = new List<string>();
+            var delayed = new List<string>();
 
             if (effects != null)
             {
                 foreach (NewsEventData data in effects)
-                    (data.affectsPriceUp ? up : down).Add(GetSubject(data));
+                {
+                    if (data.IsTransportDisruption) delayed.Add(GetSubject(data).ToLowerInvariant());
+                    else (data.affectsPriceUp ? up : down).Add(GetSubject(data));
+                }
             }
 
-            if (up.Count == 0 && down.Count == 0)
+            if (up.Count == 0 && down.Count == 0 && delayed.Count == 0)
                 return "No details are known yet.";
 
             var builder = new StringBuilder();
@@ -156,6 +171,12 @@ namespace AntiqueTradingSimulator.UI
             {
                 if (builder.Length > 0) builder.Append(' ');
                 builder.Append($"Decrease in prices is expected for {JoinNice(down)}.");
+            }
+
+            if (delayed.Count > 0)
+            {
+                if (builder.Length > 0) builder.Append(' ');
+                builder.Append($"Delays are expected in {JoinNice(delayed)}.");
             }
 
             return builder.ToString();
@@ -176,29 +197,32 @@ namespace AntiqueTradingSimulator.UI
         // Dates
         // ------------------------------------------------------------------
 
-        /// <summary>"14 May 1884" when a TimeManager is available, otherwise "Day 23".</summary>
-        public static string FormatDay(int day, Core.TimeManager timeManager)
+        /// <summary>
+        /// "14 May 1884" (the Monday the week starts on — news and events happen at the start of a
+        /// week) when a TimeManager is available, otherwise "Week 23".
+        /// </summary>
+        public static string FormatWeek(int week, Core.TimeManager timeManager)
         {
             return timeManager != null
-                ? Core.TimeManager.FormatLong(timeManager.DayToDate(day))
-                : $"Day {day}";
+                ? Core.TimeManager.FormatLong(timeManager.WeekToDate(week))
+                : $"Week {week}";
         }
 
-        /// <summary>daysFromToday: 5 → "In 5 days", 1 → "Tomorrow", 0 → "Today", -2 → "2 days ago"</summary>
-        public static string RelativeDays(int daysFromToday) => daysFromToday switch
+        /// <summary>weeksFromNow: 5 → "In 5 weeks", 1 → "Next week", 0 → "This week", -2 → "2 weeks ago"</summary>
+        public static string RelativeWeeks(int weeksFromNow) => weeksFromNow switch
         {
-            > 1 => $"In {daysFromToday} days",
-            1 => "Tomorrow",
-            0 => "Today",
-            -1 => "Yesterday",
-            _ => $"{-daysFromToday} days ago"
+            > 1 => $"In {weeksFromNow} weeks",
+            1 => "Next week",
+            0 => "This week",
+            -1 => "Last week",
+            _ => $"{-weeksFromNow} weeks ago"
         };
 
-        /// <summary>daysLeft: 3 → "3 days left", 1 → "Last day", 0 or less → "Ended"</summary>
-        public static string DaysLeft(int daysLeft) => daysLeft switch
+        /// <summary>weeksLeft: 3 → "3 weeks left", 1 → "Last week", 0 or less → "Ended"</summary>
+        public static string WeeksLeft(int weeksLeft) => weeksLeft switch
         {
-            > 1 => $"{daysLeft} days left",
-            1 => "Last day",
+            > 1 => $"{weeksLeft} weeks left",
+            1 => "Last week",
             _ => "Ended"
         };
 
@@ -243,8 +267,8 @@ namespace AntiqueTradingSimulator.UI
             return kinds.Count > 0 ? JoinNice(kinds) : "None";
         }
 
-        /// <summary>1 → "1 day", 3 → "3 days"</summary>
-        public static string DaysLabel(int days) => days == 1 ? "1 day" : $"{days} days";
+        /// <summary>1 → "1 week", 3 → "3 weeks"</summary>
+        public static string WeeksLabel(int weeks) => weeks == 1 ? "1 week" : $"{weeks} weeks";
 
         // ------------------------------------------------------------------
         // Player information access

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Contracts
 {
@@ -26,7 +27,7 @@ namespace AntiqueTradingSimulator.Contracts
 
         public float? MinCondition;
 
-        public int? DurationDays;
+        public int? DurationWeeks;
 
         public ContractType? Type;
 
@@ -93,15 +94,18 @@ namespace AntiqueTradingSimulator.Contracts
         [SerializeField] private Core.TimeManager timeManager;
 
         [Header("Generation")]
-        [SerializeField] private int contractsGeneratedPerDay = 1;
+        [FormerlySerializedAs("contractsGeneratedPerDay")]
+        [SerializeField] private int contractsGeneratedPerWeek = 1;
         [SerializeField] private int maxActiveContracts = 15;
         [SerializeField] private int initialContractCount = 5;
 
         [SerializeField] private int minQuantity = 1;
         [SerializeField] private int maxQuantity = 5;
 
-        [SerializeField] private int minDurationDays = 1;
-        [SerializeField] private int maxDurationDays = 10;
+        [FormerlySerializedAs("minDurationDays")]
+        [SerializeField] private int minDurationWeeks = 1;
+        [FormerlySerializedAs("maxDurationDays")]
+        [SerializeField] private int maxDurationWeeks = 10;
 
         [Header("Compensation")]
         [SerializeField] private float minRewardMultiplier = 1.1f;
@@ -171,7 +175,7 @@ namespace AntiqueTradingSimulator.Contracts
         {
             if (timeManager != null)
             {
-                timeManager.OnDayChanged += HandleDayChanged;
+                timeManager.OnWeekChanged += HandleWeekChanged;
             }
 
         }
@@ -179,22 +183,22 @@ namespace AntiqueTradingSimulator.Contracts
         void Start()
         {
             int count = Mathf.Min(initialContractCount, maxActiveContracts);
-            int currentDay = timeManager != null ? timeManager.CurrentDay : 1;
+            int currentWeek = timeManager != null ? timeManager.CurrentWeek : 1;
 
             for (int i = 0; i < count; i++)
             {
-                GenerateContract(currentDay);
+                GenerateContract(currentWeek);
             }
         }
 
-        private void HandleDayChanged(int newDay)
+        private void HandleWeekChanged(int newWeek)
         {
-            ExpireContracts(newDay);
+            ExpireContracts(newWeek);
             int activeCount = _contracts.Count(c => c.Status == ContractStatus.Active);
-            int newContractCount = Mathf.Min(contractsGeneratedPerDay, maxActiveContracts - activeCount);
+            int newContractCount = Mathf.Min(contractsGeneratedPerWeek, maxActiveContracts - activeCount);
             for (int i = 0; i < newContractCount; i++)
             {
-                GenerateContract(newDay);
+                GenerateContract(newWeek);
             }
         }
 
@@ -203,9 +207,9 @@ namespace AntiqueTradingSimulator.Contracts
         /// deadline, applies the exclusive-contract penalty (and frees any antiques the
         /// claiming trader had reserved for it), then drops them from the active list.
         /// </summary>
-        private void ExpireContracts(int currentDay)
+        private void ExpireContracts(int currentWeek)
         {
-            var toExpire = _contracts.Where(c => c.Status == ContractStatus.Active && c.DeadlineDay <= currentDay).ToList();
+            var toExpire = _contracts.Where(c => c.Status == ContractStatus.Active && c.DeadlineWeek <= currentWeek).ToList();
 
             foreach (var contract in toExpire)
             {
@@ -213,7 +217,7 @@ namespace AntiqueTradingSimulator.Contracts
                 ApplyExpiryConsequences(contract);
                 _contracts.Remove(contract);
 
-                Debug.Log($"ContractManager: contract {contract.ContractId} expired unfulfilled on day {currentDay}.");
+                Debug.Log($"ContractManager: contract {contract.ContractId} expired unfulfilled on week {currentWeek}.");
                 OnContractExpired?.Invoke(contract);
             }
         }
@@ -240,9 +244,9 @@ namespace AntiqueTradingSimulator.Contracts
             }
         }
 
-        public Contract GenerateContract(int currentDay) => GenerateContract(currentDay, null);
+        public Contract GenerateContract(int currentWeek) => GenerateContract(currentWeek, null);
 
-        public Contract GenerateContract(int currentDay, ContractOverrides overrides)
+        public Contract GenerateContract(int currentWeek, ContractOverrides overrides)
         {
             var market = economyManager != null ? economyManager.Market : null;
             if (market == null) return null;
@@ -265,9 +269,9 @@ namespace AntiqueTradingSimulator.Contracts
             requirement.MinCondition = overrides?.MinCondition is float fixedCondition
                 ? Mathf.Clamp(fixedCondition, Antique.MinCondition, Antique.MaxCondition)
                 : RollMinCondition(contractClass != null ? contractClass.MinConditionRange : standardMinCondition);
-            int duration = overrides?.DurationDays is int fixedDuration
+            int duration = overrides?.DurationWeeks is int fixedDuration
                 ? Mathf.Max(1, fixedDuration)
-                : UnityEngine.Random.Range(minDurationDays, maxDurationDays + 1);
+                : UnityEngine.Random.Range(minDurationWeeks, maxDurationWeeks + 1);
 
             // Priced against an antique in exactly the required condition — a better one is the
             // supplier's choice, a worse one doesn't count.
@@ -285,16 +289,16 @@ namespace AntiqueTradingSimulator.Contracts
                     ? rewardPerUnit * requirement.Quantity * exclusivePenaltyFraction
                     : 0f);
 
-            int durationCap = Mathf.Max(maxDurationDays, duration);
+            int durationCap = Mathf.Max(maxDurationWeeks, duration);
 
-            var contract = new Contract(type, requirement, currentDay, duration, durationCap, rewardPerUnit, penalty,
+            var contract = new Contract(type, requirement, currentWeek, duration, durationCap, rewardPerUnit, penalty,
                 overrides?.RequiredReputation ?? (contractClass != null ? contractClass.RequiredReputation : 0),
                 contractClass != null ? contractClass.Name : "");
 
             _contracts.Add(contract);
             _contractsById[contract.ContractId] = contract;
 
-            Debug.Log($"ContractManager: generated {contract.Type} contract ({contract.ContractId}) on day {currentDay} for {requirement.Quantity} antiques at average price {requirement.AverageReferenceUnitPrice(economyManager.Market)} to be fullfilled by day {contract.DeadlineDay} with total payout {contract.TotalReward}");
+            Debug.Log($"ContractManager: generated {contract.Type} contract ({contract.ContractId}) on week {currentWeek} for {requirement.Quantity} antiques at average price {requirement.AverageReferenceUnitPrice(economyManager.Market)} to be fullfilled by week {contract.DeadlineWeek} with total payout {contract.TotalReward}");
             OnContractCreated?.Invoke(contract);
             return contract;
         }
@@ -399,7 +403,7 @@ namespace AntiqueTradingSimulator.Contracts
 
         private float UrgencyFactor(int duration)
         {
-            int span = Mathf.Max(1, maxDurationDays - 1);
+            int span = Mathf.Max(1, maxDurationWeeks - 1);
             float t = Mathf.Clamp01((float)(duration - 1) / span);
             return Mathf.Lerp(maxUrgencyBonusMultiplier, 1f, t);
         }
@@ -473,13 +477,13 @@ namespace AntiqueTradingSimulator.Contracts
 
                 if (listing.IsInRestoration)
                 {
-                    Debug.LogWarning($"ContractManager: listing {listingId} is being restored (ready day {listing.RestorationEndDay}) — it can be handed in once the work is done.");
+                    Debug.LogWarning($"ContractManager: listing {listingId} is being restored (ready week {listing.RestorationEndWeek}) — it can be handed in once the work is done.");
                     return false;
                 }
 
                 if (listing.IsInTransit)
                 {
-                    Debug.LogWarning($"ContractManager: listing {listingId} is still in transit (arrives day {listing.ArrivalDay}) — it can be handed in once delivered.");
+                    Debug.LogWarning($"ContractManager: listing {listingId} is still in transit (arrives week {listing.ArrivalWeek}) — it can be handed in once delivered.");
                     return false;
                 }
 

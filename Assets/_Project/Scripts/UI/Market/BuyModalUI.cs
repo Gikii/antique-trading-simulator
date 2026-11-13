@@ -121,7 +121,7 @@ namespace AntiqueTradingSimulator.UI
             if (_subscribed || Inventory == null) return;
 
             Inventory.OnCashChanged += HandleCashChanged;
-            if (timeManager != null) timeManager.OnDayChanged += HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged += HandleWeekChanged;
 
             var market = economyManager != null ? economyManager.Market : null;
             if (market != null) market.OnListingRemoved += HandleListingRemoved;
@@ -134,7 +134,7 @@ namespace AntiqueTradingSimulator.UI
             if (!_subscribed) return;
 
             if (Inventory != null) Inventory.OnCashChanged -= HandleCashChanged;
-            if (timeManager != null) timeManager.OnDayChanged -= HandleDayChanged;
+            if (timeManager != null) timeManager.OnWeekChanged -= HandleWeekChanged;
 
             var market = economyManager != null ? economyManager.Market : null;
             if (market != null) market.OnListingRemoved -= HandleListingRemoved;
@@ -144,7 +144,7 @@ namespace AntiqueTradingSimulator.UI
 
         // Only relevant when the clock keeps running while the modal is open.
         private void HandleCashChanged(float cash) => Refresh();
-        private void HandleDayChanged(int day) => Refresh();
+        private void HandleWeekChanged(int week) => Refresh();
 
         private void HandleListingRemoved(Antique listing)
         {
@@ -243,7 +243,10 @@ namespace AntiqueTradingSimulator.UI
                 }
 
                 TransportQuote quote = transportManager.Quote(listing, optionUI.Option, buyer: Inventory);
-                optionUI.Show(quote, transportManager.Settings.GetDamageChance(optionUI.Option));
+                if (quote != null)
+                    optionUI.Show(quote, transportManager.GetSeasonalOutlook(quote));
+                else
+                    optionUI.Show(null, 0f);
 
                 bool isSelected = optionUI.Option == _selectedOption;
                 optionUI.SetSelected(isSelected);
@@ -263,10 +266,10 @@ namespace AntiqueTradingSimulator.UI
                 return "Immediately";
 
             if (timeManager == null)
-                return $"Day {quote.ArrivalDay} (in {UIFormat.Days(quote.DurationDays)})";
+                return $"Week {quote.ArrivalWeek} (in {UIFormat.Weeks(quote.DurationWeeks)})";
 
-            string date = TimeManager.FormatDayMonth(timeManager.DayToDate(quote.ArrivalDay));
-            return $"{date} (in {UIFormat.Days(quote.DurationDays)})";
+            string date = TimeManager.FormatDayMonth(timeManager.WeekToDate(quote.ArrivalWeek));
+            return $"{date} (in {UIFormat.Weeks(quote.DurationWeeks)})";
         }
 
         private string WarehouseLabel()

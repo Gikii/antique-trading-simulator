@@ -184,7 +184,7 @@ namespace AntiqueTradingSimulator.UI
             Inventory.OnHoldingsRevalued += HandleHoldingsRevalued;
 
             if (timeManager != null)
-                timeManager.OnDayChanged += HandleDayChanged;
+                timeManager.OnWeekChanged += HandleWeekChanged;
 
             _subscribed = true;
         }
@@ -201,7 +201,7 @@ namespace AntiqueTradingSimulator.UI
             }
 
             if (timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnWeekChanged -= HandleWeekChanged;
 
             _subscribed = false;
         }
@@ -213,7 +213,7 @@ namespace AntiqueTradingSimulator.UI
         private void HandleHoldingsRevalued() => _refreshPending = true;
 
         // Covers the daily value snapshot even on days with no revaluation.
-        private void HandleDayChanged(int day) => _refreshPending = true;
+        private void HandleWeekChanged(int week) => _refreshPending = true;
 
         private void LateUpdate()
         {
@@ -497,12 +497,12 @@ namespace AntiqueTradingSimulator.UI
 
             query = _sortMode switch
             {
-                CollectionSortMode.Oldest => query.OrderBy(a => a.PurchasedOnDay),
+                CollectionSortMode.Oldest => query.OrderBy(a => a.PurchasedOnWeek),
                 CollectionSortMode.ValueHighToLow => query.OrderByDescending(a => a.CurrentPrice),
                 CollectionSortMode.ValueLowToHigh => query.OrderBy(a => a.CurrentPrice),
                 CollectionSortMode.ProfitHighToLow => query.OrderByDescending(a => CollectionAnalytics.Profit(a)),
                 CollectionSortMode.NameAToZ => query.OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase),
-                _ => query.OrderByDescending(a => a.PurchasedOnDay),
+                _ => query.OrderByDescending(a => a.PurchasedOnWeek),
             };
 
             _filtered.Clear();

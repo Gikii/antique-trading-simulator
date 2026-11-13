@@ -52,9 +52,9 @@ namespace AntiqueTradingSimulator.UI
 
             var tooltip = GetComponent<TooltipTrigger>();
             if (_antique.IsInTransit)
-                TooltipTrigger.On(this).Text = $"In transit — {UIFormat.ArrivalLabel(_antique.ArrivalDay)}.";
+                TooltipTrigger.On(this).Text = $"In transit — {UIFormat.ArrivalLabel(_antique.ArrivalWeek)}.";
             else if (_antique.IsInRestoration)
-                TooltipTrigger.On(this).Text = $"Being restored — {UIFormat.ReadyLabel(_antique.RestorationEndDay)}.";
+                TooltipTrigger.On(this).Text = $"Being restored — {UIFormat.ReadyLabel(_antique.RestorationEndWeek)}.";
             else if (tooltip != null)
                 tooltip.Text = "";
 

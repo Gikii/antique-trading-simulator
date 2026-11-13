@@ -62,7 +62,7 @@ namespace AntiqueTradingSimulator.UI
 
         public void Setup(
             ActiveEvent eventData,
-            int currentDay,
+            int currentWeek,
             Action<ActiveEvent> onClicked)
         {
             activeEvent = eventData;
@@ -81,12 +81,12 @@ namespace AntiqueTradingSimulator.UI
 
             if (timeText != null)
             {
-                int daysRemaining =
-                    Mathf.Max(0, activeEvent.EndDay - currentDay);
+                int weeksRemaining =
+                    Mathf.Max(0, activeEvent.EndWeek - currentWeek);
 
-                timeText.text = daysRemaining == 1
-                    ? "1 day remaining"
-                    : $"{daysRemaining} days remaining";
+                timeText.text = weeksRemaining == 1
+                    ? "1 week remaining"
+                    : $"{weeksRemaining} weeks remaining";
             }
 
             if (locationText != null)

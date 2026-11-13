@@ -11,21 +11,21 @@ namespace AntiqueTradingSimulator.News
         public string EventDescription { get; }
         public NewsType Type { get; }
         public float Credibility { get; }
-        public int DayPublished { get; }
-        public int EventTriggerDay { get; }
+        public int WeekPublished { get; }
+        public int EventTriggerWeek { get; }
         public InfoAccessLevel RequiredAccessLevel { get; }
-        public bool EventStarted(int currentDay) => currentDay >= EventTriggerDay;
+        public bool EventStarted(int currentWeek) => currentWeek >= EventTriggerWeek;
 
-        public NewsItem(List<NewsEventData> newsData, string officialName, string eventDescription, NewsType type, float credibility, int dayPublished, InfoAccessLevel requiredAccessLevel, int eventTriggerDay)
+        public NewsItem(List<NewsEventData> newsData, string officialName, string eventDescription, NewsType type, float credibility, int weekPublished, InfoAccessLevel requiredAccessLevel, int eventTriggerWeek)
         {
             NewsData = newsData;
             OfficialName = officialName;
             EventDescription = eventDescription;
             Type = type;
             Credibility = credibility;
-            DayPublished = dayPublished;
+            WeekPublished = weekPublished;
             RequiredAccessLevel = requiredAccessLevel;
-            EventTriggerDay = eventTriggerDay;
+            EventTriggerWeek = eventTriggerWeek;
         }
     }
 }

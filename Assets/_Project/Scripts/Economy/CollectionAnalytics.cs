@@ -73,20 +73,20 @@ namespace AntiqueTradingSimulator.Economy
         /// Reference price of the antique's type as it was <paramref name="daysAgo"/> days
         /// before the latest recorded day, or null if the type has no history yet.
         /// </summary>
-        public static float? ReferencePriceDaysAgo(AntiqueMarketState typeState, int daysAgo)
+        public static float? ReferencePriceWeeksAgo(AntiqueMarketState typeState, int weeksAgo)
         {
             if (typeState == null || typeState.PriceHistory.Count == 0)
                 return null;
 
             var history = typeState.PriceHistory;
-            int targetDay = history[history.Count - 1].Day - daysAgo;
+            int targetWeek = history[history.Count - 1].Week - weeksAgo;
 
             // Latest point on or before the target day; fall back to the oldest point
             // when history is shorter than the requested window.
             PricePoint match = history[0];
             foreach (var point in history)
             {
-                if (point.Day > targetDay) break;
+                if (point.Week > targetWeek) break;
                 match = point;
             }
 
@@ -97,13 +97,13 @@ namespace AntiqueTradingSimulator.Economy
         /// How much of the antique's current value is due to market movement over the
         /// last <paramref name="days"/> days (not purchases or sales). Positive = gained value.
         /// </summary>
-        public static float MarketValueChange(Antique antique, Market.Market market, int days)
+        public static float MarketValueChange(Antique antique, Market.Market market, int weeks)
         {
             if (antique == null || market == null)
                 return 0f;
 
             var typeState = market.GetTypeState(antique.DefinitionId);
-            float? past = ReferencePriceDaysAgo(typeState, days);
+            float? past = ReferencePriceWeeksAgo(typeState, weeks);
             if (past == null || past.Value <= 0f)
                 return 0f;
 
@@ -116,14 +116,14 @@ namespace AntiqueTradingSimulator.Economy
             return antique.CurrentPrice - pastValue;
         }
 
-        public static float MarketValueChange(IEnumerable<Antique> antiques, Market.Market market, int days) =>
-            antiques.Sum(a => MarketValueChange(a, market, days));
+        public static float MarketValueChange(IEnumerable<Antique> antiques, Market.Market market, int weeks) =>
+            antiques.Sum(a => MarketValueChange(a, market, weeks));
 
         /// <summary>
         /// The antique's own value history: its type's reference price history scaled by
         /// this item's individual condition and price factor, oldest first.
         /// </summary>
-        public static List<float> ItemValueHistory(Antique antique, Market.Market market, int days)
+        public static List<float> ItemValueHistory(Antique antique, Market.Market market, int weeks)
         {
             var result = new List<float>();
             if (antique == null || market == null)
@@ -137,12 +137,12 @@ namespace AntiqueTradingSimulator.Economy
             if (history.Count == 0)
                 return result;
 
-            int fromDay = history[history.Count - 1].Day - days;
+            int fromWeek = history[history.Count - 1].Week - weeks;
             float itemMultiplier = antique.Condition * antique.PriceFactor;
 
             foreach (var point in history)
             {
-                if (point.Day < fromDay) continue;
+                if (point.Week < fromWeek) continue;
                 result.Add(point.Price * itemMultiplier);
             }
 

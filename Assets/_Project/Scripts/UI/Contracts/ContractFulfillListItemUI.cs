@@ -105,7 +105,7 @@ namespace AntiqueTradingSimulator.UI
             group.alpha = 0.5f;
 
             TooltipTrigger.On(this).Text = _antique != null
-                ? $"In transit — {UIFormat.ArrivalLabel(_antique.ArrivalDay)}. It can be handed in once it arrives."
+                ? $"In transit — {UIFormat.ArrivalLabel(_antique.ArrivalWeek)}. It can be handed in once it arrives."
                 : "";
         }
 

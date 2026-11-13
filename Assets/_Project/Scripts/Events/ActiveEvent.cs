@@ -9,8 +9,8 @@ namespace AntiqueTradingSimulator.Events
     public class ActiveEvent
     {
         public string EventDefinitionID { get; }
-        public int StartDay { get; }
-        public int EndDay { get; }
+        public int StartWeek { get; }
+        public int EndWeek { get; }
 
         [JsonIgnore]
         [NonSerialized] private EventDefinition _definitionCache;
@@ -19,19 +19,19 @@ namespace AntiqueTradingSimulator.Events
 
         public List<EventEffect> EffectInstances = new List<EventEffect>();
 
-        public ActiveEvent(EventDefinition definition, int startDay)
+        public ActiveEvent(EventDefinition definition, int startWeek)
         {
             EventDefinitionID = definition.Id;
             _definitionCache = definition;
-            StartDay = startDay;
-            EndDay = startDay + Mathf.Max(1, definition.DurationDays);
+            StartWeek = startWeek;
+            EndWeek = startWeek + Mathf.Max(1, definition.DurationWeeks);
         }
 
-        public ActiveEvent(string eventDefinitionId, int startDay, int endDay)
+        public ActiveEvent(string eventDefinitionId, int startWeek, int endWeek)
         {
             EventDefinitionID = eventDefinitionId;
-            StartDay = startDay;
-            EndDay = endDay;
+            StartWeek = startWeek;
+            EndWeek = endWeek;
         }
 
 
@@ -51,9 +51,9 @@ namespace AntiqueTradingSimulator.Events
                 instance.Revert(context);
         }
 
-        public bool HasExpired(int day) => day >= EndDay;
+        public bool HasExpired(int week) => week >= EndWeek;
 
-        public override string ToString() => $"{Definition.DisplayName} (Day {StartDay}\u2013{EndDay})";
+        public override string ToString() => $"{Definition.DisplayName} (Week {StartWeek}\u2013{EndWeek})";
 
         public void RebuildEffectInstances()
         {

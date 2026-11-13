@@ -4,6 +4,7 @@ using AntiqueTradingSimulator.Market;
 using AntiqueTradingSimulator.News;
 using System;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
+using UnityEngine.Serialization;
 
 namespace AntiqueTradingSimulator.Events
 {
@@ -52,8 +53,9 @@ namespace AntiqueTradingSimulator.Events
         [Range(0f, Antique.MaxCondition)]
         public float MinCondition = 0f;
 
-        [Tooltip("Days the player gets. 0 = rolled. A value above the ContractManager's Max Duration Days is honoured.")]
-        [Min(0)] public int DurationDays = 0;
+        [Tooltip("Weeks the player gets. 0 = rolled. A value above the ContractManager's Max Duration Days is honoured.")]
+        [FormerlySerializedAs("DurationDays")]
+        [Min(0)] public int DurationWeeks = 0;
 
         [Tooltip("Payment per antique delivered. 0 = Price calculated normally.")]
         [Min(0f)] public float RewardPerUnit = 0f;
@@ -87,7 +89,7 @@ namespace AntiqueTradingSimulator.Events
             int created = 0;
             for (int i = 0; i < count; i++)
             {
-                if (contractManager.GenerateContract(context.CurrentDay, overrides) != null)
+                if (contractManager.GenerateContract(context.CurrentWeek, overrides) != null)
                     created++;
             }
 
@@ -119,7 +121,7 @@ namespace AntiqueTradingSimulator.Events
                 Country = Country,
                 Quantity = Quantity,
                 MinCondition = MinCondition,
-                DurationDays = DurationDays,
+                DurationWeeks = DurationWeeks,
                 RewardPerUnit = RewardPerUnit,
                 Type = Type,
                 Penalty = Penalty,
@@ -147,7 +149,7 @@ namespace AntiqueTradingSimulator.Events
 
             if (Quantity > 0) overrides.Quantity = Quantity;
             if (MinCondition > 0f) overrides.MinCondition = MinCondition;
-            if (DurationDays > 0) overrides.DurationDays = DurationDays;
+            if (DurationWeeks > 0) overrides.DurationWeeks = DurationWeeks;
             if (RewardPerUnit > 0f) overrides.RewardPerUnit = RewardPerUnit;
             if (Penalty >= 0f) overrides.Penalty = Penalty;
             if (RequiredReputation >= 0) overrides.RequiredReputation = RequiredReputation;

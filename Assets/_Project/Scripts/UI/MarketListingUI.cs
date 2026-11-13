@@ -29,7 +29,7 @@ namespace AntiqueTradingSimulator.UI
         private Antique _listing;
         private MarketView _marketView;
 
-       public void Setup(Antique listing, MarketView marketView, int currentDay)
+       public void Setup(Antique listing, MarketView marketView, int currentWeek)
         {
             _listing = listing;
             _marketView = marketView;
@@ -45,7 +45,7 @@ namespace AntiqueTradingSimulator.UI
                 shippingText.text = $"Ships from: {listing.ShippingZone.ToDisplayString()}";
 
             if (newBadge != null)
-                newBadge.SetActive(listing.MarketListedOnDay == currentDay);
+                newBadge.SetActive(listing.MarketListedOnWeek == currentWeek);
 
             showDetailsButton.onClick.RemoveAllListeners();
             showDetailsButton.onClick.AddListener(() => _marketView.ShowDetails(_listing));

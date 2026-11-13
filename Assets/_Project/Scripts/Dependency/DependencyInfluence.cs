@@ -22,18 +22,18 @@ namespace AntiqueTradingSimulator.Dependency
         public float Amount;
 
         /// <summary>Share of Amount that fades each day.</summary>
-        public float DecayPerDay;
+        public float DecayPerWeek;
 
         /// <summary>Hops from the origin; 0 when a category reacts to itself.</summary>
         public int Depth;
 
-        public int CreatedOnDay;
-        public int LastRefreshedOnDay;
+        public int CreatedOnWeek;
+        public int LastRefreshedOnWeek;
 
         /// <summary>Fades the influence by one day. Returns the amount left.</summary>
         public float Decay()
         {
-            Amount *= 1f - Mathf.Clamp01(DecayPerDay);
+            Amount *= 1f - Mathf.Clamp01(DecayPerWeek);
             return Amount;
         }
 

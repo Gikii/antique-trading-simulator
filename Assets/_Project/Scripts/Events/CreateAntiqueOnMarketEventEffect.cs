@@ -59,7 +59,7 @@ namespace AntiqueTradingSimulator.Events
             int created = 0;
             for (int i = 0; i < count; i++)
             {
-                if (CreateOne(market, context.CurrentDay))
+                if (CreateOne(market, context.CurrentWeek))
                     created++;
             }
 
@@ -92,7 +92,7 @@ namespace AntiqueTradingSimulator.Events
             };
         }
 
-        private bool CreateOne(Market.Market market, int currentDay)
+        private bool CreateOne(Market.Market market, int currentWeek)
         {
             AntiqueDefinition definition = PickDefinition();
             if (definition == null) return false;
@@ -109,7 +109,7 @@ namespace AntiqueTradingSimulator.Events
                 ? Market.Market.RollShippingZone()
                 : ShippingZone;
 
-            return market.CreateListing(definition.Id, condition, priceFactor, zone, currentDay, AddSupplyPressure) != null;
+            return market.CreateListing(definition.Id, condition, priceFactor, zone, currentWeek, AddSupplyPressure) != null;
         }
 
         private AntiqueDefinition PickDefinition()

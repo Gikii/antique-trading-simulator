@@ -9,7 +9,7 @@ namespace AntiqueTradingSimulator.Company
     /// </summary>
     public readonly struct CompanySnapshot
     {
-        public readonly int Day;
+        public readonly int Week;
         public readonly float Cash;
         public readonly float Wealth;
         public readonly float CollectionValue;
@@ -20,10 +20,10 @@ namespace AntiqueTradingSimulator.Company
 
 
         [JsonConstructor]
-        public CompanySnapshot(int day, float cash, float wealth, float collectionValue, int reputation,
+        public CompanySnapshot(int week, float cash, float wealth, float collectionValue, int reputation,
             float credibility, float marketShare, int contractsFulfilled)
         {
-            Day = day;
+            Week = week;
             Cash = cash;
             Wealth = wealth;
             CollectionValue = collectionValue;

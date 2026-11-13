@@ -42,7 +42,7 @@ namespace AntiqueTradingSimulator.UI
         private bool _subscribed;
         private Contract _selectedContract;
 
-        private int CurrentDay => timeManager != null ? timeManager.CurrentDay : 0;
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 0;
 
         void Awake()
         {
@@ -79,7 +79,7 @@ namespace AntiqueTradingSimulator.UI
                 }
 
                 if (timeManager != null)
-                    timeManager.OnDayChanged += HandleDayChanged;
+                    timeManager.OnWeekChanged += HandleWeekChanged;
 
                 _subscribed = true;
             }
@@ -103,12 +103,12 @@ namespace AntiqueTradingSimulator.UI
             }
 
             if (timeManager != null)
-                timeManager.OnDayChanged -= HandleDayChanged;
+                timeManager.OnWeekChanged -= HandleWeekChanged;
         }
 
         private void HandleContractClaimed(Contract contract, string traderId) => RefreshActiveTab();
         private void HandleContractsChanged(Contract contract) => RefreshActiveTab();
-        private void HandleDayChanged(int day) => RefreshActiveTab();
+        private void HandleWeekChanged(int week) => RefreshActiveTab();
 
         public void SetTab(ContractsTab tab)
         {
@@ -135,7 +135,7 @@ namespace AntiqueTradingSimulator.UI
         private void RefreshActiveTab()
         {
             if (!gameObject.activeInHierarchy) return;
-            if (listPanel != null) listPanel.SetContracts(GetContractsForActiveTab(), CurrentDay);
+            if (listPanel != null) listPanel.SetContracts(GetContractsForActiveTab(), CurrentWeek);
 
 
             if (_selectedContract != null) ShowDetails(_selectedContract);
