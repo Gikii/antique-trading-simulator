@@ -21,7 +21,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private RestorationManager restorationManager;
         [SerializeField] private PlayerTrader playerTrader;
 
-        [Tooltip("Deliveries from the last N days are listed after the shipments in transit. 1 = today only.")]
+        [Tooltip("Deliveries from the last N weeks are listed after the shipments in transit. 1 = this week only.")]
         [SerializeField] private int recentDeliveryDays = 1;
 
         protected override string EmptyLabel => restorationManager != null ? "No shipments or restorations" : "No shipments";
@@ -46,6 +46,7 @@ namespace AntiqueTradingSimulator.UI
                 transportManager.OnShipmentDispatched += HandleShipmentChanged;
                 transportManager.OnShipmentDelivered += HandleShipmentDelivered;
                 transportManager.OnShipmentsDelayed += HandleShipmentsDelayed;
+                transportManager.OnShipmentShiftedBySeason += HandleShipmentShifted;
                 transportManager.OnShipmentsRestored += Refresh;
             }
 
@@ -64,6 +65,7 @@ namespace AntiqueTradingSimulator.UI
                 transportManager.OnShipmentDispatched -= HandleShipmentChanged;
                 transportManager.OnShipmentDelivered -= HandleShipmentDelivered;
                 transportManager.OnShipmentsDelayed -= HandleShipmentsDelayed;
+                transportManager.OnShipmentShiftedBySeason -= HandleShipmentShifted;
                 transportManager.OnShipmentsRestored -= Refresh;
             }
 
@@ -78,6 +80,7 @@ namespace AntiqueTradingSimulator.UI
         private void HandleShipmentChanged(Shipment shipment) => Refresh();
         private void HandleShipmentDelivered(Shipment shipment, Antique antique, float conditionLost) => Refresh();
         private void HandleShipmentsDelayed(ShippingZone zone, int days) => Refresh();
+        private void HandleShipmentShifted(Shipment shipment, int weeks, Seasons.Season season) => Refresh();
         private void HandleDayChanged(int day) => Refresh();
         private void HandleRestorationStarted(RestorationJob job) => Refresh();
         private void HandleRestorationCompleted(RestorationRecord record) => Refresh();
@@ -110,7 +113,7 @@ namespace AntiqueTradingSimulator.UI
                 {
                     Label = job.AntiqueName,
                     Detail = UIFormat.Colorize(
-                        daysLeft <= 0 ? "restoring · today" : $"restoring · {UIFormat.Days(daysLeft)}",
+                        daysLeft <= 0 ? "restoring · this week" : $"restoring · {UIFormat.Weeks(daysLeft)}",
                         UIFormat.InRestorationColor),
                     Tooltip = $"{job.AntiqueName}\nAt {job.OptionName}\nReady: {UIFormat.GameDate(job.EndDay)}"
                 });
@@ -146,20 +149,24 @@ namespace AntiqueTradingSimulator.UI
             foreach (var shipment in transportManager.GetShipmentsFor(inventory).OrderBy(s => s.ArrivalDay))
             {
                 int daysLeft = shipment.DaysRemaining(today);
+                bool heldUp = shipment.SeasonalShiftWeeks > 0;
+                string when = daysLeft <= 0 ? "this week" : $"{UIFormat.GameDate(shipment.ArrivalDay)} · {UIFormat.Weeks(daysLeft)}";
                 lines.Add(new RowData
                 {
                     Label = shipment.AntiqueName,
-                    Detail = UIFormat.Colorize(
-                        daysLeft <= 0 ? "today" : $"{UIFormat.GameDate(shipment.ArrivalDay)} · {UIFormat.Days(daysLeft)}",
-                        UIFormat.InTransitColor),
+                    Detail = heldUp
+                        ? UIFormat.Colorize($"delayed · {when}", UIFormat.NegativeColor)
+                        : UIFormat.Colorize(when, UIFormat.InTransitColor),
                     Tooltip = $"{shipment.AntiqueName}\n{shipment.Option.ToDisplayString()} transport from {shipment.Zone.ToDisplayString()}\n" +
-                              $"Arrival: {UIFormat.GameDate(shipment.ArrivalDay)}"
+                              $"Arrival: {UIFormat.GameDate(shipment.ArrivalDay)}" +
+                              (heldUp ? "\nHeld up a week by the weather." : "")
                 });
             }
 
             foreach (var delivery in transportManager.GetDeliveriesFor(inventory, sinceDay))
             {
-                string when = delivery.Day == today ? "today" : UIFormat.GameDate(delivery.Day);
+                string when = delivery.Day == today ? "this week" : UIFormat.GameDate(delivery.Day);
+                bool early = delivery.Shipment.SeasonalShiftWeeks < 0;
                 lines.Add(new RowData
                 {
                     Label = delivery.Shipment.AntiqueName,
@@ -168,7 +175,7 @@ namespace AntiqueTradingSimulator.UI
                         : UIFormat.Colorize($"delivered · {when}", UIFormat.PositiveColor),
                     Tooltip = delivery.Damaged
                         ? $"Arrived damaged {when} — condition -{UIFormat.Percent(delivery.ConditionLost)}."
-                        : $"Delivered {when} — now in your warehouse."
+                        : $"Delivered {when}{(early ? ", a week early" : "")} — now in your warehouse."
                 });
             }
         }

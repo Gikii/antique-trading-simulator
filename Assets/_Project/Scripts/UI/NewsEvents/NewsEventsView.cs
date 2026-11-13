@@ -404,7 +404,7 @@ namespace AntiqueTradingSimulator.UI
         {
             Debug.Log(
                 $"News clicked: {news.Type}, " +
-                $"published day {news.DayPublished}"
+                $"published week {news.DayPublished}"
             );
 
             OpenNewsDetails();
@@ -515,7 +515,7 @@ namespace AntiqueTradingSimulator.UI
 
             Debug.Log(
                 $"NewsEventsView: refreshing Active Events. " +
-                $"Current day: {timeManager.CurrentDay}, " +
+                $"Current week: {timeManager.CurrentDay}, " +
                 $"active events: {eventManager.ActiveEvents.Count}"
             );
 
@@ -564,7 +564,7 @@ namespace AntiqueTradingSimulator.UI
 
             Debug.Log(
                 $"Active event clicked: {eventName} " +
-                $"(Day {activeEvent.StartDay}-{activeEvent.EndDay})"
+                $"(Week {activeEvent.StartDay}-{activeEvent.EndDay})"
             );
 
             OpenEventDetails();

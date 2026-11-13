@@ -48,3 +48,5 @@ MonoBehaviour:
   AuctionFeverChance: 0.2
   AuctionFeverRaise: 0.1
   AuctionHesitation: 0.3
+  SeasonalForesight: 0.4
+  SeasonalHorizonDays: 3

@@ -243,7 +243,10 @@ namespace AntiqueTradingSimulator.UI
                 }
 
                 TransportQuote quote = transportManager.Quote(listing, optionUI.Option, buyer: Inventory);
-                optionUI.Show(quote, transportManager.Settings.GetDamageChance(optionUI.Option));
+                if (quote != null)
+                    optionUI.Show(quote, transportManager.GetSeasonalOutlook(quote));
+                else
+                    optionUI.Show(null, 0f);
 
                 bool isSelected = optionUI.Option == _selectedOption;
                 optionUI.SetSelected(isSelected);
@@ -263,10 +266,10 @@ namespace AntiqueTradingSimulator.UI
                 return "Immediately";
 
             if (timeManager == null)
-                return $"Day {quote.ArrivalDay} (in {UIFormat.Days(quote.DurationDays)})";
+                return $"Week {quote.ArrivalDay} (in {UIFormat.Weeks(quote.DurationDays)})";
 
             string date = TimeManager.FormatDayMonth(timeManager.DayToDate(quote.ArrivalDay));
-            return $"{date} (in {UIFormat.Days(quote.DurationDays)})";
+            return $"{date} (in {UIFormat.Weeks(quote.DurationDays)})";
         }
 
         private string WarehouseLabel()

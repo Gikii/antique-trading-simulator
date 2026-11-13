@@ -93,14 +93,23 @@ namespace AntiqueTradingSimulator.Agents
         [Tooltip("Asking price = current value × this (never below cost × the profit target in use).")]
         [Min(1f)] public float ListingMarkup = 1.15f;
 
-        [Tooltip("A listing that hasn't sold after this many days is withdrawn and re-evaluated.")]
+        [Tooltip("A listing that hasn't sold after this many weeks is withdrawn and re-evaluated.")]
         [Min(1)] public int RelistAfterDays = 5;
+
+        [Header("Seasons")]
+        [Tooltip("How much of the expected seasonal price change the NPC prices in: 0 = ignores the calendar, " +
+                 "1 = fully. A far-sighted trader pays more for a type whose season is coming, holds it until the " +
+                 "season peaks and sells before it ends.")]
+        [Range(0f, 1f)] public float SeasonalForesight;
+
+        [Tooltip("How many weeks ahead the NPC looks when judging the season.")]
+        [Min(0)] public int SeasonalHorizonDays = 8;
 
         [Header("Contracts")]
         [Tooltip("Takes delivery contracts from the board. Contracts already taken are finished either way.")]
         public bool TakesContracts = true;
 
-        [Tooltip("The number of days before a contract's expiry date the NPC focuses entirely on fullfilling the contract")]
+        [Tooltip("The number of weeks before a contract's expiry date the NPC focuses entirely on fullfilling the contract")]
         [Min(0)] public int ContractPanicDays = 2;
 
         [Header("Auctions")]

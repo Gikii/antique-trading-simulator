@@ -211,11 +211,11 @@ namespace AntiqueTradingSimulator.UI
             if (next == null)
             {
                 SetText(headerTitleText, "No auction announced");
-                SetText(headerSubtitleText, UIFormat.Colorize("Catalogs are published a few days before each auction.", UIFormat.MutedColor));
+                SetText(headerSubtitleText, UIFormat.Colorize("Catalogs are published a few weeks before each auction.", UIFormat.MutedColor));
                 return;
             }
 
-            SetText(headerTitleText, $"{AuctionPresentation.Title(next)} · {UIFormat.GameDate(next.Day)}, {AuctionPresentation.Hour(next.StartTick)}");
+            SetText(headerTitleText, $"{AuctionPresentation.Title(next)} · {AuctionPresentation.Date(next)}");
             SetText(headerSubtitleText,
                 $"{Capitalize(AuctionPresentation.When(next, CurrentDay))} · {next.Lots.Count} lots · estimates {AuctionPresentation.TotalEstimate(next)} in total");
         }
@@ -259,7 +259,7 @@ namespace AntiqueTradingSimulator.UI
 
             foreach (var auction in auctionManager.Upcoming)
             {
-                AddSection($"{AuctionPresentation.Title(auction)} · {UIFormat.GameDate(auction.Day)}, {AuctionPresentation.Hour(auction.StartTick)}" +
+                AddSection($"{AuctionPresentation.Title(auction)} · {AuctionPresentation.Date(auction)}" +
                            UIFormat.Colorize($"  ({AuctionPresentation.When(auction, today)})", UIFormat.MutedColor));
 
                 foreach (var lot in auction.Lots)

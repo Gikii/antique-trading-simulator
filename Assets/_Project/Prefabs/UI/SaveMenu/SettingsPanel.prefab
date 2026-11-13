@@ -1879,7 +1879,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Save automatically as days pass
+  m_text: Save automatically as weeks pass
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: ffdcf0967cf3d2b4ea7682389fa42222, type: 2}
   m_sharedMaterial: {fileID: -8220453057294329371, guid: ffdcf0967cf3d2b4ea7682389fa42222, type: 2}

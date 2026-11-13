@@ -101,7 +101,7 @@ namespace AntiqueTradingSimulator.UI
 
         private void RefreshValueChart(TraderInventory inventory)
         {
-            SetText(valueChartTitle, $"Collection value (last {ChartWindowDays} days)");
+            SetText(valueChartTitle, $"Collection value (last {UIFormat.Weeks(ChartWindowDays)})");
 
             if (valueChart == null)
                 return;
@@ -259,7 +259,7 @@ namespace AntiqueTradingSimulator.UI
             else
             {
                 float upkeep = warehouse.CalculateDailyUpkeep(used);
-                detail = UIFormat.Colorize($"{inventory.FreeSlots} free · {UIFormat.Money(upkeep)} / day", UIFormat.MutedColor);
+                detail = UIFormat.Colorize($"{inventory.FreeSlots} free · {UIFormat.Money(upkeep)} / week", UIFormat.MutedColor);
             }
 
             SetText(warehouseCapacityText, $"Warehouse\n<b>{slots}</b>\n{detail}");
@@ -272,7 +272,7 @@ namespace AntiqueTradingSimulator.UI
             string changeText = UIFormat.ColorBySign(
                 $"{UIFormat.SignedMoney(change)} {UIFormat.TrendArrow(change)}", change);
 
-            SetText(valueChangeText, $"Market value change ({ChangeWindowDays} days): {changeText}");
+            SetText(valueChangeText, $"Market value change ({UIFormat.Weeks(ChangeWindowDays)}): {changeText}");
             SetText(hintText, "Click an antique on the list to see its details and actions.");
         }
 

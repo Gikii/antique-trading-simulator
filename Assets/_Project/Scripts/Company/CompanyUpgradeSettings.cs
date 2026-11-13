@@ -72,7 +72,7 @@ namespace AntiqueTradingSimulator.Company
         [Tooltip("Price of upgrading TO this level. Ignored for the first level (starting level).")]
         [Min(0f)] public float Cost;
 
-        [Tooltip("Daily upkeep while at this level.")]
+        [Tooltip("Weekly upkeep while at this level (charged once per period).")]
         [Min(0f)] public float DailyUpkeep;
 
         [Tooltip("Reputation needed to upgrade TO this level (0 = none).")]

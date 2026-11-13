@@ -69,8 +69,9 @@ namespace AntiqueTradingSimulator.Company
         [Range(1, 5)] [SerializeField] private int startingInformationNetworkLevel = 1;
 
         [Header("History")]
-        [Tooltip("Daily snapshots kept for charts and trends.")]
-        [Min(8)] [SerializeField] private int maxSnapshotDays = 120;
+        [Tooltip("Weekly snapshots kept for charts, trends and the end screen. Keep it ≥ the campaign length " +
+                 "so the end screen can chart the whole campaign.")]
+        [Min(8)] [SerializeField] private int maxSnapshotDays = 160;
 
         private PlayerTrader _player;
         private TimeManager _timeManager;
@@ -148,7 +149,7 @@ namespace AntiqueTradingSimulator.Company
         public IReadOnlyList<CompanySnapshot> History => Record.History;
 
         public int CurrentDay => Clock != null ? Clock.CurrentDay : 1;
-        public int CampaignLength => Clock != null ? Clock.CampaignLength : 90;
+        public int CampaignLength => Clock != null ? Clock.CampaignLength : 104;
 
         private TimeManager Clock
         {
@@ -514,7 +515,7 @@ namespace AntiqueTradingSimulator.Company
             Debug.Log($"CompanyManager effects — reputation {Reputation.Reputation} ({Reputation.Title}); " +
                       $"levels: {levels.TrimEnd(',', ' ')}; " +
                       $"access: {Player.AccessLevel}; market fee: {m.ListingFeeRate:P1}; " +
-                      $"transport: -{m.TransportCostReduction:P0} cost, -{m.TransportDaysReduction} day(s); " +
+                      $"transport: -{m.TransportCostReduction:P0} cost, -{m.TransportDaysReduction} week(s); " +
                       $"contracts: {Player.ActiveContractCount}/{(limit < 0 ? "unlimited" : limit.ToString())}");
         }
 #endif

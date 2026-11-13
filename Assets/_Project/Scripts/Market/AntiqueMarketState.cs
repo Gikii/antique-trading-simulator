@@ -32,6 +32,16 @@ namespace AntiqueTradingSimulator.Market
         public float TempSupplyMod;
         public float TempDemandMod;
 
+        /// <summary>
+        /// Seasonal part of the demand (SeasonSettings), set every week by EconomyManager:
+        /// BaselineDemand × (seasonal multiplier − 1). Kept apart from TempDemandMod so events and the
+        /// dependency network never overwrite it, and the UI can show it on its own.
+        /// </summary>
+        public float SeasonalDemandMod;
+
+        /// <summary>The demand prices, collectors and the UI work with: own + temporary (events, dependencies) + seasonal.</summary>
+        public float EffectiveDemand => Demand + TempDemandMod + SeasonalDemandMod;
+
         public List<PricePoint> PriceHistory = new List<PricePoint>();
         private const int MaxHistoryDays = 90;
 

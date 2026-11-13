@@ -6,8 +6,8 @@ using UnityEngine.UI;
 namespace AntiqueTradingSimulator.UI
 {
     /// <summary>
-    /// Debug/testing time controls next to the day counter in the HUD: a countdown to the
-    /// next day, pause/resume, speed (1x / 2x / 4x) and "skip to next day".
+    /// Debug/testing time controls next to the week counter in the HUD: a countdown to the
+    /// next week, pause/resume, speed (1x / 2x / 4x) and "skip to next week".
     /// Hidden automatically in non-development builds unless hideInReleaseBuilds is off.
     /// Every reference is optional.
     /// </summary>
@@ -50,7 +50,7 @@ namespace AntiqueTradingSimulator.UI
 
             SetTooltip(pauseButton, "Pause / resume time (debug)");
             SetTooltip(speedButton, "Time speed (debug)");
-            SetTooltip(skipDayButton, "Skip to the next day (debug)");
+            SetTooltip(skipDayButton, "Skip to the next week (debug)");
         }
 
         private void OnEnable()

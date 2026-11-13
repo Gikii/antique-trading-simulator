@@ -93,7 +93,7 @@ namespace AntiqueTradingSimulator.Company
         public float ContractFailedCredibility = -0.08f;
 
         [Header("Market sales")]
-        [Tooltip("Reputation per € of market sales, summed per day (0.02 = +1 per 50 £).")]
+        [Tooltip("Reputation per € of market sales, summed per week (0.02 = +1 per 50 £).")]
         [Min(0f)] public float ReputationPerSaleValue = 0.02f;
 
         [Header("History")]

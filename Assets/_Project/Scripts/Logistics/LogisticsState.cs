@@ -11,6 +11,9 @@ namespace AntiqueTradingSimulator.Logistics
 
 
         public Dictionary<ShippingZone, int> ZoneDelayDays = new Dictionary<ShippingZone, int>();
+
+        /// <summary>Weather of the current season and the forecast one (null in saves made before seasons).</summary>
+        public Seasons.SeasonWeatherState Weather;
     }
 
     public class ShipmentState
@@ -31,6 +34,9 @@ namespace AntiqueTradingSimulator.Logistics
         public int DispatchDay;
         public int ArrivalDay;
 
+        public int SeasonalShiftWeeks;
+        public bool EarlyArrivalRolled;
+
         public static ShipmentState Capture(Shipment shipment, string recipientOwnerId)
         {
             if (shipment == null) return null;
@@ -46,7 +52,9 @@ namespace AntiqueTradingSimulator.Logistics
                 Zone = shipment.Zone,
                 Cost = shipment.Cost,
                 DispatchDay = shipment.DispatchDay,
-                ArrivalDay = shipment.ArrivalDay
+                ArrivalDay = shipment.ArrivalDay,
+                SeasonalShiftWeeks = shipment.SeasonalShiftWeeks,
+                EarlyArrivalRolled = shipment.EarlyArrivalRolled
             };
         }
 
@@ -58,7 +66,9 @@ namespace AntiqueTradingSimulator.Logistics
             return new Shipment(AntiqueId, AntiqueName, recipient, RecipientName, quote)
             {
                 ShipmentId = this.ShipmentId,
-                ArrivalDay = this.ArrivalDay
+                ArrivalDay = this.ArrivalDay,
+                SeasonalShiftWeeks = this.SeasonalShiftWeeks,
+                EarlyArrivalRolled = this.EarlyArrivalRolled
             };
         }
     }

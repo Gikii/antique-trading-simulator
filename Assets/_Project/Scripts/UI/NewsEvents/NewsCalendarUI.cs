@@ -168,7 +168,7 @@ namespace AntiqueTradingSimulator.UI
         private void HandleDayChanged(int day)
         {
             bool wasViewingToday = SelectedDate == Today;
-            Today = timeManager.DayToDate(day);
+            Today = timeManager.CurrentDate;
 
             // Follow the new day only if the player was looking at "today"; don't steal their selection.
             if (wasViewingToday)
@@ -319,7 +319,7 @@ namespace AntiqueTradingSimulator.UI
                 emptyLabel.name = "EmptyLabel";
 
                 var text = emptyLabel.GetComponent<TMP_Text>();
-                text.text = "No events on this day";
+                text.text = "No events this week";
                 text.alignment = TextAlignmentOptions.Center;
                 text.fontStyle = FontStyles.Normal;
                 text.color = textOtherMonth;
@@ -586,11 +586,16 @@ namespace AntiqueTradingSimulator.UI
 
         private void UpdateSelectedDateTexts()
         {
+            // News and events belong to a whole week, so a day shows its week's entries.
+            DateTime weekStart = timeManager != null
+                ? timeManager.DayToDate(timeManager.DateToDay(SelectedDate))
+                : SelectedDate;
+
             if (selectedDateText != null)
-                selectedDateText.text = $"Events on {TimeManager.FormatLong(SelectedDate)}";
+                selectedDateText.text = $"Events in the week of {TimeManager.FormatLong(weekStart)}";
 
             if (viewAllEventsText != null)
-                viewAllEventsText.text = $"View all events on {TimeManager.FormatDayMonth(SelectedDate)}  >";
+                viewAllEventsText.text = $"View all events in the week of {TimeManager.FormatDayMonth(weekStart)}  >";
         }
     }
 }

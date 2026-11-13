@@ -245,7 +245,7 @@ namespace AntiqueTradingSimulator.UI
             SetText(categoryValue, NewsPresentation.JoinTargets(effects, EventEffect.TargetScope.AntiqueType, NoValue));
             SetText(regionValue, NewsPresentation.JoinTargets(effects, EventEffect.TargetScope.Country, NoValue));
             SetText(periodValue, NewsPresentation.JoinTargets(effects, EventEffect.TargetScope.Century, NoValue));
-            SetText(durationValue, NewsPresentation.DaysLabel(Mathf.Max(1, selected.DurationDays)));
+            SetText(durationValue, NewsPresentation.WeeksLabel(Mathf.Max(1, selected.DurationDays)));
             SetText(newsValue, NewsPresentation.GeneratedNewsLabel(selected));
         }
 
@@ -254,7 +254,7 @@ namespace AntiqueTradingSimulator.UI
         {
             return string.IsNullOrWhiteSpace(definition.Description)
                 ? NewsPresentation.DescribeEffects(NewsPresentation.BuildEventEffects(definition))
-                : definition.Description;
+                : Helpers.TextHelper.Resolve(definition.Description, future: true);
         }
 
         // ------------------------------------------------------------------
@@ -299,7 +299,7 @@ namespace AntiqueTradingSimulator.UI
         {
             int triggerDay = timeManager.CurrentDay + leadDays;
 
-            SetText(leadText, NewsPresentation.DaysLabel(leadDays));
+            SetText(leadText, NewsPresentation.WeeksLabel(leadDays));
             SetText(dateText, TimeManager.FormatLong(timeManager.DayToDate(triggerDay)));
 
             SetInteractable(decreaseButton, leadDays > min);
@@ -312,8 +312,8 @@ namespace AntiqueTradingSimulator.UI
             if (afterCampaign)
                 SetHint("This date is after the end of the campaign.", true);
             else
-                SetHint($"This event can be scheduled between {NewsPresentation.DaysLabel(min)} " +
-                        $"and {NewsPresentation.DaysLabel(max)} from today.", false);
+                SetHint($"This event can be scheduled between {NewsPresentation.WeeksLabel(min)} " +
+                        $"and {NewsPresentation.WeeksLabel(max)} from now.", false);
 
             SetInteractable(createButton, !afterCampaign);
         }
@@ -325,7 +325,7 @@ namespace AntiqueTradingSimulator.UI
         /// </summary>
         private void UpdateScheduleForRandomLead(int min, int max)
         {
-            SetText(leadText, $"{min} - {max} days");
+            SetText(leadText, $"{min} - {max} weeks");
             SetText(dateText, "");
 
             SetInteractable(decreaseButton, false);
@@ -339,8 +339,8 @@ namespace AntiqueTradingSimulator.UI
             if (afterCampaign)
                 SetHint("This date is after the end of the campaign.", true);
             else
-                SetHint($"This event will be scheduled at random between {NewsPresentation.DaysLabel(min)} " +
-                        $"and {NewsPresentation.DaysLabel(max)} from today.", false);
+                SetHint($"This event will be scheduled at random between {NewsPresentation.WeeksLabel(min)} " +
+                        $"and {NewsPresentation.WeeksLabel(max)} from now.", false);
 
             SetInteractable(createButton, !afterCampaign);
         }
@@ -355,7 +355,7 @@ namespace AntiqueTradingSimulator.UI
 
             if (!eventManager.ScheduleEvent(selected, triggerDay))
             {
-                SetHint("The event could not be scheduled. Choose another day.", true);
+                SetHint("The event could not be scheduled. Choose another week.", true);
                 return;
             }
 

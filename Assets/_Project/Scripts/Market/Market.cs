@@ -471,6 +471,22 @@ namespace AntiqueTradingSimulator.Market
             }
         }
 
+        /// <summary>
+        /// Sets every type's seasonal demand from a multiplier per antique type (1 = normal). Prices are
+        /// not recalculated here — call RecalculateAllPrices (ApplyMeanReversion does) afterwards.
+        /// </summary>
+        public void ApplySeasonalDemand(System.Func<AntiqueType, float> multiplierByType)
+        {
+            if (multiplierByType == null) return;
+
+            foreach (var typeState in _typeStates.Values)
+            {
+                var definition = AntiqueDatabase.GetById(typeState.DefinitionId);
+                float multiplier = definition != null ? multiplierByType(definition.Type) : 1f;
+                typeState.SeasonalDemandMod = typeState.BaselineDemand * (multiplier - 1f);
+            }
+        }
+
         public void ApplyMeanReversion(float supplyRate, float demandRate)
         {
             foreach (var typeState in _typeStates.Values)

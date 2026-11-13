@@ -59,7 +59,7 @@ namespace AntiqueTradingSimulator.Dependency
                  "what stops every single transaction from rippling through the whole market.")]
         [Min(0f)] public float ActivationThreshold = 0.5f;
 
-        [Tooltip("Share of the resulting influence that fades away each day. 0.2 = roughly gone in a week.")]
+        [Tooltip("Share of the resulting influence that fades away each week. 0.2 = roughly gone in seven weeks.")]
         [Range(0f, 1f)] public float DecayPerDay = 0.2f;
 
         /// <summary>

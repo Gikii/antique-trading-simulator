@@ -145,7 +145,7 @@ namespace AntiqueTradingSimulator.UI
             var winner = campaign.Winner;
             int count = campaign.FinalRanking.Count;
 
-            SetText(titleText, $"The campaign is over — day {campaign.FinishedOnDay}");
+            SetText(titleText, $"The campaign is over — week {campaign.FinishedOnDay}");
 
             if (player == null || winner == null)
             {
@@ -263,8 +263,8 @@ namespace AntiqueTradingSimulator.UI
                 : v => Mathf.RoundToInt(v).ToString();
             SetText(chartMaxText, label(max));
             SetText(chartMinText, label(min));
-            SetText(chartStartText, "Day 1");
-            SetText(chartEndText, $"Day {days}");
+            SetText(chartStartText, "Week 1");
+            SetText(chartEndText, $"Week {days}");
 
             int rivalIndex = 0;
             // Rivals first, the player last so its line is drawn on top.

@@ -14,7 +14,7 @@ namespace AntiqueTradingSimulator.Market
     {
         public bool Enabled = true;
 
-        [Tooltip("Daily chance that a collector buys a listing priced exactly at its market value, at normal demand.")]
+        [Tooltip("Weekly chance that a collector buys a listing priced exactly at its market value, at normal demand.")]
         [Range(0f, 1f)] public float BaseDailyChance = 0.2f;
 
         [Tooltip("How fast the chance falls as the asking price rises above market value (and grows below it). " +
@@ -24,7 +24,7 @@ namespace AntiqueTradingSimulator.Market
         [Tooltip("Collectors never pay more than this multiple of the market value.")]
         [Min(1f)] public float MaxPriceRatio = 1.6f;
 
-        [Tooltip("Upper limit of the daily chance, however cheap the listing.")]
+        [Tooltip("Upper limit of the weekly chance, however cheap the listing.")]
         [Range(0f, 1f)] public float MaxDailyChance = 0.75f;
 
         [Tooltip("How much the antique type's demand (relative to its baseline) scales the chance. 0 = ignore demand.")]
@@ -45,7 +45,9 @@ namespace AntiqueTradingSimulator.Market
         /// Depends on the price relative to the antique's market value (condition included) and
         /// on the current demand for its type. 0 if collectors are disabled or the price is too high.
         /// </summary>
-        public static float DailyChance(Antique antique, float askingPrice, AntiqueMarketState typeState, CollectorDemandSettings settings)
+        /// <param name="seasonFactor">Seasonal multiplier of collector activity (SeasonSettings) — 1 = normal.</param>
+        public static float DailyChance(Antique antique, float askingPrice, AntiqueMarketState typeState, CollectorDemandSettings settings,
+            float seasonFactor = 1f)
         {
             if (antique == null || settings == null || !settings.Enabled || askingPrice <= 0f)
                 return 0f;
@@ -60,12 +62,13 @@ namespace AntiqueTradingSimulator.Market
             float demandFactor = 1f;
             if (typeState != null && typeState.BaselineDemand > 0f && settings.DemandInfluence > 0f)
             {
-                float relative = (typeState.Demand + typeState.TempDemandMod) / typeState.BaselineDemand;
+                float relative = typeState.EffectiveDemand / typeState.BaselineDemand;
                 relative = Mathf.Clamp(relative, settings.DemandFactorRange.x, settings.DemandFactorRange.y);
                 demandFactor = Mathf.Pow(relative, settings.DemandInfluence);
             }
 
-            return Mathf.Clamp(settings.BaseDailyChance * priceFactor * demandFactor, 0f, settings.MaxDailyChance);
+            return Mathf.Clamp(settings.BaseDailyChance * priceFactor * demandFactor * Mathf.Max(0f, seasonFactor),
+                0f, settings.MaxDailyChance);
         }
 
         /// <summary>Days after which the listing has sold with 50% probability (int.MaxValue if never).</summary>

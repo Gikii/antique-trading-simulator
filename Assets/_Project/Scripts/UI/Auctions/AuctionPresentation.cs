@@ -9,20 +9,24 @@ namespace AntiqueTradingSimulator.UI
     /// <summary>Shared wording for the auction screens (view, banner, live modal, InfoBar).</summary>
     public static class AuctionPresentation
     {
-        /// <summary>"14:00"</summary>
-        public static string Hour(int tick) => $"{tick:00}:00";
+        /// <summary>"14:00" for a tick of the week.</summary>
+        public static string Hour(int tick) => UIFormat.TickHour(tick);
 
-        /// <summary>"today at 14:00" / "tomorrow at 14:00" / "in 3 days · 9 October, 14:00"</summary>
-        public static string When(Auction auction, int today)
+        /// <summary>"Saturday 10 May, 14:00" — when the auction's session starts.</summary>
+        public static string Date(Auction auction) =>
+            auction == null ? "" : UIFormat.GameDateTime(auction.Day, auction.StartTick);
+
+        /// <summary>"this week · Saturday 10 May, 14:00" / "next week · …" / "in 3 weeks · …"</summary>
+        public static string When(Auction auction, int thisWeek)
         {
             if (auction == null) return "";
 
-            int daysLeft = auction.Day - today;
-            string hour = Hour(auction.StartTick);
+            int weeksLeft = auction.Day - thisWeek;
+            string at = Date(auction);
 
-            if (daysLeft <= 0) return $"today at {hour}";
-            if (daysLeft == 1) return $"tomorrow at {hour}";
-            return $"in {UIFormat.Days(daysLeft)} · {UIFormat.GameDate(auction.Day)}, {hour}";
+            if (weeksLeft <= 0) return $"this week · {at}";
+            if (weeksLeft == 1) return $"next week · {at}";
+            return $"in {UIFormat.Weeks(weeksLeft)} · {at}";
         }
 
         /// <summary>"Auction #3"</summary>

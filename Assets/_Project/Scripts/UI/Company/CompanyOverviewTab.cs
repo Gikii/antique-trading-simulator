@@ -152,7 +152,7 @@ namespace AntiqueTradingSimulator.UI
                 tierProgress.SetColor(UIFormat.AccentColor);
             }
 
-            SetText(dayText, now.Day > _company.CampaignLength ? $"Day {now.Day}" : $"Day {now.Day} / {_company.CampaignLength}");
+            SetText(dayText, UIFormat.WeekCounter(now.Day, _company.CampaignLength));
             SetText(dateText, timeManager != null ? TimeManager.FormatLong(timeManager.DayToDate(now.Day)) : "");
         }
 
@@ -161,8 +161,8 @@ namespace AntiqueTradingSimulator.UI
             int days = _company.DaysUntilCongress;
             SetText(eventTitleText, "International Collectors Congress");
             SetText(eventDescriptionText, days > 0
-                ? $"In {UIFormat.Days(days)} the Congress will take place. Prepare your company, expand your collection and earn a high position in the ranking."
-                : "The Congress takes place today. Your company will be evaluated.");
+                ? $"In {UIFormat.Weeks(days)} the Congress will take place. Prepare your company, expand your collection and earn a high position in the ranking."
+                : "The Congress takes place this week. Your company will be evaluated.");
         }
 
         private void RefreshMetrics(CompanySnapshot now, CompanySnapshot past)
@@ -213,7 +213,7 @@ namespace AntiqueTradingSimulator.UI
 
         private static string ChangeLine(string change, float delta) =>
             UIFormat.ColorBySign($"{UIFormat.TrendArrow(delta)} {change}", delta) + " " +
-            UIFormat.Colorize($"({TrendDays} days)", UIFormat.MutedColor);
+            UIFormat.Colorize($"({UIFormat.Weeks(TrendDays)})", UIFormat.MutedColor);
 
         private static string WeightLine(ScoringSettings scoring, ScoreCriterion criterion)
         {

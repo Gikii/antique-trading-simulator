@@ -92,7 +92,7 @@ namespace AntiqueTradingSimulator.UI
             float change = company.Change(Criterion, TrendDays);
             if (changeText != null)
                 changeText.text = UIFormat.ColorBySign($"{UIFormat.TrendArrow(change)} {FormatDelta(change)}", change) +
-                                  " " + UIFormat.Colorize($"({TrendDays} days)", UIFormat.MutedColor);
+                                  " " + UIFormat.Colorize($"({UIFormat.Weeks(TrendDays)})", UIFormat.MutedColor);
 
             if (chart == null) return;
 

@@ -14,7 +14,8 @@ namespace AntiqueTradingSimulator.Company
     /// </summary>
     public class TraderRecord
     {
-        public const int DefaultMaxHistoryDays = 120;
+        /// <summary>Snapshots kept (one per week). Keep it ≥ the campaign length for the end screen chart.</summary>
+        public const int DefaultMaxHistoryDays = 160;
 
         private readonly List<CompanySnapshot> _history = new List<CompanySnapshot>();
 

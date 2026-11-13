@@ -105,7 +105,7 @@ namespace AntiqueTradingSimulator.Restoration
             if (antique == null || inventory == null || !inventory.Owns(antique.Id))
                 return "You don't own this antique.";
             if (antique.IsInRestoration)
-                return $"Already being restored — ready on day {antique.RestorationEndDay}.";
+                return $"Already being restored — ready in week {antique.RestorationEndDay}.";
             if (antique.IsInTransit)
                 return "In transit — it can be restored once it reaches your warehouse.";
             if (antique.IsListedForSale)
@@ -292,9 +292,9 @@ namespace AntiqueTradingSimulator.Restoration
             string change = $"condition {Mathf.RoundToInt(before * 100f)}% → {Mathf.RoundToInt(after * 100f)}%";
             return job.Outcome switch
             {
-                RestorationOutcome.Success => $"Restored by {job.OptionName} (day {day}), {change}.",
-                RestorationOutcome.Partial => $"Partly restored by {job.OptionName} (day {day}), {change}.",
-                _ => $"Damaged during restoration by {job.OptionName} (day {day}), {change}."
+                RestorationOutcome.Success => $"Restored by {job.OptionName} (week {day}), {change}.",
+                RestorationOutcome.Partial => $"Partly restored by {job.OptionName} (week {day}), {change}.",
+                _ => $"Damaged during restoration by {job.OptionName} (week {day}), {change}."
             };
         }
 

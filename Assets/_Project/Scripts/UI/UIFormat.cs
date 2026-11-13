@@ -87,35 +87,64 @@ namespace AntiqueTradingSimulator.UI
             return npc != null && !string.IsNullOrEmpty(npc.TraderName) ? npc.TraderName : ownerId;
         }
 
-        /// <summary>"7 October" for a game day, or "day 37" without a TimeManager.</summary>
-        public static string GameDate(int day) =>
-            GameClock != null ? TimeManager.FormatDayMonth(GameClock.DayToDate(day)) : $"day {day}";
+        /// <summary>
+        /// "7 October" — the first day (Monday) of a game week, which is when anything scheduled for
+        /// that week (arrival, restoration, deadline) happens. "week 37" without a TimeManager.
+        /// </summary>
+        public static string GameDate(int week) =>
+            GameClock != null ? TimeManager.FormatDayMonth(GameClock.DayToDate(week)) : $"week {week}";
 
-        /// <summary>"arrives 7 October (in 2 days)" / "arrives tomorrow" / "arriving today".</summary>
-        public static string ArrivalLabel(int arrivalDay)
+        /// <summary>"12 October" — the last day (Sunday) of a game week, e.g. the last day of an event.</summary>
+        public static string WeekEndDate(int week) =>
+            GameClock != null
+                ? TimeManager.FormatDayMonth(GameClock.DayToDate(week).AddDays(TimeManager.DaysPerWeek - 1))
+                : $"week {week}";
+
+        /// <summary>"Saturday 11 October, 14:00" — a tick of a game week (auction start times).</summary>
+        public static string GameDateTime(int week, int tick)
         {
-            int today = GameClock != null ? GameClock.CurrentDay : arrivalDay;
-            int daysLeft = arrivalDay - today;
-
-            if (daysLeft <= 0) return "arriving today";
-            if (daysLeft == 1) return $"arrives tomorrow ({GameDate(arrivalDay)})";
-            return $"arrives {GameDate(arrivalDay)} (in {Days(daysLeft)})";
+            if (GameClock == null) return $"week {week}";
+            return $"{GameClock.TickToDate(week, tick).ToString("dddd d MMMM", CultureInfo.InvariantCulture)}, {TickHour(tick)}";
         }
 
-        /// <summary>"ready 7 October (in 2 days)" / "ready tomorrow (8 October)" / "ready today" — for restorations.</summary>
-        public static string ReadyLabel(int readyDay)
+        /// <summary>"14:00" for a tick of a week.</summary>
+        public static string TickHour(int tick)
         {
-            int today = GameClock != null ? GameClock.CurrentDay : readyDay;
-            int daysLeft = readyDay - today;
-
-            if (daysLeft <= 0) return "ready today";
-            if (daysLeft == 1) return $"ready tomorrow ({GameDate(readyDay)})";
-            return $"ready {GameDate(readyDay)} (in {Days(daysLeft)})";
+            int hour = GameClock != null
+                ? GameClock.TickToHour(tick)
+                : TimeManager.DayStartHour + (tick % TimeManager.DefaultTicksPerDay) * TimeManager.WorkingHours / TimeManager.DefaultTicksPerDay;
+            return $"{hour:00}:00";
         }
 
-        /// <summary>"1 day" / "5 days"</summary>
-        public static string Days(int days) =>
-            days == 1 ? "1 day" : $"{days} days";
+        /// <summary>"Week 12 / 104" ("Week 120" past the campaign's end).</summary>
+        public static string WeekCounter(int week, int campaignLength) =>
+            campaignLength > 0 && week <= campaignLength ? $"Week {week} / {campaignLength}" : $"Week {week}";
+
+        /// <summary>"arrives 7 October (in 2 weeks)" / "arrives next week (7 October)" / "arriving this week".</summary>
+        public static string ArrivalLabel(int arrivalWeek)
+        {
+            int thisWeek = GameClock != null ? GameClock.CurrentDay : arrivalWeek;
+            int weeksLeft = arrivalWeek - thisWeek;
+
+            if (weeksLeft <= 0) return "arriving this week";
+            if (weeksLeft == 1) return $"arrives next week ({GameDate(arrivalWeek)})";
+            return $"arrives {GameDate(arrivalWeek)} (in {Weeks(weeksLeft)})";
+        }
+
+        /// <summary>"ready 7 October (in 2 weeks)" / "ready next week (7 October)" / "ready this week" — for restorations.</summary>
+        public static string ReadyLabel(int readyWeek)
+        {
+            int thisWeek = GameClock != null ? GameClock.CurrentDay : readyWeek;
+            int weeksLeft = readyWeek - thisWeek;
+
+            if (weeksLeft <= 0) return "ready this week";
+            if (weeksLeft == 1) return $"ready next week ({GameDate(readyWeek)})";
+            return $"ready {GameDate(readyWeek)} (in {Weeks(weeksLeft)})";
+        }
+
+        /// <summary>"1 week" / "5 weeks"</summary>
+        public static string Weeks(int weeks) =>
+            weeks == 1 ? "1 week" : $"{weeks} weeks";
 
         public static string Percent(float ratio) =>
             Mathf.RoundToInt(ratio * 100f).ToString(CultureInfo.InvariantCulture) + "%";

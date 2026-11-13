@@ -16,7 +16,7 @@ namespace AntiqueTradingSimulator.UI
     {
         [Header("Buttons")]
         [SerializeField] private Button continueButton;
-        [Tooltip("Day and date of the save Continue would load.")]
+        [Tooltip("Week and date of the save Continue would load.")]
         [SerializeField] private TMP_Text continueDetailText;
         [SerializeField] private Button newGameButton;
         [SerializeField] private Button loadButton;

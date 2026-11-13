@@ -53,7 +53,7 @@ namespace AntiqueTradingSimulator.Events
 
         public bool HasExpired(int day) => day >= EndDay;
 
-        public override string ToString() => $"{Definition.DisplayName} (Day {StartDay}\u2013{EndDay})";
+        public override string ToString() => $"{Definition.DisplayName} (Week {StartDay}\u2013{EndDay})";
 
         public void RebuildEffectInstances()
         {

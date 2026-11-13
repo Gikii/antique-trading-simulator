@@ -39,7 +39,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text currentPriceText;
 
         [Header("Shipping")]
-        [Tooltip("e.g. \"Ships from International · 5 days, ~120 £ (Standard)\". Optional.")]
+        [Tooltip("e.g. \"Ships from International · 5 weeks, ~120 £ (Standard)\". Optional.")]
         [SerializeField] private TMP_Text shippingText;
 
 
@@ -256,7 +256,7 @@ namespace AntiqueTradingSimulator.UI
             TransportQuote quote = transportManager.Quote(antique, TransportOption.Standard,
                 buyer: playerTrader != null ? playerTrader.Inventory : null);
             return quote != null
-                ? $"{zone} · {UIFormat.Days(quote.DurationDays)}, ~{UIFormat.Money(quote.Cost)} (Standard)"
+                ? $"{zone} · {UIFormat.Weeks(quote.DurationDays)}, ~{UIFormat.Money(quote.Cost)} (Standard)"
                 : zone;
         }
 

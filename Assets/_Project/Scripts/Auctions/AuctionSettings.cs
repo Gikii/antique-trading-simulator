@@ -13,17 +13,18 @@ namespace AntiqueTradingSimulator.Auctions
     public class AuctionSettings : ScriptableObject
     {
         [Header("Schedule")]
-        [Tooltip("Day of the first auction.")]
+        [Tooltip("Week of the first auction.")]
         [Min(1)] public int FirstAuctionDay = 3;
 
-        [Tooltip("An auction is held every this many days.")]
+        [Tooltip("An auction is held every this many weeks.")]
         [Min(1)] public int IntervalDays = 3;
 
-        [Tooltip("The catalog is published this many days before the auction.")]
+        [Tooltip("The catalog is published this many weeks before the auction.")]
         [Min(0)] public int AnnounceDaysAhead = 3;
 
-        [Tooltip("Hour (tick) of the auction day at which the session starts.")]
-        [Min(0)] public int StartTick = 14;
+        [Tooltip("Tick of the auction week at which the session starts: weekday × TicksPerDay + part of the day " +
+                 "(with 4 ticks a day: 0 = Monday 08:00 … 22 = Saturday 14:00).")]
+        [Min(0)] public int StartTick = 22;
 
         [Tooltip("Real seconds the player has to join once the session starts. The game keeps running meanwhile.")]
         [Min(1f)] public float JoinWindowSeconds = 15f;
@@ -37,7 +38,7 @@ namespace AntiqueTradingSimulator.Auctions
         [Tooltip("Range of a lot's market value at the start of the campaign (£).")]
         public Vector2 StartValueRange = new Vector2(300f, 1500f);
 
-        [Tooltip("Multiplier of the value range over the campaign: x = progress 0..1 (day 1 → last day), y = multiplier.")]
+        [Tooltip("Multiplier of the value range over the campaign: x = progress 0..1 (week 1 → last week), y = multiplier.")]
         public AnimationCurve ValueGrowth = AnimationCurve.EaseInOut(0f, 1f, 1f, 6f);
 
         [Tooltip("The upper end of the range never exceeds what the second-richest bidder can spend × this, " +

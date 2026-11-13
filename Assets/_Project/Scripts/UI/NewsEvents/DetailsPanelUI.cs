@@ -12,7 +12,7 @@ namespace AntiqueTradingSimulator.UI
     /// Right-side details panel (NewsDetails / EventDetails).
     /// Fills the texts of the clicked news item or active event.
     /// Children are found by name, so the same component works for both panels.
-    /// Refreshes itself when the day changes (e.g. "In 5 days" → "In 4 days").
+    /// Refreshes itself when the week changes (e.g. "In 5 weeks" → "In 4 weeks").
     /// </summary>
     public class DetailsPanelUI : MonoBehaviour
     {
@@ -96,7 +96,7 @@ namespace AntiqueTradingSimulator.UI
             SetText(descriptionText, NewsPresentation.GetNewsDescription(news));
 
             SetRowValue(expectedDateRow,
-                $"{NewsPresentation.RelativeDays(news.EventTriggerDay - today)}\n" +
+                $"{NewsPresentation.RelativeWeeks(news.EventTriggerDay - today)}\n" +
                 NewsPresentation.FormatDay(news.EventTriggerDay, timeManager));
 
             // Rumours may reveal only some effects – the rest stays "Unknown".
@@ -119,7 +119,7 @@ namespace AntiqueTradingSimulator.UI
 
             if (timeRemainingRow != null)
             {
-                SetRowLabel(timeRemainingRow, NewsPresentation.DaysLeft(activeEvent.EndDay - today));
+                SetRowLabel(timeRemainingRow, NewsPresentation.WeeksLeft(activeEvent.EndDay - today));
                 SetRowValue(timeRemainingRow, FormatRange(activeEvent.StartDay, lastDay));
             }
 
@@ -167,13 +167,13 @@ namespace AntiqueTradingSimulator.UI
             return result;
         }
 
-        /// <summary>"14 May – 19 May 1884"</summary>
-        private string FormatRange(int firstDay, int lastDay)
+        /// <summary>"12 May – 1 June 1884": from the Monday of the first week to the Sunday of the last one.</summary>
+        private string FormatRange(int firstWeek, int lastWeek)
         {
-            if (timeManager == null) return $"Day {firstDay} – {lastDay}";
+            if (timeManager == null) return $"Week {firstWeek} – {lastWeek}";
 
-            return $"{TimeManager.FormatDayMonth(timeManager.DayToDate(firstDay))} – " +
-                   TimeManager.FormatLong(timeManager.DayToDate(lastDay));
+            return $"{TimeManager.FormatDayMonth(timeManager.DayToDate(firstWeek))} – " +
+                   TimeManager.FormatLong(timeManager.DayToDate(lastWeek).AddDays(TimeManager.DaysPerWeek - 1));
         }
 
         // ------------------------------------------------------------------

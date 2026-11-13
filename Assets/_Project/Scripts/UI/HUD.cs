@@ -1,9 +1,11 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using TMPro;
 using UnityEngine;
 using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Core;
+using AntiqueTradingSimulator.Seasons;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -20,9 +22,9 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private PlayerTrader playerTrader;
         [SerializeField] private TimeManager timeManager;
 
-        [Header("Day")]
-        [SerializeField] private TMP_Text dayText;   // "Day 23 / 90"
-        [SerializeField] private TMP_Text dateText;  // "Tuesday, 14 May 1884"
+        [Header("Week")]
+        [SerializeField] private TMP_Text dayText;   // "Week 23 / 104"
+        [SerializeField] private TMP_Text dateText;  // "Tuesday, 14 May 1884" — follows the weekday through the week
 
         [Header("Stats (values only)")]
         [SerializeField] private TMP_Text cashText;
@@ -70,6 +72,7 @@ namespace AntiqueTradingSimulator.UI
             if (timeManager != null)
             {
                 timeManager.OnDayChanged += UpdateDay;
+                timeManager.OnTick += HandleTick;
                 timeManager.OnTimeRestored += HandleTimeRestored;
                 UpdateDay(timeManager.CurrentDay);
             }
@@ -106,21 +109,56 @@ namespace AntiqueTradingSimulator.UI
             if (timeManager != null)
             {
                 timeManager.OnDayChanged -= UpdateDay;
+                timeManager.OnTick -= HandleTick;
                 timeManager.OnTimeRestored -= HandleTimeRestored;
             }
         }
 
-        private void UpdateDay(int day)
+        private void UpdateDay(int week)
         {
             if (timeManager == null)
             {
-                SetText(dayText, $"Day {day}");
+                SetText(dayText, $"Week {week}");
                 return;
             }
 
-            // Past the campaign (play goes on as a sandbox) there is no "/ 90" to count towards.
-            SetText(dayText, day > timeManager.CampaignLength ? $"Day {day}" : $"Day {day} / {timeManager.CampaignLength}");
-            SetText(dateText, TimeManager.FormatWithWeekday(timeManager.DayToDate(day)));
+            // Past the campaign (play goes on as a sandbox) there is no "/ 104" to count towards.
+            SetText(dayText, UIFormat.WeekCounter(week, timeManager.CampaignLength));
+            UpdateDate();
+        }
+
+        // The week only changes on OnDayChanged, but the calendar day moves on with the ticks.
+        private DateTime _shownDate;
+
+        private void HandleTick(int week, int tick) => UpdateDate();
+
+        private Logistics.TransportManager _transportManager;
+
+        private WeatherSeverity CurrentWeather()
+        {
+            if (_transportManager == null) _transportManager = FindFirstObjectByType<Logistics.TransportManager>();
+            return _transportManager != null && _transportManager.Weather != null
+                ? _transportManager.Weather.Current
+                : WeatherSeverity.Normal;
+        }
+
+        private void UpdateDate()
+        {
+            if (timeManager == null) return;
+
+            DateTime date = timeManager.CurrentDate;
+            if (date == _shownDate) return;
+
+            _shownDate = date;
+            Season season = timeManager.CurrentSeason;
+            SetText(dateText, $"{TimeManager.FormatWithWeekday(date)} · {season.ToDisplayString()}");
+
+            if (dateText != null)
+            {
+                var trigger = TooltipTrigger.On(dateText);
+                if (trigger != null)
+                    trigger.Text = SeasonPresentation.SeasonTooltip(season, timeManager.SeasonSettings, CurrentWeather());
+            }
         }
 
         private void UpdateCash(float cash)
@@ -166,7 +204,7 @@ namespace AntiqueTradingSimulator.UI
 
             SetText(marketShareText, UIFormat.PercentOneDecimal(_company.MarketShare()));
             if (_marketShareTooltip != null)
-                _marketShareTooltip.Text = $"Last 7 days: {UIFormat.PercentOneDecimal(_company.MarketShare(7))}\n" +
+                _marketShareTooltip.Text = $"Last 7 weeks: {UIFormat.PercentOneDecimal(_company.MarketShare(7))}\n" +
                     "<size=85%>Your share of all market purchases and sales.</size>";
         }
 

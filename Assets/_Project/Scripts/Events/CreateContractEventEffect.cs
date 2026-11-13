@@ -52,7 +52,7 @@ namespace AntiqueTradingSimulator.Events
         [Range(0f, Antique.MaxCondition)]
         public float MinCondition = 0f;
 
-        [Tooltip("Days the player gets. 0 = rolled. A value above the ContractManager's Max Duration Days is honoured.")]
+        [Tooltip("Weeks the player gets. 0 = rolled. A value above the ContractManager's Max Duration Days is honoured.")]
         [Min(0)] public int DurationDays = 0;
 
         [Tooltip("Payment per antique delivered. 0 = Price calculated normally.")]

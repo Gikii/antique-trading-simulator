@@ -23,6 +23,12 @@ namespace AntiqueTradingSimulator.Logistics
         public int DispatchDay;
         public int ArrivalDay;
 
+        /// <summary>Weather shift applied to this shipment: +1 = held up a week, -1 = arrived a week early, 0 = none (yet).</summary>
+        public int SeasonalShiftWeeks;
+
+        /// <summary>The early-arrival chance was already rolled (in the week before the shipment was due).</summary>
+        public bool EarlyArrivalRolled;
+
         // Runtime-only link to the owner's inventory. Will need to be re-resolved from an owner Id once save/load exists.
         [NonSerialized] public TraderInventory Recipient;
 
@@ -43,6 +49,6 @@ namespace AntiqueTradingSimulator.Logistics
         }
 
         public override string ToString() =>
-            $"{AntiqueName} → {RecipientName} ({Option.ToDisplayString()}, {Zone.ToDisplayString()}), arrives day {ArrivalDay}";
+            $"{AntiqueName} → {RecipientName} ({Option.ToDisplayString()}, {Zone.ToDisplayString()}), arrives week {ArrivalDay}";
     }
 }

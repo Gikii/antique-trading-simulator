@@ -23,7 +23,7 @@ namespace AntiqueTradingSimulator.UI
 
         [SerializeField] private Button closeButton;
 
-        [Tooltip("Interval steps offered, in in-game days.")]
+        [Tooltip("Interval steps offered, in in-game weeks.")]
         [SerializeField] private int[] intervalSteps = { 1, 2, 3, 5, 7 };
 
         public bool IsOpen => gameObject.activeSelf;
@@ -59,7 +59,7 @@ namespace AntiqueTradingSimulator.UI
             if (autosaveToggle != null) autosaveToggle.SetIsOnWithoutNotify(isOn);
 
             int days = SavePreferences.AutosaveIntervalDays;
-            if (intervalText != null) intervalText.text = days == 1 ? "Every day" : $"Every {days} days";
+            if (intervalText != null) intervalText.text = days == 1 ? "Every week" : $"Every {days} weeks";
 
             int index = StepIndex(days);
             if (intervalDownButton != null) intervalDownButton.interactable = isOn && index > 0;

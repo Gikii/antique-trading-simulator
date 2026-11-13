@@ -125,8 +125,8 @@ namespace AntiqueTradingSimulator.UI
             if (deadlineText != null)
             {
                 int currentDay = timeManager != null ? timeManager.CurrentDay : contract.CreatedDay;
-                int daysLeft = Mathf.Max(0, contract.DeadlineDay - currentDay);
-                deadlineText.text = $"Deadline: {daysLeft} day(s)";
+                int weeksLeft = Mathf.Max(0, contract.DeadlineDay - currentDay);
+                deadlineText.text = $"Deadline: {UIFormat.Weeks(weeksLeft)}";
             }
 
             if (penaltyText != null)

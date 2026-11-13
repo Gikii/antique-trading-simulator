@@ -302,7 +302,7 @@ namespace AntiqueTradingSimulator.UI
             return UIFormat.Colorize("Within the recent market range.", UIFormat.MutedColor);
         }
 
-        // Same model as the daily roll in EconomyManager, so the estimate is honest.
+        // Same model as the weekly roll in EconomyManager, so the estimate is honest.
         private string CollectorHint(float price)
         {
             if (economyManager == null || _antique == null)
@@ -318,9 +318,9 @@ namespace AntiqueTradingSimulator.UI
                     $"Too expensive for collectors (max {UIFormat.Percent(settings.MaxPriceRatio)} of value) — only traders might buy it.",
                     warningColor);
 
-            int days = CollectorDemand.MedianDaysToSell(chance);
-            string when = days <= 1 ? "likely sells within a day" : $"usually sells within ~{UIFormat.Days(days)}";
-            return UIFormat.Colorize($"Collectors: {UIFormat.Percent(chance)} chance a day, {when}.", UIFormat.MutedColor);
+            int weeks = CollectorDemand.MedianDaysToSell(chance);
+            string when = weeks <= 1 ? "likely sells within a week" : $"usually sells within ~{UIFormat.Weeks(weeks)}";
+            return UIFormat.Colorize($"Collectors: {UIFormat.Percent(chance)} chance a week, {when}.", UIFormat.MutedColor);
         }
 
         private static Color ConditionColor(float condition)

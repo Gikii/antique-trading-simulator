@@ -13,6 +13,13 @@ namespace AntiqueTradingSimulator.News {
 
         public bool affectsPriceUp;
 
+        /// <summary>
+        /// Set for effects on transport rather than on prices (TransportDelayEffect — storms, frozen ports):
+        /// the news then speaks of delays in <see cref="Zone"/>, and traders find nothing to buy or sell on it.
+        /// </summary>
+        public bool IsTransportDisruption;
+        public Logistics.ShippingZone Zone;
+
         public NewsEventData(EventEffect.TargetScope targetScope, AntiqueEnums.AntiqueType antiqueType, AntiqueEnums.Country country, AntiqueEnums.Century century, bool affectsPriceUp)
         {
             this.targetScope = targetScope;

@@ -135,7 +135,7 @@ namespace AntiqueTradingSimulator.UI
             {
                 Label = $"{AuctionPresentation.Title(next)} · {next.Lots.Count} lots",
                 Detail = UIFormat.Colorize(when, color),
-                Tooltip = $"{AuctionPresentation.Title(next)} · {UIFormat.GameDate(next.Day)}, {AuctionPresentation.Hour(next.StartTick)}\n" +
+                Tooltip = $"{AuctionPresentation.Title(next)} · {AuctionPresentation.Date(next)}\n" +
                           string.Join("\n", next.Lots.Select(l => $"{AuctionPresentation.LotTitle(l)} · est. {AuctionPresentation.Estimate(l)}")) +
                           "\n\nSee the catalog in the Auctions tab."
             });
@@ -147,16 +147,16 @@ namespace AntiqueTradingSimulator.UI
             string title = activeEvent.Definition.DisplayName;
 
             string tooltip = $"{title}\n" +
-                             $"Started {UIFormat.GameDate(activeEvent.StartDay)} · ends {UIFormat.GameDate(activeEvent.EndDay)}";
+                             $"Started {UIFormat.GameDate(activeEvent.StartDay)} · ends {UIFormat.WeekEndDate(activeEvent.EndDay - 1)}";
 
             if (!string.IsNullOrWhiteSpace(activeEvent.Definition.Description))
-                tooltip += $"\n\n{activeEvent.Definition.Description}";
+                tooltip += $"\n\n{Helpers.TextHelper.Resolve(activeEvent.Definition.Description, future: false)}";
 
             return new RowData
             {
                 Label = title,
                 Detail = UIFormat.Colorize(
-                    NewsPresentation.DaysLeft(daysLeft).ToLowerInvariant(),
+                    NewsPresentation.WeeksLeft(daysLeft).ToLowerInvariant(),
                     daysLeft <= 1 ? UIFormat.NegativeColor : UIFormat.AccentColor),
                 Tooltip = tooltip
             };

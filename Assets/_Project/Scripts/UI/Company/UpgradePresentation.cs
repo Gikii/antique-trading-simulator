@@ -13,7 +13,8 @@ namespace AntiqueTradingSimulator.UI
 
         public static string LevelLabel(UpgradeInfo info) => $"Level {info.DisplayLevel} / {info.LevelCount}";
 
-        public static string PerDay(float amount) => $"{UIFormat.Money(amount)} / day";
+        /// <summary>"40 £ / week" — upkeep is charged once per period (week).</summary>
+        public static string PerDay(float amount) => $"{UIFormat.Money(amount)} / week";
 
         public static string CostValue(UpgradeInfo info) => info.IsMaxed ? "—" : UIFormat.Money(info.NextCost);
 
@@ -58,7 +59,7 @@ namespace AntiqueTradingSimulator.UI
                 case UpgradeStat.TransportCostReduction:
                     return ("Transport cost", v > 0f ? "-" + UIFormat.PercentCompact(v) : "Base");
                 case UpgradeStat.TransportDaysReduction:
-                    return ("Delivery time", whole > 0 ? $"-{UIFormat.Days(whole)} (min. 1 day)" : "Base");
+                    return ("Delivery time", whole > 0 ? $"-{UIFormat.Weeks(whole)} (min. 1 week)" : "Base");
                 case UpgradeStat.MarketFeeRate:
                     return ("Market fee", UIFormat.PercentCompact(v));
                 case UpgradeStat.MaxActiveContracts:

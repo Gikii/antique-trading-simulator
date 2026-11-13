@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_ChannelGales
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 1c7b8962ba904ccf9e49f10b94a05acf
+  DisplayName: Autumn Gales on the Channel
+  EventType: 1
+  Description: Gales {sweep|will sweep} the Channel and the North Sea. Steamers {are|will be} kept in port and cargo from the Continent {arrives|will arrive} late.
+  DurationDays: 3
+  MinLeadDays: 2
+  MaxLeadDays: 4
+  PlayerSelectsLeadTime: 0
+  AllowedSeasons: 4
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementDaysBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.6
+  CreateLeak: 0
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 8412300000000000700
+  references:
+    version: 2
+    RefIds:
+    - rid: 8412300000000000700
+      type: {class: TransportDelayEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Zone: 2
+        NewShipmentDelayWeeks: 1
+        InTransitDelayWeeks: 1

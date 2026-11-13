@@ -113,8 +113,23 @@ namespace AntiqueTradingSimulator.Agents
 
         private void HandleTick(int day, int tick)
         {
+            // Seasonal activity (the London Season is busy, autumn is quiet). Set every tick so traders
+            // spawned or restored mid-week pick it up too; NPCTrader reads it when planning its week.
+            float activity = SeasonalActivity();
+
             for (int i = 0; i < _npcs.Count; i++)
-                _npcs[i]?.RunScheduledActions(day, tick);
+            {
+                if (_npcs[i] == null) continue;
+                _npcs[i].ActivityScale = activity;
+                _npcs[i].RunScheduledActions(day, tick);
+            }
+        }
+
+        private float SeasonalActivity()
+        {
+            return economyManager != null && economyManager.TimeManager != null
+                ? economyManager.CurrentMarketSeason.NpcActivity
+                : 1f;
         }
 
         private void HandleDayChanged(int newDay)

@@ -54,6 +54,9 @@ namespace AntiqueTradingSimulator.Agents
 
         private const float CommittedBargainPenalty = 2f;
 
+        /// <summary>Expected seasonal rise (fall) beyond which a far-sighted NPC holds (sells) an antique.</summary>
+        private const float SeasonalHoldThreshold = 0.03f;
+
         public float ActivityScale { get; set; } = 1f;
 
         private struct PendingReaction
@@ -693,6 +696,12 @@ namespace AntiqueTradingSimulator.Agents
                     ? Mathf.Min(profile.PatientProfitMultiplier, profile.ProfitTargetMultiplier)
                     : profile.ProfitTargetMultiplier;
 
+                // A far-sighted trader waits for a coming season and cashes in before one ends.
+                float seasonal = SeasonalOutlook(holding.DefinitionId, profile);
+                if (seasonal >= SeasonalHoldThreshold && !patient) continue;
+                if (seasonal <= -SeasonalHoldThreshold)
+                    target = Mathf.Min(target, profile.PatientProfitMultiplier);
+
                 if (value < acquisition.PurchasePrice * target) continue;
 
                 chosen = holding.Id;
@@ -795,12 +804,28 @@ namespace AntiqueTradingSimulator.Agents
             return Mathf.Max(0f, warehouse.CalculateDailyUpkeep(used + 1) - warehouse.CalculateDailyUpkeep(used));
         }
 
-        /// <summary>What the antique is worth in its condition, with the profile's condition premium.</summary>
+        /// <summary>
+        /// What the antique is worth in its condition, with the profile's condition premium — and, for a
+        /// far-sighted trader, the part of the coming seasonal price change it believes in.
+        /// </summary>
         private float FairValue(Antique listing, NpcBehaviorProfile profile)
         {
             var typeState = _economyManager.Market?.GetTypeState(listing.DefinitionId);
             float baseValue = PriceEngine.CalculateReferencePrice(listing.BasePrice, typeState) * listing.Condition;
-            return baseValue * (1f + profile.ConditionPremium * Mathf.Max(0f, listing.Condition - 0.5f));
+            return baseValue * (1f + profile.ConditionPremium * Mathf.Max(0f, listing.Condition - 0.5f))
+                             * (1f + SeasonalOutlook(listing.DefinitionId, profile));
+        }
+
+        /// <summary>
+        /// The seasonal price change this trader expects for a type over its horizon, weighted by its
+        /// foresight: 0.06 = expects (and prices in) +6%. 0 for traders who ignore the calendar.
+        /// </summary>
+        private float SeasonalOutlook(string definitionId, NpcBehaviorProfile profile)
+        {
+            if (profile.SeasonalForesight <= 0f || profile.SeasonalHorizonDays <= 0 || _economyManager == null) return 0f;
+
+            float ratio = _economyManager.SeasonalPriceOutlook(definitionId, profile.SeasonalHorizonDays);
+            return profile.SeasonalForesight * (ratio - 1f);
         }
         private bool IsAcceptablePrice(Antique listing, NpcBehaviorProfile profile) =>
             listing.SalePrice <= FairValue(listing, profile) * profile.MaxPriceMultiplierWillingToPay;
@@ -1112,6 +1137,9 @@ namespace AntiqueTradingSimulator.Agents
         {
             var profile = Profile;
             if (profile == null || _economyManager == null || _economyManager.TimeManager == null) return;
+
+            // Nothing to trade on (e.g. a weather forecast) — no reaction to plan.
+            if (news?.NewsData == null || news.NewsData.Count == 0) return;
 
             float trust = news.Type switch
             {

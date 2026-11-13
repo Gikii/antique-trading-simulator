@@ -81,12 +81,12 @@ namespace AntiqueTradingSimulator.UI
 
             if (timeText != null)
             {
-                int daysRemaining =
+                int weeksRemaining =
                     Mathf.Max(0, activeEvent.EndDay - currentDay);
 
-                timeText.text = daysRemaining == 1
-                    ? "1 day remaining"
-                    : $"{daysRemaining} days remaining";
+                timeText.text = weeksRemaining == 1
+                    ? "1 week remaining"
+                    : $"{weeksRemaining} weeks remaining";
             }
 
             if (locationText != null)

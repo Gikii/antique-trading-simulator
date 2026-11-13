@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Economy;
+using AntiqueTradingSimulator.Seasons;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,6 +56,7 @@ namespace AntiqueTradingSimulator.Events
             if (timeManager != null)
             {
                 timeManager.OnDayChanged += HandleDayChanged;
+                ScheduleAnnualEvents(timeManager.CurrentDay);
                 ScheduleNextMinorEvent(timeManager.CurrentDay);
             }
 
@@ -70,6 +72,7 @@ namespace AntiqueTradingSimulator.Events
         {
             ExpireFinishedEvents(newDay);
             TriggerScheduledEvent(newDay);
+            ScheduleAnnualEvents(newDay);
             ScheduleNextMinorEvent(newDay);
         }
 
@@ -135,7 +138,8 @@ namespace AntiqueTradingSimulator.Events
             // share a day), but non-player types are still limited to one of their own type per day
             // (e.g. only one Minor event per day). Player-created events are never blocked by what's
             // already on the calendar that day, including other Player events.
-            if (definition.EventType != EventType.Player &&
+            // Annual events are fixed in the calendar and always happen, so nothing can block them.
+            if (definition.EventType != EventType.Player && !definition.Annual &&
                 _scheduledEvents.Any(s => s.EventType == definition.EventType && s.TriggerDay == triggerDay))
             {
                 Debug.LogWarning($"EventManager: day {triggerDay} already has a {definition.EventType} event scheduled. '{definition.name}' was not scheduled.");
@@ -149,9 +153,51 @@ namespace AntiqueTradingSimulator.Events
             return true;
         }
 
+        /// <summary>
+        /// Puts every annual event on the calendar once its date is within its Max Lead weeks — every year,
+        /// whatever else is scheduled that week. Safe to call every week: an occurrence that is already
+        /// scheduled, running or over is never added twice.
+        /// </summary>
+        private void ScheduleAnnualEvents(int currentWeek)
+        {
+            if (timeManager == null) return;
+
+            foreach (var definition in EventDatabase.GetAll())
+            {
+                if (definition == null || !definition.Annual) continue;
+
+                int lead = Mathf.Max(1, definition.MaxLeadDays);
+                int year = timeManager.DayToDate(currentWeek).Year;
+
+                // This year's date, or next year's if this one is already behind us.
+                for (int y = year; y <= year + 1; y++)
+                {
+                    int week = timeManager.DateToDay(AnnualDate(definition, y));
+                    if (week <= currentWeek) continue;          // already happened (or happening) — handled
+                    if (week - currentWeek > lead) break;       // too early to announce
+                    if (IsOnCalendar(definition, week)) break;
+
+                    ScheduleEvent(definition, week);
+                    break;
+                }
+            }
+        }
+
+        private static DateTime AnnualDate(EventDefinition definition, int year)
+        {
+            int month = Mathf.Clamp(definition.AnnualMonth, 1, 12);
+            int day = Mathf.Clamp(definition.AnnualDay, 1, DateTime.DaysInMonth(year, month));
+            return new DateTime(year, month, day);
+        }
+
+        private bool IsOnCalendar(EventDefinition definition, int week) =>
+            _scheduledEvents.Any(s => s.EventDefinitionId == definition.Id && s.TriggerDay == week) ||
+            _activeEvents.Any(a => a.EventDefinitionID == definition.Id && a.StartDay == week) ||
+            _endedEvents.Any(a => a.EventDefinitionID == definition.Id && a.StartDay == week);
+
         private void ScheduleNextMinorEvent(int afterDay)
         {
-            List<EventDefinition> pool = EventDatabase.GetAllByType(EventType.Minor);
+            List<EventDefinition> pool = EventDatabase.GetAllByType(EventType.Minor).Where(d => !d.Annual).ToList();
             if (pool.Count == 0) return;
 
             for (int attempt = 0; attempt < maxScheduleAttempts; attempt++)
@@ -161,6 +207,9 @@ namespace AntiqueTradingSimulator.Events
                 int minLead = Mathf.Max(0, definition.MinLeadDays);
                 int maxLead = Mathf.Max(minLead, definition.MaxLeadDays);
                 int candidateDay = afterDay + UnityEngine.Random.Range(minLead, maxLead + 1);
+
+                // Seasonal events (winter storms, the summer exhibition…) only fall in their own seasons.
+                if (timeManager != null && !definition.AllowedSeasons.Contains(timeManager.SeasonOf(candidateDay))) continue;
 
                 if (_scheduledEvents.Any(s => s.EventType == EventType.Minor && s.TriggerDay == candidateDay)) continue;
 

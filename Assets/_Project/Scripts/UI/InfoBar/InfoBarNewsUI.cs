@@ -98,7 +98,7 @@ namespace AntiqueTradingSimulator.UI
 
         private RowData BuildLine(NewsItem news, int today)
         {
-            string when = NewsPresentation.RelativeDays(news.DayPublished - today).ToLowerInvariant();
+            string when = NewsPresentation.RelativeWeeks(news.DayPublished - today).ToLowerInvariant();
             string type = NewsPresentation.TypeLabel(news.Type);
             string title = NewsPresentation.GetTitle(news);
 

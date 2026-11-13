@@ -512,7 +512,7 @@ namespace AntiqueTradingSimulator.Auctions
         /// </summary>
         public Vector2 LotValueBand(int day)
         {
-            int length = timeManager != null ? timeManager.CampaignLength : 90;
+            int length = timeManager != null ? timeManager.CampaignLength : 104;
             float progress = length > 1 ? Mathf.Clamp01((day - 1) / (float)(length - 1)) : 1f;
             float multiplier = Mathf.Max(0.01f, Settings.ValueGrowth.Evaluate(progress));
 

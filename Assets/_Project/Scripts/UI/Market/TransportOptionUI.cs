@@ -19,7 +19,7 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text nameText;     // "Express (secured)"
         [SerializeField] private TMP_Text costText;     // "120 £"
         [SerializeField] private TMP_Text durationText; // "2 days"
-        [SerializeField] private TMP_Text riskText;     // "No damage risk" / "3% damage risk"
+        [SerializeField] private TMP_Text riskText;     // "3% damage · 45% delay" (the full seasonal outlook is in its tooltip)
 
         [Header("Selection")]
         [Tooltip("Shown only while this option is selected (e.g. an outline or check mark). Optional.")]
@@ -54,10 +54,24 @@ namespace AntiqueTradingSimulator.UI
             gameObject.SetActive(true);
             SetText(nameText, option.ToDisplayString());
             SetText(costText, UIFormat.Money(quote.Cost));
-            SetText(durationText, UIFormat.Days(quote.DurationDays));
+            SetText(durationText, UIFormat.Weeks(quote.DurationDays));
             SetText(riskText, damageChance > 0f
                 ? $"{UIFormat.Percent(damageChance)} damage risk"
                 : "No damage risk");
+        }
+
+        /// <summary>Same as Show, with the weather of the season the shipment arrives in.</summary>
+        public void Show(TransportQuote quote, TransportManager.SeasonalOutlook outlook)
+        {
+            Show(quote, outlook.DamageChance);
+            if (quote == null) return;
+
+            string risk = outlook.DamageChance > 0f ? $"{UIFormat.Percent(outlook.DamageChance)} damage" : "No damage risk";
+            if (outlook.DelayChance > 0f) risk += $" · {UIFormat.Percent(outlook.DelayChance)} delay";
+            SetText(riskText, risk);
+
+            var trigger = TooltipTrigger.On(this);
+            if (trigger != null) trigger.Text = SeasonPresentation.TransportOutlook(outlook);
         }
 
         public void SetSelected(bool selected)

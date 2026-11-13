@@ -323,10 +323,10 @@ namespace AntiqueTradingSimulator.UI
         private string ReadyDate(RestorationQuote quote)
         {
             if (timeManager == null)
-                return $"Day {quote.EndDay} (in {UIFormat.Days(quote.DurationDays)})";
+                return $"Week {quote.EndDay} (in {UIFormat.Weeks(quote.DurationDays)})";
 
             string date = TimeManager.FormatDayMonth(timeManager.DayToDate(quote.EndDay));
-            return $"{date} (in {UIFormat.Days(quote.DurationDays)})";
+            return $"{date} (in {UIFormat.Weeks(quote.DurationDays)})";
         }
 
         private static string ConditionLabel(float condition) =>

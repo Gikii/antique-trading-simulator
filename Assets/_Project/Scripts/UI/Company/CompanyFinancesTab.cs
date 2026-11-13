@@ -175,15 +175,15 @@ namespace AntiqueTradingSimulator.UI
 
         private string PeriodTitle => _period switch
         {
-            FinancePeriod.Today => "TODAY",
-            FinancePeriod.Last7Days => "LAST 7 DAYS",
+            FinancePeriod.Today => "THIS WEEK",
+            FinancePeriod.Last7Days => "LAST 7 WEEKS",
             _ => "FULL CAMPAIGN"
         };
 
         private string ComparisonLabel => _period switch
         {
-            FinancePeriod.Today => "vs yesterday",
-            FinancePeriod.Last7Days => "vs previous 7 days",
+            FinancePeriod.Today => "vs last week",
+            FinancePeriod.Last7Days => "vs previous 7 weeks",
             _ => ""
         };
 
@@ -269,7 +269,7 @@ namespace AntiqueTradingSimulator.UI
         {
             int today = Today;
             int days = _period == FinancePeriod.Campaign ? today : MinChartDays;
-            SetText(chartTitleText, _period == FinancePeriod.Campaign ? "CASH AND ASSETS (FULL CAMPAIGN)" : "CASH AND ASSETS (LAST 7 DAYS)");
+            SetText(chartTitleText, _period == FinancePeriod.Campaign ? "CASH AND ASSETS (FULL CAMPAIGN)" : "CASH AND ASSETS (LAST 7 WEEKS)");
 
             _cashValues.Clear();
             _wealthValues.Clear();
