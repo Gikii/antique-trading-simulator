@@ -191,37 +191,47 @@ namespace AntiqueTradingSimulator.UI
         public readonly struct ConditionBucket
         {
             public readonly string Label;
-            public readonly float Min;
-            public readonly float Max;
+            public readonly int MinPercent;
+            public readonly int MaxPercent;
 
-            public ConditionBucket(string label, float min, float max)
+            public ConditionBucket(string label, int minPercent, int maxPercent)
             {
                 Label = label;
-                Min = min;
-                Max = max;
+                MinPercent = minPercent;
+                MaxPercent = maxPercent;
             }
 
-            public bool Contains(float condition) => condition >= Min && condition < Max;
+            public bool Contains(float condition)
+            {
+                int percent = Antique.ConditionPercent(condition);
+                return percent >= MinPercent && percent <= MaxPercent;
+            }
         }
 
         // Best first. Max of the top bucket is slightly above 1 so Condition = 1 is included.
-        public static readonly ConditionBucket[] ConditionBuckets =
-        {
-            new ConditionBucket("Very Good", 0.9f, 1.01f),
-            new ConditionBucket("Good", 0.7f, 0.9f),
-            new ConditionBucket("Average", 0.5f, 0.7f),
-            new ConditionBucket("Poor", 0.3f, 0.5f),
-            new ConditionBucket("Very Poor", 0f, 0.3f),
-        };
+        public static readonly ConditionBucket[] ConditionBuckets = BuildConditionBuckets();
 
-        public static string ConditionLabel(float condition)
+        private static ConditionBucket[] BuildConditionBuckets()
         {
-            foreach (var bucket in ConditionBuckets)
-                if (bucket.Contains(condition))
-                    return bucket.Label;
+            var tiers = ConditionTiers.All;
+            var buckets = new ConditionBucket[tiers.Length];
+            int ceiling = Mathf.RoundToInt(Antique.MaxCondition * 100f);
 
-            return ConditionBuckets[ConditionBuckets.Length - 1].Label;
+            for (int i = 0; i < tiers.Length; i++)
+            {
+                var tier = tiers[tiers.Length - 1 - i];
+
+                int from = tier == ConditionTiers.Lowest ? 0 : tier.ThresholdPercent();
+                int to = Mathf.Min(ceiling, Mathf.RoundToInt(tier.UpperBound() * 100f) - 1);
+
+                buckets[i] = new ConditionBucket(tier.ToDisplayString(), from, to);
+            }
+
+            return buckets;
         }
+
+        public static string ConditionLabel(float condition) =>
+            ConditionTiers.Of(condition).ToDisplayString();
 
         // ------------------------------------------------------------------
         // Category colors (stable per type, used by the donut chart and legend)

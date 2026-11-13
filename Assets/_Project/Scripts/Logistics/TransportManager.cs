@@ -339,7 +339,7 @@ namespace AntiqueTradingSimulator.Logistics
             if (UnityEngine.Random.value < DamageChance(shipment.Option, CurrentWeek, ActualWeather(CurrentWeek)))
             {
                 float before = antique.Condition;
-                antique.Condition = Mathf.Max(Antique.MinCondition, antique.Condition - settings.RollConditionLoss());
+                antique.Condition = Antique.QuantizeConditionDown(antique.Condition - settings.RollConditionLoss());
                 conditionLost = before - antique.Condition;
 
                 if (conditionLost > 0f)

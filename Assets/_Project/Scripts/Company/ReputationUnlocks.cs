@@ -84,7 +84,7 @@ namespace AntiqueTradingSimulator.Company
 
         private static string RestorationLine(RestorationOption option)
         {
-            string condition = Mathf.RoundToInt(option.MaxCondition * 100f).ToString(CultureInfo.InvariantCulture);
+            string condition = Mathf.RoundToInt(option.TargetCondition * 100f).ToString(CultureInfo.InvariantCulture);
             return $"{option.DisplayName} restorations (up to {condition}% condition)";
         }
 

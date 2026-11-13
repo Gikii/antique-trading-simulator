@@ -29,7 +29,26 @@ namespace AntiqueTradingSimulator.Market
         // source of price randomness — see PriceFactor below.
          public const float MinCondition = 0.3f;
         public const float MaxCondition = 1f;
- 
+
+        public const float ConditionStep = 0.01f;
+
+        public static float QuantizeCondition(float condition) =>
+            Snap(condition, 0.5f);
+        public static float QuantizeConditionDown(float condition) =>
+            Snap(condition, 0f);
+
+        public static int ConditionPercent(float condition) =>
+            Mathf.RoundToInt(QuantizeCondition(condition) * 100f);
+
+        private static float Snap(float condition, float bias)
+        {
+            float steps = Mathf.Floor(condition / ConditionStep + bias + 0.0001f);
+            return Mathf.Clamp(steps * ConditionStep, MinCondition, MaxCondition);
+        }
+
+        public static float RandomCondition() =>
+            QuantizeCondition(UnityEngine.Random.Range(MinCondition, MaxCondition));
+
         // Independent price variance unrelated to physical condition — think
         // negotiation quirks, seller mood, market noise for this one listing.
         // Two items with identical Condition can still sell for different prices.

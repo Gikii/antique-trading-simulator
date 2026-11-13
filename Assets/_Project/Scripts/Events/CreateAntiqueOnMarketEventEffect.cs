@@ -98,8 +98,8 @@ namespace AntiqueTradingSimulator.Events
             if (definition == null) return false;
 
             float condition = Condition > 0f
-                ? Mathf.Clamp(Condition, Antique.MinCondition, Antique.MaxCondition)
-                : UnityEngine.Random.Range(Antique.MinCondition, Antique.MaxCondition);
+                ? Antique.QuantizeCondition(Condition)
+                : Antique.RandomCondition();
 
             float priceFactor = PriceFactor > 0f
                 ? Mathf.Clamp(PriceFactor, Antique.MinPriceFactor, Antique.MaxPriceFactor)
