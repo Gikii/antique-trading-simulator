@@ -438,7 +438,7 @@ namespace AntiqueTradingSimulator.UI
         /// <summary>Everything the player knows about a game week (see <see cref="WeekEntries.Collect"/>).</summary>
         private void GetEntries(int week, List<WeekEntry> result)
         {
-            WeekEntries.Collect(week, eventManager, newsManager, NewsPresentation.GetAccessLevel(player), result);
+            WeekEntries.Collect(week, eventManager, newsManager, timeManager != null ? timeManager.CurrentWeek : week, result);
         }
 
         private Color ColorOf(WeekEntryKind kind) => kind switch

@@ -52,7 +52,7 @@ namespace AntiqueTradingSimulator.UI
             int week,
             EventManager eventManager,
             NewsManager newsManager,
-            InfoAccessLevel accessLevel,
+            int currentWeek,
             List<WeekEntry> result)
         {
             result.Clear();
@@ -67,7 +67,7 @@ namespace AntiqueTradingSimulator.UI
             {
                 foreach (NewsItem news in newsManager.PublishedNews)
                 {
-                    if (news == null || news.WeekPublished != week || !NewsPresentation.CanSee(news, accessLevel))
+                    if (news == null || news.WeekPublished != week || !NewsPresentation.CanSee(news, currentWeek))
                         continue;
 
                     result.Add(WeekEntry.ForNews(news));
