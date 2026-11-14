@@ -435,8 +435,37 @@ namespace AntiqueTradingSimulator.UI
         // Data
         // ------------------------------------------------------------------
 
-        /// <summary>Everything the player knows about a game week (see <see cref="WeekEntries.Collect"/>).</summary>
-        private void GetEntries(int week, List<WeekEntry> result)
+        /// <summary>
+        /// Collects everything the player knows about a game day:
+        /// events running that day (active or already ended) and news published that day.
+        /// Scheduled (future) events are intentionally NOT shown – the player learns about them only through news.
+        /// </summary>
+        private void GetEntries(int week, List<DayEntry> result)
+        {
+            result.Clear();
+
+            if (eventManager != null)
+            {
+                AddEvents(eventManager.ActiveEvents, week, result);
+                AddEvents(eventManager.EndedEvents, week, result);
+            }
+
+            if (newsManager != null)
+            {
+                InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
+
+                int currentWeek = timeManager != null ? timeManager.CurrentWeek : week;
+
+                foreach (NewsItem news in newsManager.PublishedNews)
+                {
+                    // Only news the player has access to, and only on the day it was published.
+                    if (news.PlayerDeliveryWeek != week || !NewsPresentation.CanSee(news, currentWeek)) continue;
+                    result.Add(new DayEntry(KindOf(news.Type), NewsPresentation.GetTitle(news)));
+                }
+            }
+        }
+
+        private static void AddEvents(IReadOnlyList<ActiveEvent> events, int week, List<DayEntry> result)
         {
             WeekEntries.Collect(week, eventManager, newsManager, NewsPresentation.GetAccessLevel(player), result);
         }

@@ -11,6 +11,7 @@ namespace AntiqueTradingSimulator.Agents
         /// a MonoBehaviour or sharing a common trading base class.
         /// </summary>
         InfoAccessLevel AccessLevel { get; }
-        void ReceiveNews(NewsItem news);
+        string ReceiverId { get; }
+        void ReceiveNews(NewsItem news, int deliveryWeek);
     }
 }
