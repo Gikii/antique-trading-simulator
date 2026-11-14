@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Market;
 using TMPro;
@@ -8,62 +9,82 @@ using UnityEngine.UI;
 namespace AntiqueTradingSimulator.UI
 {
     /// <summary>
-    /// Fills the Market view's side panel with the market activity feed whenever the
-    /// Antique Details panel is closed. Shows Market.Feed's messages in a list.
+    /// Market History in the Market view's side panel, shown whenever the Antique Details panel is closed:
+    ///
+    ///   Your trading: bought 5 for 3 400 £, sold 3 for 4 100 £
+    ///   This week on the market: 12 sales, 31 400 £ turnover
+    ///   THIS WEEK
+    ///   ■ Hargreaves bought your Ormolu clock           +1 240 £
+    ///   ■ You bought Delft vase                           -820 £
+    ///   ■ Whitcombe won Regency bureau at auction        4 900 £
+    ///       + 14 new listings
+    ///
+    /// Reads Market.Feed (structured entries) and rebuilds its rows (FeedList, shared with Contract
+    /// History) whenever the history changes or a new week starts.
     /// </summary>
     public class TransactionHistoryUI : MonoBehaviour
     {
+        public const string Title = "Market History";
+
         [Header("Dependencies")]
         [SerializeField] private EconomyManager economyManager;
+        [SerializeField] private TimeManager timeManager;
 
         [Header("Scroll view")]
-        [Tooltip("The ScrollRect whose content holds the message rows.")]
+        [Tooltip("The ScrollRect whose content holds the rows.")]
         [SerializeField] private ScrollRect scrollRect;
 
         [Tooltip("The ScrollRect's Content (a VerticalLayoutGroup + ContentSizeFitter). Rows are parented here.")]
         [SerializeField] private RectTransform content;
 
-        [Tooltip("Optional: shown while there's no activity to display yet.")]
+        [Tooltip("Only used for its font, and hidden – an empty history is a row in the list.")]
         [SerializeField] private TMP_Text emptyText;
 
+        [Tooltip("Panel title, set from code. Auto-found at FeedHeader/FeedTitleText.")]
+        [SerializeField] private TMP_Text titleText;
+
         [Header("Row style")]
-        [SerializeField] private float rowFontSize = 15f;
+        [SerializeField] private float rowFontSize = 17f;
 
-        [Tooltip("Row background. Matches the shade every other list item in the game uses " +
-                 "(ContractListItem / ContractFulfillListItem / InventoryListItem).")]
-        [SerializeField] private Color rowBackgroundColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+        [Tooltip("Row background.")]
+        [SerializeField] private Color rowBackgroundColor = new Color(0.08627451f, 0.07058824f, 0.043137256f, 1f);
 
-        [Tooltip("Message text. Dark by default, since the row background above is a light grey.")]
-        [SerializeField] private Color rowTextColor = new Color(0.1961f, 0.1961f, 0.1961f, 1f);
+        [Tooltip("Muted text: week headings, other traders' prices, new-listing notes.")]
+        [SerializeField] private Color rowTextColor = new Color(0.6666667f, 0.59607846f, 0.47058824f, 1f);
 
-        private readonly struct Row
-        {
-            public readonly GameObject Background;
-            public readonly TextMeshProUGUI Label;
-
-            public Row(GameObject background, TextMeshProUGUI label)
-            {
-                Background = background;
-                Label = label;
-            }
-        }
-
-        // Pooled rows, top to bottom. Never longer than MarketFeed.MaxMessages.
-        private readonly List<Row> _rows = new List<Row>();
+        // Markers for buyers outside the simulated traders.
+        private static readonly Color CollectorColor = new Color32(0x7E, 0x9C, 0xB0, 0xFF); // dusty blue
+        private static readonly Color AuctionColor = new Color32(0xB8, 0x73, 0x33, 0xFF);   // copper
 
         private MarketFeed _feed;
         private bool _subscribed;
+        private FeedList _list;
+
+        // ------------------------------------------------------------------ lifecycle
 
         private void Awake()
         {
             if (economyManager == null)
                 economyManager = FindFirstObjectByType<EconomyManager>();
 
+            if (timeManager == null)
+                timeManager = FindFirstObjectByType<TimeManager>();
+
             if (scrollRect == null)
                 scrollRect = GetComponentInChildren<ScrollRect>(true);
 
             if (content == null && scrollRect != null)
                 content = scrollRect.content;
+
+            if (titleText == null)
+            {
+                Transform title = transform.Find("FeedHeader/FeedTitleText");
+                if (title != null) titleText = title.GetComponent<TMP_Text>();
+            }
+
+            TMP_FontAsset font = emptyText != null ? emptyText.font : titleText != null ? titleText.font : null;
+            if (content != null)
+                _list = new FeedList(content, font, rowFontSize, rowBackgroundColor, rowTextColor);
         }
 
         private void OnEnable()
@@ -102,99 +123,184 @@ namespace AntiqueTradingSimulator.UI
                 return;
 
             _feed = market.Feed;
-            _feed.OnMessageAdded += HandleMessageAdded;
-            _feed.OnCleared += HandleCleared;
+            _feed.OnChanged += HandleChanged;
+
+            if (timeManager != null)
+                timeManager.OnWeekChanged += HandleWeekChanged;
+
             _subscribed = true;
         }
 
         private void Unsubscribe()
         {
-            if (!_subscribed || _feed == null)
+            if (!_subscribed)
                 return;
 
-            _feed.OnMessageAdded -= HandleMessageAdded;
-            _feed.OnCleared -= HandleCleared;
+            if (_feed != null)
+                _feed.OnChanged -= HandleChanged;
+
+            if (timeManager != null)
+                timeManager.OnWeekChanged -= HandleWeekChanged;
+
             _subscribed = false;
         }
 
-        private void HandleMessageAdded(string message)
+        private void HandleChanged()
         {
             bool wasAtTop = scrollRect == null || scrollRect.verticalNormalizedPosition >= 0.999f;
-
             Rebuild();
-
             if (wasAtTop)
                 ScrollToTop();
         }
 
-        private void HandleCleared()
-        {
-            Rebuild();
-            ScrollToTop();
-        }
+        // "This week" / "Last week" headings and the week's stats move on with the calendar.
+        private void HandleWeekChanged(int week) => HandleChanged();
+
+        // ------------------------------------------------------------------ building
 
         private void Rebuild()
         {
-            if (content == null)
-                return;
-
-            IReadOnlyList<string> messages = _feed != null ? _feed.Messages : null;
-            int count = messages != null ? messages.Count : 0;
-
-            for (int i = 0; i < count; i++)
-            {
-                var row = GetOrCreateRow(i);
-                row.Label.text = messages[i];
-                if (!row.Background.activeSelf)
-                    row.Background.SetActive(true);
-            }
-
-            for (int i = count; i < _rows.Count; i++)
-            {
-                if (_rows[i].Background.activeSelf)
-                    _rows[i].Background.SetActive(false);
-            }
+            if (titleText != null)
+                titleText.text = Title;
 
             if (emptyText != null)
-                emptyText.gameObject.SetActive(count == 0);
+                emptyText.gameObject.SetActive(false);
+
+            if (_list == null)
+                return;
+
+            _list.Clear();
+
+            if (_feed == null)
+                return;
+
+            int currentWeek = timeManager != null ? timeManager.CurrentWeek : int.MinValue;
+
+            _list.AddSummary(SummaryText(_feed.PlayerTotals, _feed.LatestWeek, currentWeek));
+
+            IReadOnlyList<MarketFeedEntry> entries = _feed.Entries;
+            if (entries.Count == 0)
+            {
+                _list.AddNote("No market activity yet.", indented: false);
+                return;
+            }
+
+            int shownWeek = int.MinValue;
+            foreach (var entry in entries)
+            {
+                if (entry == null)
+                    continue;
+
+                if (entry.Week != shownWeek)
+                {
+                    shownWeek = entry.Week;
+                    _list.AddHeading(FeedList.WeekHeading(entry.Week, currentWeek));
+                }
+
+                if (entry.Kind == MarketFeedKind.Listed)
+                {
+                    _list.AddNote(entry.Count == 1 ? "+ 1 new listing" : $"+ {entry.Count} new listings");
+                    continue;
+                }
+
+                string amount = AmountText(entry, out Color amountColor);
+                Color textColor = entry.Kind == MarketFeedKind.AuctionUnsold ? _list.Muted : _list.Primary;
+                _list.AddEntry(MarkerColor(entry), Describe(entry), textColor, amount, amountColor);
+            }
         }
 
-        private Row GetOrCreateRow(int index)
+        private string SummaryText(MarketFeedTotals totals, MarketWeekStats week, int currentWeek)
         {
-            if (index < _rows.Count)
-                return _rows[index];
+            string trading = totals == null || totals.Bought + totals.Sold == 0
+                ? "Your trading: nothing bought or sold yet."
+                : $"Your trading: bought {totals.Bought} for {UIFormat.Money(totals.Spent)}, " +
+                  $"sold {totals.Sold} for {UIFormat.Money(totals.Earned)}";
 
-            int uiLayer = content.gameObject.layer;
+            bool thisWeek = week != null && week.Week == currentWeek && week.Sales > 0;
+            string market = thisWeek
+                ? $"This week on the market: {Plural(week.Sales, "sale")}, {UIFormat.Money(week.Turnover)} turnover"
+                : "This week on the market: no sales yet";
 
-            var background = new GameObject($"MessageRow ({index})", typeof(RectTransform));
-            background.layer = uiLayer;
-            ((RectTransform)background.transform).SetParent(content, false);
+            return trading + "\n" + UIFormat.Colorize(market, rowTextColor);
+        }
 
-            var backgroundImage = background.AddComponent<Image>();
-            backgroundImage.color = rowBackgroundColor;
-            backgroundImage.raycastTarget = true;
+        private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 
-            var rowLayout = background.AddComponent<VerticalLayoutGroup>();
-            rowLayout.padding = new RectOffset(8, 8, 5, 5);
-            rowLayout.childAlignment = TextAnchor.UpperLeft;
-            rowLayout.childControlWidth = true;
-            rowLayout.childControlHeight = true;
-            rowLayout.childForceExpandWidth = true;
-            rowLayout.childForceExpandHeight = false;
+        // ------------------------------------------------------------------ wording
 
-            var labelGO = new GameObject("Text", typeof(RectTransform));
-            labelGO.layer = uiLayer;
-            ((RectTransform)labelGO.transform).SetParent((RectTransform)background.transform, false);
+        private static string Name(string ownerId) => UIFormat.OwnerName(ownerId, "A trader", "You");
 
-            var label = labelGO.AddComponent<TextMeshProUGUI>();
-            label.fontSize = rowFontSize;
-            label.color = rowTextColor;
-            label.alignment = TextAlignmentOptions.TopLeft;
-            label.raycastTarget = false;
+        private static string Describe(MarketFeedEntry entry)
+        {
+            string item = entry.AntiqueName;
+            bool hasSeller = !string.IsNullOrEmpty(entry.SellerId);
 
-            var row = new Row(background, label);
-            _rows.Add(row);
-            return row;
+            switch (entry.Kind)
+            {
+                case MarketFeedKind.Purchase:
+                    if (entry.SoldByPlayer) return $"{Name(entry.BuyerId)} bought your {item}";
+                    return hasSeller
+                        ? $"{Name(entry.BuyerId)} bought {item} from {Name(entry.SellerId)}"
+                        : $"{Name(entry.BuyerId)} bought {item}";
+
+                case MarketFeedKind.CollectorPurchase:
+                    if (entry.SoldByPlayer) return $"A private collector bought your {item}";
+                    return hasSeller
+                        ? $"A private collector bought {item} from {Name(entry.SellerId)}"
+                        : $"A private collector bought {item}";
+
+                case MarketFeedKind.SoldToMarket:
+                    return $"{Name(entry.SellerId)} sold {item} to the market";
+
+                case MarketFeedKind.AuctionSold:
+                    return $"{Name(entry.BuyerId)} won {item} at auction";
+
+                case MarketFeedKind.AuctionUnsold:
+                    return $"{item} found no buyer at auction";
+
+                default:
+                    return item;
+            }
+        }
+
+        /// <summary>
+        /// The player's money: income green (+), spending in the main text colour (−).
+        /// Other traders' prices are shown muted.
+        /// </summary>
+        private string AmountText(MarketFeedEntry entry, out Color color)
+        {
+            color = _list.Muted;
+
+            if (entry.Price <= 0f || entry.Kind == MarketFeedKind.AuctionUnsold)
+                return null;
+
+            if (entry.SoldByPlayer)
+            {
+                color = _list.Positive;
+                return UIFormat.SignedMoney(entry.Price);
+            }
+
+            if (entry.BoughtByPlayer)
+            {
+                color = _list.Primary;
+                return UIFormat.SignedMoney(-entry.Price);
+            }
+
+            return UIFormat.Money(entry.Price);
+        }
+
+        private Color MarkerColor(MarketFeedEntry entry)
+        {
+            if (entry.SoldByPlayer) return _list.Positive;
+            if (entry.BoughtByPlayer) return _list.Accent;
+
+            return entry.Kind switch
+            {
+                MarketFeedKind.CollectorPurchase => CollectorColor,
+                MarketFeedKind.AuctionSold => AuctionColor,
+                MarketFeedKind.AuctionUnsold => _list.Muted,
+                _ => _list.Primary
+            };
         }
 
         private void ScrollToTop()

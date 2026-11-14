@@ -16,7 +16,14 @@ namespace AntiqueTradingSimulator.UI
 
         [Header("Header")]
         [SerializeField] private TMP_Text nameText;
+        [Tooltip("Under the name: contract type and time left. Optional.")]
+        [SerializeField] private TMP_Text infoText;
         [SerializeField] private Image contractImage;
+
+        [Header("Facts (two columns, like the Auctions lot details)")]
+        [Tooltip("When both are assigned they replace the per-line texts below.")]
+        [SerializeField] private TMP_Text factLabelsText;
+        [SerializeField] private TMP_Text factValuesText;
 
         [Header("Requirements (left list)")]
         [SerializeField] private TMP_Text antiqueTypeText;
@@ -109,11 +116,19 @@ namespace AntiqueTradingSimulator.UI
             if (detailsContent != null) detailsContent.SetActive(true);
             if (feedPanel != null) feedPanel.SetActive(false);
 
-            if (nameText != null)
-                nameText.text = string.Empty;
-
             var req = contract.Requirement;
             contractImage.ShowContract(req);
+
+            int currentWeek = timeManager != null ? timeManager.CurrentWeek : contract.CreatedWeek;
+            int weeksLeft = Mathf.Max(0, contract.DeadlineWeek - currentWeek);
+
+            if (nameText != null)
+                nameText.text = ContractDisplay.RequirementName(req); // the condition is listed in the facts below
+
+            if (infoText != null)
+                infoText.text = $"{ContractDisplay.TypeLabel(contract)} contract\nDue in {UIFormat.Weeks(weeksLeft)}";
+
+            ShowFacts(contract, req);
 
             if (antiqueTypeText != null)
                 antiqueTypeText.text = $"Antique Type: {(req.Scope == ContractAttributeScope.AntiqueType ? req.AntiqueType.ToDisplayString() : "Any")}";
@@ -131,11 +146,7 @@ namespace AntiqueTradingSimulator.UI
                 payoutText.text = $"Payout: {contract.TotalReward:F0} £";
 
             if (deadlineText != null)
-            {
-                int currentWeek = timeManager != null ? timeManager.CurrentWeek : contract.CreatedWeek;
-                int weeksLeft = Mathf.Max(0, contract.DeadlineWeek - currentWeek);
                 deadlineText.text = $"Deadline: {UIFormat.Weeks(weeksLeft)}";
-            }
 
             if (penaltyText != null)
                 penaltyText.text = $"Penalty: {(contract.Penalty > 0f ? $"{contract.Penalty:F0} £" : "None")}";
@@ -156,6 +167,30 @@ namespace AntiqueTradingSimulator.UI
 
             if (fulfillButton != null)
                 fulfillButton.interactable = canFulfill;
+        }
+
+        /// <summary>Labels (muted) and values side by side, one fact per line – the Auctions lot details layout.</summary>
+        private void ShowFacts(Contract contract, ContractRequirement req)
+        {
+            if (factLabelsText == null || factValuesText == null)
+                return;
+
+            string Attribute(ContractAttributeScope scope, string value) => req.Scope == scope ? value : "Any";
+
+            factLabelsText.text = string.Join("\n",
+                "Antique type", "Century", "Country", "Quantity", "Condition", "", "Payout", "Penalty");
+
+            factValuesText.text = string.Join("\n",
+                Attribute(ContractAttributeScope.AntiqueType, req.AntiqueType.ToDisplayString()),
+                Attribute(ContractAttributeScope.Century, req.Century.ToDisplayString()),
+                Attribute(ContractAttributeScope.Country, req.Country.ToDisplayString()),
+                req.Quantity.ToString(),
+                req.HasMinCondition
+                    ? $"at least {UIFormat.Percent(req.MinCondition)} ({UIFormat.ConditionLabel(req.MinCondition)})"
+                    : "any",
+                "",
+                UIFormat.Money(contract.TotalReward),
+                contract.Penalty > 0f ? UIFormat.Money(contract.Penalty) : "None");
         }
 
         public void ShowEmptyState()

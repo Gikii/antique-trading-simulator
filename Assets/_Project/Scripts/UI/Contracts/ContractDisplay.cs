@@ -18,7 +18,18 @@ namespace AntiqueTradingSimulator.UI
             return string.IsNullOrEmpty(contract.ClassName) ? type : $"{type} · {contract.ClassName}";
         }
 
+        /// <summary>"4x Netherlands, min. 65% condition" – the one-line form for list rows.</summary>
         public static string RequirementSummary(ContractRequirement requirement)
+        {
+            if (requirement == null) return "";
+
+            return requirement.HasMinCondition
+                ? $"{RequirementName(requirement)}, min. {UIFormat.Percent(requirement.MinCondition)} condition"
+                : RequirementName(requirement);
+        }
+
+        /// <summary>"4x Netherlands" – without the condition, for headings that list the condition separately.</summary>
+        public static string RequirementName(ContractRequirement requirement)
         {
             if (requirement == null) return "";
 
@@ -30,9 +41,7 @@ namespace AntiqueTradingSimulator.UI
                 _ => "Antiques"
             };
 
-            return requirement.HasMinCondition
-                ? $"{requirement.Quantity}x {what} · ≥{UIFormat.Percent(requirement.MinCondition)}"
-                : $"{requirement.Quantity}x {what}";
+            return $"{requirement.Quantity}x {what}";
         }
 
         /// <summary>"Condition: at least 70% (Good)", or "Condition: any".</summary>

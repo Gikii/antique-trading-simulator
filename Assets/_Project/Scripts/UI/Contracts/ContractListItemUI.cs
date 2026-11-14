@@ -54,7 +54,7 @@ namespace AntiqueTradingSimulator.UI
             if (deadlineText != null)
             {
                 int weeksLeft = Mathf.Max(0, contract.DeadlineWeek - currentWeek);
-                deadlineText.text = $"{weeksLeft}d";
+                deadlineText.text = UIFormat.Weeks(weeksLeft); // was "{n}d" from before the switch to weeks
             }
 
             bool locked = !string.IsNullOrEmpty(lockReason);
