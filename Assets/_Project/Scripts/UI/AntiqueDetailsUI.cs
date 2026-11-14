@@ -57,9 +57,6 @@ namespace AntiqueTradingSimulator.UI
         [Tooltip("Confirmation modal opened by Buy. If missing, Buy purchases directly with Standard transport.")]
         [SerializeField] private BuyModalUI buyModal;
 
-        [Header("History (unique items only)")]
-        [SerializeField] private TMP_Text historyText;
-
         // Visibility is driven through this CanvasGroup instead of
         // gameObject.SetActive(). This panel sits in a HorizontalLayoutGroup
         // row next to the listings panel; LayoutGroups skip inactive
@@ -71,10 +68,6 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private GameObject transactionHistoryPanel;
         // Temporary placeholder until unique items carry real, meaningful History
         // text — swap this back to antique.History once that content exists.
-        private const string PlaceholderHistoryText =
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do " +
-            "eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim " +
-            "aa aliqua. a aliqua. r adipiscing er adipiscing er adipiscing";
 
         private Antique _currentAntique;
 
@@ -171,9 +164,6 @@ namespace AntiqueTradingSimulator.UI
 
             if (listingIdText != null)
                 listingIdText.text = $"ID: {antique.Id}";
-
-            if (historyText != null)
-                historyText.text = PlaceholderHistoryText;
             
             if (currentValueText != null)
                 currentValueText.text = UIFormat.Money(antique.CurrentPrice);
