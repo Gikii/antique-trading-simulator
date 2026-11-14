@@ -26,8 +26,6 @@ namespace AntiqueTradingSimulator.UI
         protected override void OnActionClicked() => InfoBarNavigation.OpenNews();
 
 
-        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 0;
-
         protected override void Awake()
         {
             base.Awake();
@@ -81,14 +79,13 @@ namespace AntiqueTradingSimulator.UI
                 return;
 
             int thisWeek = CurrentWeek;
-            InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(playerTrader);
 
             List<NewsItem> latest = newsManager.PublishedNews
                 .Reverse()
                 .Where(news => news != null)
                 .Where(news => !hideOnceEventStarted || !news.EventStarted(thisWeek))
-                .Where(news => NewsPresentation.CanSee(news, accessLevel))
-                .OrderByDescending(news => news.WeekPublished)
+                .Where(news => NewsPresentation.CanSee(news, thisWeek))
+                .OrderByDescending(news => news.PlayerDeliveryWeek)
                 .Take(Mathf.Max(1, maxRows))
                 .ToList();
 
@@ -98,12 +95,17 @@ namespace AntiqueTradingSimulator.UI
 
         private RowData BuildLine(NewsItem news, int thisWeek)
         {
-            string when = NewsPresentation.RelativeWeeks(news.WeekPublished - thisWeek).ToLowerInvariant();
+            int heardWeek = NewsPresentation.PlayerWeek(news);
+            int weeksLate = NewsPresentation.WeeksLate(news);
+
+            string when = NewsPresentation.RelativeWeeks(heardWeek - thisWeek).ToLowerInvariant();
             string type = NewsPresentation.TypeLabel(news.Type);
             string title = NewsPresentation.GetTitle(news);
 
             string tooltip = $"{title}\n" +
-                             $"{type} · {NewsPresentation.FormatWeek(news.WeekPublished, timeManager)}\n\n" +
+                             $"{type} · {NewsPresentation.FormatWeek(heardWeek, timeManager)}" +
+                             (weeksLate > 0 ? $" · reached you {NewsPresentation.WeeksLabel(weeksLate)} late" : "") +
+                             "\n\n" +
                              NewsPresentation.GetNewsDescription(news);
 
             return new RowData
