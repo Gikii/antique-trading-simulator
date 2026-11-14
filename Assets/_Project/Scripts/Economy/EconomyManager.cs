@@ -39,6 +39,12 @@ namespace AntiqueTradingSimulator.Economy
         [FormerlySerializedAs("anonymousListingLifetimeDays")]
         [Min(0)] [SerializeField] private int anonymousListingLifetimeWeeks = 14;
 
+        /// <summary>
+        /// Expected new anonymous listings per week, with the current season's effect — the same number
+        /// the weekly roll uses. ContractManager estimates future supply from it.
+        /// </summary>
+        public float ExpectedNewListingsPerWeek => newListingsPerWeek * (_timeManager != null ? CurrentMarketSeason.NewListings : 1f);
+
         [Header("Private collectors (in-memory defaults if empty)")]
         [Tooltip("Outside buyers for owner-set listings — see CollectorDemandSettings.")]
         [SerializeField] private CollectorDemandSettings collectorSettings;

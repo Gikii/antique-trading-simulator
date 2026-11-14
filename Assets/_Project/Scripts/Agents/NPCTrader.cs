@@ -277,7 +277,7 @@ namespace AntiqueTradingSimulator.Agents
                 int missing = MissingFor(contract);
                 if (missing <= 0) continue;
 
-                reserve += contract.Requirement.AverageReferenceUnitPrice(market) * missing;
+                reserve += contract.Requirement.ExpectedUnitCost(market) * missing;
             }
 
             return reserve;
@@ -297,21 +297,23 @@ namespace AntiqueTradingSimulator.Agents
 
         private void DropInactiveContracts()
         {
-            if (_contractManager == null) return;
+            if (_contractManager == null || Inventory.CommittedContractIds.Count == 0) return;
 
-            string dead = null;
+            List<string> dead = null;
             foreach (var contractId in Inventory.CommittedContractIds)
             {
                 var contract = _contractManager.GetById(contractId);
                 if (contract != null && contract.Status == ContractStatus.Active) continue;
-                dead = contractId;
-                break;
+                (dead ??= new List<string>()).Add(contractId);
             }
 
             if (dead == null) return;
 
-            Inventory.ReleaseAllReservationsForContract(dead);
-            Inventory.ReleaseCommittedContract(dead);
+            foreach (var contractId in dead)
+            {
+                Inventory.ReleaseAllReservationsForContract(contractId);
+                Inventory.ReleaseCommittedContract(contractId);
+            }
         }
 
         private void DropExpiredReactions(int week)
@@ -321,9 +323,41 @@ namespace AntiqueTradingSimulator.Agents
                     _pendingReactions.RemoveAt(i);
         }
 
+        /// <summary>
+        /// A reserved antique can stop qualifying while it waits — its market value fell below the
+        /// contract's floor. It no longer counts toward the contract (MissingFor), so free it: otherwise
+        /// it would sit reserved forever, unsellable. ReserveMatchingHoldings picks it up again if the
+        /// market recovers.
+        /// </summary>
+        private void ReleaseNoLongerMatching()
+        {
+            if (_contractManager == null) return;
+
+            List<string> stale = null;
+            foreach (var pair in Inventory.Holdings)
+            {
+                var holding = pair.Value;
+                if (!holding.IsReservedForContract) continue;
+
+                var contract = _contractManager.GetById(holding.ReservedForContractId);
+                if (contract == null || contract.Requirement.IsSatisfiedBy(holding)) continue;
+
+                (stale ??= new List<string>()).Add(holding.Id);
+            }
+
+            if (stale == null) return;
+
+            foreach (var listingId in stale)
+                Inventory.ReleaseReservation(listingId);
+
+            Debug.Log($"{TraderName}: released {stale.Count} reserved antique(s) that no longer meet their contract.");
+        }
+
         private void ReserveMatchingHoldings()
         {
             if (_contractManager == null) return;
+
+            ReleaseNoLongerMatching();
 
             foreach (var contractId in Inventory.CommittedContractIds)
             {
@@ -984,14 +1018,19 @@ namespace AntiqueTradingSimulator.Agents
             if (urgency != ContractUrgency.Normal) return TransportOption.Express;
 
             var requirement = contract.Requirement;
-            if (!requirement.HasMinCondition) return NpcTransportOption;
+            if (!requirement.HasMinCondition && !requirement.HasMinValue) return NpcTransportOption;
 
             float maxLoss = _transportManager != null && _transportManager.Settings != null
                 ? _transportManager.Settings.MaxConditionLoss
                 : 0f;
 
-            float margin = listing.Condition - requirement.MinCondition;
-            return margin < maxLoss ? TransportOption.Express : NpcTransportOption;
+            // Damage lowers condition, and the price falls with it (price is linear in condition), so
+            // an item close to either floor may arrive no longer qualifying.
+            bool conditionAtRisk = requirement.HasMinCondition && listing.Condition - requirement.MinCondition < maxLoss;
+            bool valueAtRisk = requirement.HasMinValue && listing.Condition > 0f &&
+                               listing.CurrentPrice * (listing.Condition - maxLoss) / listing.Condition < requirement.MinAcceptedValue;
+
+            return conditionAtRisk || valueAtRisk ? TransportOption.Express : NpcTransportOption;
         }
 
         private TransportQuote QuoteFor(Antique listing, TransportOption option) =>

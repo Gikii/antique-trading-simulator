@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -60,11 +61,31 @@ namespace AntiqueTradingSimulator.UI
         private Action<Contract> _onAccept;
         private Action<Contract> _onFulfill;
         private TooltipTrigger _acceptTooltip;
+        private TooltipTrigger _valueTooltip;
+        private Company.CompanyManager _company;
+
+        /// <summary>The player's reputation rules — what fulfilling or failing a contract does to reputation.</summary>
+        private Company.ReputationSettings ReputationRules
+        {
+            get
+            {
+                if (_company == null) _company = FindFirstObjectByType<Company.CompanyManager>();
+                return _company != null ? _company.ReputationSettings : null;
+            }
+        }
 
         private void Awake()
         {
             if (timeManager == null)
                 timeManager = FindFirstObjectByType<TimeManager>();
+
+            // Explains the value floor (and its tolerance) on hover over the requirements.
+            var valueTextTarget = factValuesText != null ? factValuesText : quantityText;
+            if (valueTextTarget != null)
+            {
+                valueTextTarget.raycastTarget = true;
+                _valueTooltip = TooltipTrigger.On(valueTextTarget);
+            }
 
             if (acceptButton != null)
             {
@@ -131,25 +152,37 @@ namespace AntiqueTradingSimulator.UI
             ShowFacts(contract, req);
 
             if (antiqueTypeText != null)
-                antiqueTypeText.text = $"Antique Type: {(req.Scope == ContractAttributeScope.AntiqueType ? req.AntiqueType.ToDisplayString() : "Any")}";
+                antiqueTypeText.text = $"Antique Type: {ContractDisplay.AttributeValue(req, ContractAttributeScope.AntiqueType)}";
 
             if (centuryText != null)
-                centuryText.text = $"Century: {(req.Scope == ContractAttributeScope.Century ? req.Century.ToDisplayString() : "Any")}";
+                centuryText.text = $"Century: {ContractDisplay.AttributeValue(req, ContractAttributeScope.Century)}";
 
             if (countryText != null)
-                countryText.text = $"Country: {(req.Scope == ContractAttributeScope.Country ? req.Country.ToDisplayString() : "Any")}";
+                countryText.text = $"Country: {ContractDisplay.AttributeValue(req, ContractAttributeScope.Country)}";
 
             if (quantityText != null)
-                quantityText.text = $"Quantity: {req.Quantity}\n{ContractDisplay.ConditionRequirement(req)}";
+                quantityText.text = $"Quantity: {req.Quantity}\n{ContractDisplay.ConditionRequirement(req)}\n{ContractDisplay.ValueRequirement(req)}";
 
             if (payoutText != null)
-                payoutText.text = $"Payout: {contract.TotalReward:F0} £";
+            {
+                string premium = ContractDisplay.PremiumText(contract);
+                payoutText.text = string.IsNullOrEmpty(premium)
+                    ? $"Payout: {UIFormat.Money(contract.TotalReward)}"
+                    : $"Payout: {UIFormat.Money(contract.TotalReward)}\n{UIFormat.Colorize(premium, UIFormat.PositiveColor)}";
+            }
+
+            if (_valueTooltip != null)
+                _valueTooltip.Text = ContractDisplay.ValueRequirementHint(req);
 
             if (deadlineText != null)
                 deadlineText.text = $"Deadline: {UIFormat.Weeks(weeksLeft)}";
 
             if (penaltyText != null)
-                penaltyText.text = $"Penalty: {(contract.Penalty > 0f ? $"{contract.Penalty:F0} £" : "None")}";
+            {
+                string stakes = ContractDisplay.ReputationStakes(contract, ReputationRules);
+                penaltyText.text = $"Penalty: {(contract.Penalty > 0f ? UIFormat.Money(contract.Penalty) : "None")}" +
+                                   (string.IsNullOrEmpty(stakes) ? "" : $"\nReputation: {stakes}");
+            }
 
             if (contractTypeText != null)
                 contractTypeText.text = $"Type: {ContractDisplay.TypeLabel(contract)}";
@@ -175,22 +208,70 @@ namespace AntiqueTradingSimulator.UI
             if (factLabelsText == null || factValuesText == null)
                 return;
 
-            string Attribute(ContractAttributeScope scope, string value) => req.Scope == scope ? value : "Any";
-
-            factLabelsText.text = string.Join("\n",
-                "Antique type", "Century", "Country", "Quantity", "Condition", "", "Payout", "Penalty");
-
-            factValuesText.text = string.Join("\n",
-                Attribute(ContractAttributeScope.AntiqueType, req.AntiqueType.ToDisplayString()),
-                Attribute(ContractAttributeScope.Century, req.Century.ToDisplayString()),
-                Attribute(ContractAttributeScope.Country, req.Country.ToDisplayString()),
+            var labels = new List<string> { "Antique type", "Century", "Country", "Quantity", "Condition", "Value", "", "Payout" };
+            var values = new List<string>
+            {
+                ContractDisplay.AttributeValue(req, ContractAttributeScope.AntiqueType),
+                ContractDisplay.AttributeValue(req, ContractAttributeScope.Century),
+                ContractDisplay.AttributeValue(req, ContractAttributeScope.Country),
                 req.Quantity.ToString(),
                 req.HasMinCondition
                     ? $"at least {UIFormat.Percent(req.MinCondition)} ({UIFormat.ConditionLabel(req.MinCondition)})"
                     : "any",
+                ContractDisplay.ValueRequirementShort(req),
                 "",
-                UIFormat.Money(contract.TotalReward),
-                contract.Penalty > 0f ? UIFormat.Money(contract.Penalty) : "None");
+                UIFormat.Money(contract.TotalReward)
+            };
+
+            // What the contract earns over selling the same antiques on the market.
+            string premium = ContractDisplay.PremiumText(contract);
+            if (!string.IsNullOrEmpty(premium))
+            {
+                labels.Add("");
+                values.Add(UIFormat.Colorize(premium, UIFormat.PositiveColor));
+            }
+
+            labels.Add("Penalty");
+            values.Add(contract.Penalty > 0f ? UIFormat.Money(contract.Penalty) : "None");
+
+            string stakes = ContractDisplay.ReputationStakes(contract, ReputationRules);
+            if (!string.IsNullOrEmpty(stakes))
+            {
+                labels.Add("Reputation");
+                values.Add(stakes);
+            }
+
+            factLabelsText.text = string.Join("\n", labels);
+            factValuesText.text = string.Join("\n", values);
+
+            FitFactsHeight();
+        }
+
+        private LayoutElement _factsLayout;
+        private float _factsAuthoredHeight;
+
+        /// <summary>
+        /// Grows the facts block (the LayoutElement on the texts' parent) to fit every line. Its height is
+        /// fixed in the scene, and the values text cuts off what doesn't fit with an ellipsis — so rows added
+        /// later (value, premium, reputation) would silently disappear. Never shrinks below the authored height;
+        /// the flexible space under it absorbs the difference.
+        /// </summary>
+        private void FitFactsHeight()
+        {
+            if (_factsLayout == null)
+            {
+                var parent = factValuesText.transform.parent;
+                _factsLayout = parent != null ? parent.GetComponent<LayoutElement>() : null;
+                if (_factsLayout == null) return;
+
+                _factsAuthoredHeight = Mathf.Max(_factsLayout.minHeight, _factsLayout.preferredHeight);
+            }
+
+            float needed = Mathf.Ceil(Mathf.Max(factLabelsText.preferredHeight, factValuesText.preferredHeight));
+            float height = Mathf.Max(_factsAuthoredHeight, needed);
+
+            _factsLayout.minHeight = height;
+            _factsLayout.preferredHeight = height;
         }
 
         public void ShowEmptyState()

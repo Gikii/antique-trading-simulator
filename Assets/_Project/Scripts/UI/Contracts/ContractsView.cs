@@ -62,10 +62,10 @@ namespace AntiqueTradingSimulator.UI
             if (fulfillModal != null)
                 fulfillModal.Fulfilled += HandleContractFulfilledByPlayer;
 
-            if (listPanel != null) listPanel.Initialize(ShowDetails, ReputationLockReason);
+            if (listPanel != null) listPanel.Initialize(ShowDetails, ReputationLockReason, IsAcceptedOnAvailableTab);
             if (detailsUI != null)
             {
-                detailsUI.Initialize(AcceptContract, OpenFulfillModal);
+                detailsUI.Initialize(RequestAccept, OpenFulfillModal);
                 detailsUI.Closed += HandleDetailsClosed;
             }
         }
@@ -148,6 +148,14 @@ namespace AntiqueTradingSimulator.UI
             if (!gameObject.activeInHierarchy) return;
             if (listPanel != null) listPanel.SetContracts(GetContractsForActiveTab(), CurrentWeek);
 
+            // The selected contract was delivered (by anyone) or expired — it's no longer in either list.
+            if (_selectedContract != null && _selectedContract.Status != ContractStatus.Active)
+            {
+                _selectedContract = null;
+                if (listPanel != null) listPanel.ClearSelection();
+                if (detailsUI != null) detailsUI.ShowEmptyState();
+                return;
+            }
 
             if (_selectedContract != null) ShowDetails(_selectedContract);
         }
@@ -166,7 +174,8 @@ namespace AntiqueTradingSimulator.UI
                         ? playerTrader.Inventory.CommittedContractIds
                         : Enumerable.Empty<string>())
                     .Select(id => contractManager.GetById(id))
-                    .Where(c => c != null)
+                    // PlayerTrader drops closed contracts itself, but its handler may run after this refresh.
+                    .Where(c => c != null && c.Status == ContractStatus.Active)
                     .ToList(),
 
                 _ => new List<Contract>()
@@ -251,9 +260,65 @@ namespace AntiqueTradingSimulator.UI
             RefreshActiveTab();
         }
 
+        /// <summary>
+        /// Rows of the Available tab for contracts the player has already accepted (open contracts stay on
+        /// the board — anyone may still deliver them) are dimmed and marked "Accepted". Not on My Contracts,
+        /// where every row is accepted.
+        /// </summary>
+        private bool IsAcceptedOnAvailableTab(Contract contract) =>
+            _activeTab == ContractsTab.Available && contract != null && playerTrader != null &&
+            playerTrader.Inventory.IsCommittedToContract(contract.ContractId);
+
+        private ContractAcceptDialog _acceptDialog;
+
+        /// <summary>Copied lazily under the same parent as the fulfil modal (the gameplay modals).</summary>
+        private ContractAcceptDialog AcceptDialog
+        {
+            get
+            {
+                if (_acceptDialog == null)
+                {
+                    Transform parent = fulfillModal != null ? fulfillModal.transform.parent : transform.root;
+                    _acceptDialog = ContractAcceptDialog.Create(parent);
+                }
+
+                return _acceptDialog;
+            }
+        }
+
+        /// <summary>
+        /// The Accept button: asks first, listing what the contract demands and what delivering or failing
+        /// it does. Accepts straight away if the scene has no dialog to show.
+        /// </summary>
+        public void RequestAccept(Contract contract)
+        {
+            if (contract == null || playerTrader == null) return;
+            if (!CanPlayerAccept(contract)) return;
+
+            var dialog = AcceptDialog;
+            if (dialog == null)
+            {
+                AcceptContract(contract);
+                return;
+            }
+
+            var company = playerTrader.Company;
+            string message = ContractDisplay.AcceptConfirmation(
+                contract,
+                company != null ? company.ReputationSettings : null,
+                CurrentWeek,
+                EligibleAntiqueCount(contract),
+                playerTrader.ActiveContractCount,
+                playerTrader.MaxActiveContracts);
+
+            dialog.Open("Accept this contract?", message, "Accept", () => AcceptContract(contract));
+        }
+
         public void AcceptContract(Contract contract)
         {
             if (contract == null || playerTrader == null) return;
+            // Checked again: the board may have changed since the dialog opened (it pauses the clock, but
+            // an NPC acting on the same tick could still have claimed it).
             if (!CanPlayerAccept(contract)) return;
 
             if (!playerTrader.AcceptContract(contract.ContractId)) return;

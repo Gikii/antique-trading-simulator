@@ -57,6 +57,12 @@ namespace AntiqueTradingSimulator.Agents
         public event Action<Contract> OnContractFulfilled;
         public event Action<Contract> OnContractFailed;
 
+        /// <summary>
+        /// Another trader delivered an open contract the player had accepted. Not a failure (no
+        /// reputation loss) — the commitment is simply dropped. Contract.FulfilledByTraderId says who won.
+        /// </summary>
+        public event Action<Contract> OnContractLost;
+
         protected override void Awake()
         {
             base.Awake();
@@ -87,7 +93,11 @@ namespace AntiqueTradingSimulator.Agents
                 _timeManager.OnWeekChanged += HandleWeekChanged;
 
             if (contractManager != null)
+            {
                 contractManager.OnContractExpired += HandleContractExpired;
+                contractManager.OnContractFulfilled += HandleContractFulfilled;
+                contractManager.OnContractsRestored += ReleaseClosedContracts;
+            }
         }
 
         protected override void OnDestroy()
@@ -96,13 +106,20 @@ namespace AntiqueTradingSimulator.Agents
                 _timeManager.OnWeekChanged -= HandleWeekChanged;
 
             if (contractManager != null)
+            {
                 contractManager.OnContractExpired -= HandleContractExpired;
+                contractManager.OnContractFulfilled -= HandleContractFulfilled;
+                contractManager.OnContractsRestored -= ReleaseClosedContracts;
+            }
 
             base.OnDestroy();
         }
 
         private void HandleWeekChanged(int newWeek)
         {
+            // Safety net: nothing the player committed to should outlive its contract.
+            ReleaseClosedContracts();
+
             float upkeep = Inventory.ChargeWarehouseUpkeep();
             if (upkeep > 0f)
                 Debug.Log($"PlayerTrader: warehouse upkeep {upkeep:F2} £ charged on week {newWeek}. Cash: {Inventory.Cash:F2}");
@@ -242,6 +259,53 @@ namespace AntiqueTradingSimulator.Agents
             Inventory.ReleaseAllReservationsForContract(contract.ContractId);
             Inventory.ReleaseCommittedContract(contract.ContractId);
             OnContractFailed?.Invoke(contract);
+        }
+
+        /// <summary>
+        /// Someone delivered a contract. If it was another trader and the player had accepted it
+        /// (only possible for open contracts), the player lost the race: drop the commitment.
+        /// The player's own deliveries are handled by FulfillContract.
+        /// </summary>
+        private void HandleContractFulfilled(Contract contract)
+        {
+            if (contract == null || contract.FulfilledByTraderId == Antique.PlayerOwnerId)
+                return;
+
+            if (!Inventory.IsCommittedToContract(contract.ContractId))
+                return;
+
+            Inventory.ReleaseAllReservationsForContract(contract.ContractId);
+            Inventory.ReleaseCommittedContract(contract.ContractId);
+            OnContractLost?.Invoke(contract);
+        }
+
+        /// <summary>
+        /// Drops commitments to contracts that are no longer active or no longer exist — e.g. open
+        /// contracts another trader delivered in a save made before HandleContractFulfilled existed.
+        /// Silent: whatever happened to them was already reported (or predates this check).
+        /// </summary>
+        private void ReleaseClosedContracts()
+        {
+            if (contractManager == null || Inventory.CommittedContractIds.Count == 0)
+                return;
+
+            List<string> closed = null;
+            foreach (var contractId in Inventory.CommittedContractIds)
+            {
+                var contract = contractManager.GetById(contractId);
+                if (contract != null && contract.Status == ContractStatus.Active) continue;
+                (closed ??= new List<string>()).Add(contractId);
+            }
+
+            if (closed == null) return;
+
+            foreach (var contractId in closed)
+            {
+                Inventory.ReleaseAllReservationsForContract(contractId);
+                Inventory.ReleaseCommittedContract(contractId);
+            }
+
+            Debug.Log($"PlayerTrader: dropped {closed.Count} commitment(s) to contracts that are no longer active.");
         }
 
         // ---------------------------------------------------------------- save / load

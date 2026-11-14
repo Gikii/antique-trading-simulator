@@ -41776,6 +41776,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Orders.OrderManager
   economyManager: {fileID: 398503183}
   timeManager: {fileID: 398503184}
+  transportManager: {fileID: 0}
   contractsGeneratedPerWeek: 1
   maxActiveContracts: 15
   initialContractCount: 10
@@ -41783,11 +41784,19 @@ MonoBehaviour:
   maxQuantity: 5
   minDurationWeeks: 1
   maxDurationWeeks: 10
+  pairedRequirementChance: 0.35
+  minTypesForPair: 2
+  supplyShareForContract: 0.5
+  maxGenerationAttempts: 8
+  demandPerRequestedPiece: 0.25
+  maxContractDemandPerType: 1.5
   minRewardMultiplier: 1.1
   maxRewardMultiplier: 1.6
   maxUrgencyBonusMultiplier: 1.5
   standardMinTier: 50
   standardMaxTier: 90
+  standardMinValueRank: 0
+  standardMaxValueRank: 1
   exclusiveContractChance: 0.35
   exclusivePenaltyFraction: 0.5
   standardContractWeight: 3
@@ -41802,16 +41811,20 @@ MonoBehaviour:
     MaxQuantity: 5
     MinTier: 70
     MaxTier: 90
+    MinValueRank: 0.4
+    MaxValueRank: 1
   - Name: Prestige
     ClientDescription: Museums and foundations
     RequiredReputation: 1500
     Weight: 0.8
     MinRewardMultiplier: 1.6
     MaxRewardMultiplier: 2.2
-    MinQuantity: 3
-    MaxQuantity: 6
+    MinQuantity: 1
+    MaxQuantity: 2
     MinTier: 90
     MaxTier: 90
+    MinValueRank: 0.7
+    MaxValueRank: 1
   lockedClassPreviewWeight: 0.3
 --- !u!114 &398503188
 MonoBehaviour:

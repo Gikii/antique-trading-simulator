@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using AntiqueTradingSimulator.Agents;
+using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
@@ -15,6 +16,9 @@ namespace AntiqueTradingSimulator.UI
     /// the start of a season (its weather, and whether the almanac got it right), and the player's
     /// shipments — held up by the weather, arrived early, or damaged in transit. Nothing is posted in
     /// a quiet week. Plain C#, owned by ToastUI.
+    ///
+    /// One exception is posted at once rather than at the next week: an open contract the player
+    /// had accepted being delivered by another trader (it can happen mid-week, on an NPC's tick).
     /// </summary>
     public sealed class WeeklyNotices : IDisposable
     {
@@ -47,6 +51,8 @@ namespace AntiqueTradingSimulator.UI
                 _transport.OnShipmentsDelayed += HandleShipmentsDelayed;
                 if (_transport.Weather != null) _transport.Weather.OnSeasonWeatherRevealed += HandleSeasonRevealed;
             }
+
+            if (_player != null) _player.OnContractLost += HandleContractLost;
         }
 
         public void Dispose()
@@ -60,6 +66,19 @@ namespace AntiqueTradingSimulator.UI
                 _transport.OnShipmentsDelayed -= HandleShipmentsDelayed;
                 if (_transport.Weather != null) _transport.Weather.OnSeasonWeatherRevealed -= HandleSeasonRevealed;
             }
+
+            if (_player != null) _player.OnContractLost -= HandleContractLost;
+        }
+
+        // ---------------------------------------------------------------- contracts (posted at once)
+
+        private void HandleContractLost(Contract contract)
+        {
+            if (contract == null) return;
+
+            string who = UIFormat.OwnerName(contract.FulfilledByTraderId, "Another trader", "You");
+            _post?.Invoke($"<b>Contract lost</b>\n{who} delivered {contract.DisplayName} first. " +
+                          UIFormat.Colorize("It's been removed from your contracts.", UIFormat.MutedColor));
         }
 
         // ---------------------------------------------------------------- collecting (during OnWeekChanged)

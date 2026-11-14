@@ -55,6 +55,7 @@ namespace AntiqueTradingSimulator.UI
         // Markers for buyers outside the simulated traders.
         private static readonly Color CollectorColor = new Color32(0x7E, 0x9C, 0xB0, 0xFF); // dusty blue
         private static readonly Color AuctionColor = new Color32(0xB8, 0x73, 0x33, 0xFF);   // copper
+        private static readonly Color ContractColor = new Color32(0x9A, 0x8F, 0xB8, 0xFF);  // muted violet
 
         private MarketFeed _feed;
         private bool _subscribed;
@@ -258,6 +259,11 @@ namespace AntiqueTradingSimulator.UI
                 case MarketFeedKind.AuctionUnsold:
                     return $"{item} found no buyer at auction";
 
+                case MarketFeedKind.ContractDelivery:
+                    return entry.SoldByPlayer
+                        ? $"You delivered {item} to a contract client"
+                        : $"{Name(entry.SellerId)} delivered {item} to a contract client";
+
                 default:
                     return item;
             }
@@ -299,6 +305,7 @@ namespace AntiqueTradingSimulator.UI
                 MarketFeedKind.CollectorPurchase => CollectorColor,
                 MarketFeedKind.AuctionSold => AuctionColor,
                 MarketFeedKind.AuctionUnsold => _list.Muted,
+                MarketFeedKind.ContractDelivery => ContractColor,
                 _ => _list.Primary
             };
         }
