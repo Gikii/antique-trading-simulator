@@ -66,8 +66,10 @@ namespace AntiqueTradingSimulator.UI
             int gain = settings.ReputationGainFor(contract);
             int loss = settings.ReputationLossFor(contract);
 
-            return $"{UIFormat.Colorize($"+{gain}", UIFormat.PositiveColor)} on delivery, " +
-                   $"{UIFormat.Colorize(loss.ToString(), UIFormat.NegativeColor)} if failed";
+            string onDelivery = $"{UIFormat.Colorize($"+{gain}", UIFormat.PositiveColor)} on delivery";
+            return loss == 0
+                ? onDelivery
+                : $"{onDelivery}, {UIFormat.Colorize(loss.ToString(), UIFormat.NegativeColor)} if failed";
         }
 
         /// <summary>

@@ -104,7 +104,7 @@ namespace AntiqueTradingSimulator.Company
 
             var s = Settings;
             string what = contract != null ? $" ({contract.Requirement})" : "";
-            Reputation.AddReputation(s.ReputationLossFor(contract), "Failed to deliver contract" + what, week);
+            if (s.ReputationLossFor(contract) is var reputation && reputation != 0) Reputation.AddReputation(reputation, "Failed to deliver contract" + what, week);
             Reputation.AddCredibility(s.ContractFailedCredibility, "Contract deadline missed" + what, week);
         }
 
