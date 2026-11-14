@@ -79,14 +79,26 @@ namespace AntiqueTradingSimulator.UI
                     : "Unknown Event";
             }
 
+            // The week view of the news list also shows events that have already ended.
+            bool ended = activeEvent.HasExpired(currentWeek);
+
             if (timeText != null)
             {
-                int weeksRemaining =
-                    Mathf.Max(0, activeEvent.EndWeek - currentWeek);
+                if (ended)
+                {
+                    // EndWeek is exclusive, so the event's last week is EndWeek - 1.
+                    int lastWeek = activeEvent.EndWeek - 1;
+                    timeText.text = "Ended " + NewsPresentation.RelativeWeeks(lastWeek - currentWeek).ToLowerInvariant();
+                }
+                else
+                {
+                    int weeksRemaining =
+                        Mathf.Max(0, activeEvent.EndWeek - currentWeek);
 
-                timeText.text = weeksRemaining == 1
-                    ? "1 week remaining"
-                    : $"{weeksRemaining} weeks remaining";
+                    timeText.text = weeksRemaining == 1
+                        ? "1 week remaining"
+                        : $"{weeksRemaining} weeks remaining";
+                }
             }
 
             if (locationText != null)
@@ -96,7 +108,7 @@ namespace AntiqueTradingSimulator.UI
 
             if (statusText != null)
             {
-                statusText.text = "ACTIVE";
+                statusText.text = ended ? "ENDED" : "ACTIVE";
             }
 
             if (button != null)

@@ -14,7 +14,8 @@ namespace AntiqueTradingSimulator.UI
     /// Attach to CalendarPanel. Empty references are found automatically by child names.
     /// - highlights the current game day (TimeManager),
     /// - shows colored markers on days with news / events,
-    /// - lists the news and events of the selected day below the calendar.
+    /// - lists the news and events of the selected day below the calendar (click = details),
+    /// - "View all …" asks the news list to show the whole selected week (see NewsEventsView).
     /// </summary>
     public class NewsCalendarUI : MonoBehaviour
     {
@@ -34,6 +35,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text selectedDateText;
         [SerializeField] private TMP_Text itemCountText;
         [SerializeField] private Transform selectedDayList;
+        [Tooltip("Opens the selected week in the news list. Gets a Button at runtime if it has none.")]
+        [SerializeField] private Button viewAllEventsButton;
         [SerializeField] private TMP_Text viewAllEventsText;
 
         [Header("Cell colors")]
@@ -74,26 +77,18 @@ namespace AntiqueTradingSimulator.UI
         /// <summary>Raised when a date gets selected (click or new day).</summary>
         public event Action<DateTime> DateSelected;
 
+        /// <summary>Raised by the "View all …" button with the selected date.</summary>
+        public event Action<DateTime> ViewAllRequested;
+
+        /// <summary>Raised when an entry in the list under the calendar is clicked.</summary>
+        public event Action<WeekEntry> EntryClicked;
+
         public DateTime Today { get; private set; }
         public DateTime SelectedDate { get; private set; }
 
         // ------------------------------------------------------------------
         // Internal types
         // ------------------------------------------------------------------
-
-        private enum EntryKind { Official, Rumour, Leaked, Event } // order = legend order
-
-        private readonly struct DayEntry
-        {
-            public readonly EntryKind Kind;
-            public readonly string Title;
-
-            public DayEntry(EntryKind kind, string title)
-            {
-                Kind = kind;
-                Title = title;
-            }
-        }
 
         private class Cell
         {
@@ -115,7 +110,8 @@ namespace AntiqueTradingSimulator.UI
         private GameObject itemTemplate;
         private GameObject emptyLabel;
         private readonly List<GameObject> spawnedItems = new List<GameObject>();
-        private readonly List<DayEntry> entryBuffer = new List<DayEntry>();
+        private readonly List<WeekEntry> entryBuffer = new List<WeekEntry>();
+        private Color viewAllTextColor;
 
         // ------------------------------------------------------------------
         // Unity
@@ -261,9 +257,49 @@ namespace AntiqueTradingSimulator.UI
 
             BuildCells();
             BuildSelectedDayList();
+            SetupViewAllButton();
 
             if (previousMonthButton != null) previousMonthButton.onClick.AddListener(ShowPreviousMonth);
             if (nextMonthButton != null) nextMonthButton.onClick.AddListener(ShowNextMonth);
+        }
+
+        /// <summary>The mockup's ViewAllEventsButton is only an Image + Text; give it a Button if it has none.</summary>
+        private void SetupViewAllButton()
+        {
+            if (viewAllEventsButton == null)
+            {
+                var buttonTransform = transform.Find("ViewAllEventsButton");
+                if (buttonTransform != null)
+                {
+                    viewAllEventsButton = buttonTransform.GetComponent<Button>();
+                    if (viewAllEventsButton == null)
+                    {
+                        viewAllEventsButton = buttonTransform.gameObject.AddComponent<Button>();
+                        viewAllEventsButton.targetGraphic = buttonTransform.GetComponent<Image>();
+                    }
+                }
+            }
+
+            if (viewAllEventsText != null) viewAllTextColor = viewAllEventsText.color;
+
+            if (viewAllEventsButton != null)
+            {
+                MakeClickable(viewAllEventsButton);
+                viewAllEventsButton.onClick.AddListener(() => ViewAllRequested?.Invoke(SelectedDate));
+            }
+        }
+
+        /// <summary>
+        /// The calendar mockup was built as display-only: its Images have Raycast Target off,
+        /// so a Button on them never receives clicks. Turn it on for the button's graphic.
+        /// </summary>
+        private static void MakeClickable(Button button)
+        {
+            if (button.targetGraphic == null)
+                button.targetGraphic = button.GetComponent<Graphic>();
+
+            if (button.targetGraphic != null)
+                button.targetGraphic.raycastTarget = true;
         }
 
         private void AutoWire()
@@ -371,6 +407,16 @@ namespace AntiqueTradingSimulator.UI
                 emptyLabel.SetActive(false);
             }
 
+            // Entries open their details; the mockup item has no Button, so the template gets one
+            // (copies inherit it). Added after the empty label copy, which must not be clickable.
+            var itemButton = itemTemplate.GetComponent<Button>();
+            if (itemButton == null)
+            {
+                itemButton = itemTemplate.AddComponent<Button>();
+                itemButton.targetGraphic = itemTemplate.GetComponent<Image>();
+            }
+            MakeClickable(itemButton);
+
             itemTemplate.SetActive(false);
         }
 
@@ -421,39 +467,15 @@ namespace AntiqueTradingSimulator.UI
 
         private static void AddEvents(IReadOnlyList<ActiveEvent> events, int week, List<DayEntry> result)
         {
-            if (events == null) return;
-
-            foreach (ActiveEvent activeEvent in events)
-            {
-                // EndWeek is exclusive (the event expires at the start of EndWeek).
-                if (activeEvent == null || week < activeEvent.StartWeek || week >= activeEvent.EndWeek) continue;
-
-                string title = activeEvent.Definition != null ? activeEvent.Definition.DisplayName : "Unknown event";
-                result.Add(new DayEntry(EntryKind.Event, title));
-            }
+            WeekEntries.Collect(week, eventManager, newsManager, NewsPresentation.GetAccessLevel(player), result);
         }
 
-        private static EntryKind KindOf(NewsType type) => type switch
+        private Color ColorOf(WeekEntryKind kind) => kind switch
         {
-            NewsType.Rumor => EntryKind.Rumour,
-            NewsType.Leak => EntryKind.Leaked,
-            _ => EntryKind.Official
-        };
-
-        private Color ColorOf(EntryKind kind) => kind switch
-        {
-            EntryKind.Official => officialColor,
-            EntryKind.Rumour => rumourColor,
-            EntryKind.Leaked => leakedColor,
+            WeekEntryKind.Official => officialColor,
+            WeekEntryKind.Rumour => rumourColor,
+            WeekEntryKind.Leaked => leakedColor,
             _ => eventColor
-        };
-
-        private static string LabelOf(EntryKind kind) => kind switch
-        {
-            EntryKind.Official => NewsPresentation.TypeLabel(NewsType.Official),
-            EntryKind.Rumour => NewsPresentation.TypeLabel(NewsType.Rumor),
-            EntryKind.Leaked => NewsPresentation.TypeLabel(NewsType.Leak),
-            _ => "Event"
         };
 
         // ------------------------------------------------------------------
@@ -535,14 +557,14 @@ namespace AntiqueTradingSimulator.UI
         }
 
         /// <summary>One dot per category present on that day (Official, Rumour, Leaked, Event).</summary>
-        private void RenderMarkers(Cell cell, List<DayEntry> entries)
+        private void RenderMarkers(Cell cell, List<WeekEntry> entries)
         {
             if (cell.Markers == null) return;
 
             int used = 0;
-            for (int k = 0; k <= (int)EntryKind.Event; k++)
+            for (int k = 0; k <= (int)WeekEntryKind.Event; k++)
             {
-                var kind = (EntryKind)k;
+                var kind = (WeekEntryKind)k;
                 if (!entries.Exists(e => e.Kind == kind)) continue;
 
                 var marker = GetMarker(cell, used++);
@@ -606,10 +628,46 @@ namespace AntiqueTradingSimulator.UI
 
             if (itemCountText != null)
                 itemCountText.text = entryBuffer.Count == 1 ? "1 item" : $"{entryBuffer.Count} items";
+
+            UpdateViewAllButton(entryBuffer.Count, shown);
         }
 
-        private void FillItem(Transform item, DayEntry entry)
+        /// <summary>
+        /// "View all 5 in the week of 3 March  >" when the list above is cut, "Open the week of …" when it
+        /// shows everything. Disabled for empty weeks and for future weeks (nothing is known about them yet).
+        /// </summary>
+        private void UpdateViewAllButton(int total, int shown)
         {
+            int week = timeManager.DateToWeek(SelectedDate);
+            string weekStart = TimeManager.FormatDayMonth(timeManager.WeekToDate(week));
+
+            bool future = week > timeManager.CurrentWeek;
+            bool available = !future && total > 0;
+
+            if (viewAllEventsButton != null) viewAllEventsButton.interactable = available;
+
+            if (viewAllEventsText == null) return;
+
+            viewAllEventsText.text = future ? "Nothing is known about this week yet"
+                : total == 0 ? $"Nothing happened in the week of {weekStart}"
+                : total > shown ? $"View all {total} in the week of {weekStart}  >"
+                : $"Open the week of {weekStart}  >";
+
+            // The Button only tints its Image; dim the label too so the disabled state reads clearly.
+            var color = viewAllTextColor;
+            if (!available) color.a *= 0.45f;
+            viewAllEventsText.color = color;
+        }
+
+        private void FillItem(Transform item, WeekEntry entry)
+        {
+            var button = item.GetComponent<Button>();
+            if (button != null)
+            {
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(() => EntryClicked?.Invoke(entry));
+            }
+
             var title = item.Find("MainInfo/TitleText");
             if (title != null) title.GetComponent<TMP_Text>().text = entry.Title;
 
@@ -617,7 +675,7 @@ namespace AntiqueTradingSimulator.UI
             if (type != null)
             {
                 var text = type.GetComponent<TMP_Text>();
-                text.text = LabelOf(entry.Kind);
+                text.text = WeekEntries.LabelOf(entry.Kind);
                 text.color = ColorOf(entry.Kind);
             }
         }
@@ -660,8 +718,7 @@ namespace AntiqueTradingSimulator.UI
                     ? $"Events this week ({TimeManager.FormatDayMonth(weekStart)} – {TimeManager.FormatDayMonth(weekStart.AddDays(TimeManager.DaysPerWeek - 1))})"
                     : $"Events in the week of {TimeManager.FormatLong(weekStart)}";
 
-            if (viewAllEventsText != null)
-                viewAllEventsText.text = $"View all events in the week of {TimeManager.FormatDayMonth(weekStart)}  >";
+            // The "View all" label depends on the number of entries – set in RenderSelectedDayList.
         }
     }
 }

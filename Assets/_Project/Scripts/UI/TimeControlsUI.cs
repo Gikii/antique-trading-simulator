@@ -78,9 +78,9 @@ namespace AntiqueTradingSimulator.UI
         {
             if (timeManager == null || timerText == null) return;
 
-            // Countdown in real seconds at the current speed, refreshed only when it changes.
-            float speed = Mathf.Max(0.01f, timeManager.SpeedMultiplier);
-            int seconds = Mathf.CeilToInt(timeManager.TimeUntilNextWeek / speed);
+            // Countdown on the week's own clock (2:30 at the start of a week, whatever the speed).
+            // Higher speeds make it run down faster instead of shortening it; refreshed only when it changes.
+            int seconds = Mathf.CeilToInt(timeManager.TimeUntilNextWeek);
             bool running = timeManager.IsRunning;
             if (seconds == _lastShownSeconds && running == _lastShownRunning) return;
 

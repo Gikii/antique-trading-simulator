@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using AntiqueTradingSimulator.Agents;
@@ -18,6 +20,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button officialFilterButton;
         [SerializeField] private Button rumoursFilterButton;
         [SerializeField] private Button leakedFilterButton;
+        [Tooltip("Shown only in the week view. Auto-found at News Content/FiltersRow/EventsFilter.")]
+        [SerializeField] private Button eventsFilterButton;
 
         [Header("Header Actions")]
         [SerializeField] private Button createEventButton;
@@ -51,10 +55,22 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private Button newsDetailsCloseButton;
         [SerializeField] private Button eventDetailsCloseButton;
 
+        [Header("Week View (auto-found under News Content/WeekBar if empty)")]
+        [SerializeField] private GameObject weekBar;
+        [SerializeField] private TMP_Text weekTitleText;
+        [SerializeField] private Button previousWeekButton;
+        [SerializeField] private Button nextWeekButton;
+        [SerializeField] private Button closeWeekButton;
+        [Tooltip("Auto-found on the Calendar Panel.")]
+        [SerializeField] private NewsCalendarUI calendar;
+
         private enum ContentMode
         {
             News,
-            ActiveEvents
+            ActiveEvents,
+
+            /// <summary>Everything the player knows about one week, opened from the calendar.</summary>
+            Week
         }
 
         private enum NewsFilter
@@ -62,7 +78,10 @@ namespace AntiqueTradingSimulator.UI
             All,
             Official,
             Rumours,
-            Leaked
+            Leaked,
+
+            /// <summary>Week view only.</summary>
+            Events
         }
 
         private ContentMode currentMode = ContentMode.News;
@@ -75,6 +94,10 @@ namespace AntiqueTradingSimulator.UI
         // The news item currently shown in the details panel, so the panel can be closed
         // if that item stops being news.
         private NewsItem shownNews;
+
+        // Week view: the shown week and its entries (same data as the calendar's list).
+        private int weekViewWeek;
+        private readonly List<WeekEntry> weekEntries = new List<WeekEntry>();
 
         /// <summary>
         /// Today, or a day so early that nothing counts as started — without a TimeManager the
@@ -89,6 +112,7 @@ namespace AntiqueTradingSimulator.UI
 
         private void Awake()
         {
+            AutoWireWeekView();
             BindButtons();
 
             newsDetailsUI = GetOrAddDetailsPanel(newsDetails);
@@ -122,6 +146,7 @@ namespace AntiqueTradingSimulator.UI
             SubscribeToEventManager();
             SubscribeToNewsManager();
             SubscribeToTimeManager();
+            SubscribeToCalendar();
         }
 
         private void OnDestroy()
@@ -129,6 +154,55 @@ namespace AntiqueTradingSimulator.UI
             UnsubscribeFromEventManager();
             UnsubscribeFromNewsManager();
             UnsubscribeFromTimeManager();
+            UnsubscribeFromCalendar();
+        }
+
+        private void AutoWireWeekView()
+        {
+            if (calendar == null && calendarPanel != null)
+                calendar = calendarPanel.GetComponent<NewsCalendarUI>();
+
+            if (newsContent == null)
+                return;
+
+            Transform content = newsContent.transform;
+
+            if (eventsFilterButton == null)
+                eventsFilterButton = FindIn<Button>(content, "FiltersRow/EventsFilter");
+
+            if (weekBar == null)
+            {
+                Transform bar = content.Find("WeekBar");
+                if (bar != null)
+                    weekBar = bar.gameObject;
+            }
+
+            if (weekBar == null)
+            {
+                Debug.LogWarning(
+                    "NewsEventsView: WeekBar not found under News Content. " +
+                    "The week view works without it, but has no title or week arrows.",
+                    this
+                );
+
+                return;
+            }
+
+            Transform weekBarTransform = weekBar.transform;
+
+            if (weekTitleText == null) weekTitleText = FindIn<TMP_Text>(weekBarTransform, "WeekTitleText");
+            if (previousWeekButton == null) previousWeekButton = FindIn<Button>(weekBarTransform, "PreviousWeekButton");
+            if (nextWeekButton == null) nextWeekButton = FindIn<Button>(weekBarTransform, "NextWeekButton");
+            if (closeWeekButton == null) closeWeekButton = FindIn<Button>(weekBarTransform, "CloseWeekButton");
+
+            // Label lives in code so the scene can't drift from it.
+            SetButtonLabel(closeWeekButton, "×  Back to current");
+        }
+
+        private static T FindIn<T>(Transform root, string path) where T : Component
+        {
+            Transform t = root.Find(path);
+            return t != null ? t.GetComponent<T>() : null;
         }
 
         protected override void OnShown()
@@ -174,6 +248,9 @@ namespace AntiqueTradingSimulator.UI
         private void HandleEventChanged(ActiveEvent activeEvent)
         {
             RefreshActiveEventsList();
+
+            if (currentMode == ContentMode.Week && isActiveAndEnabled)
+                RefreshWeekList();
         }
 
 
@@ -210,21 +287,20 @@ namespace AntiqueTradingSimulator.UI
         }
 
         /// <summary>
-        /// A new day can push announced events into the past, which drops their news out of
-        /// the list. If the open details panel is showing one of those, it closes.
+        /// A new week can push announced events into the past, which drops their news out of
+        /// the news list. If the open details panel is showing one of those, it closes.
+        /// (Only in the News tab – the week view and the calendar keep showing such news.)
         /// </summary>
         private void HandleWeekChanged(int newWeek)
         {
-            if (shownNews != null && shownNews.EventStarted(newWeek))
+            if (shownNews != null && currentMode == ContentMode.News &&
+                shownNews.EventStarted(newWeek) && !shownNews.EventStarted(newWeek - 1))
                 CloseNewsDetails();
 
             if (!isActiveAndEnabled)
                 return;
 
-            if (currentMode == ContentMode.News)
-                RefreshNewsList();
-            else
-                UpdateCounts();
+            RefreshCurrentList();
         }
 
         private void HandleNewsPublished(NewsItem news)
@@ -233,11 +309,78 @@ namespace AntiqueTradingSimulator.UI
             if (!isActiveAndEnabled)
                 return;
 
-            // Counts in tabs/filters change even when the Active Events tab is open.
-            if (currentMode == ContentMode.News)
-                RefreshNewsList();
-            else
-                UpdateCounts();
+            RefreshCurrentList();
+        }
+
+        /// <summary>Rebuilds the list on screen; counts in tabs/filters change even when the Active Events tab is open.</summary>
+        private void RefreshCurrentList()
+        {
+            switch (currentMode)
+            {
+                case ContentMode.News:
+                    RefreshNewsList();
+                    break;
+
+                case ContentMode.Week:
+                    RefreshWeekList();
+                    break;
+
+                default:
+                    UpdateCounts();
+                    break;
+            }
+        }
+
+
+        // =====================================================
+        // CALENDAR SUBSCRIPTION
+        // =====================================================
+
+        private void SubscribeToCalendar()
+        {
+            if (calendar == null)
+                return;
+
+            calendar.ViewAllRequested += ShowWeek;
+            calendar.DateSelected += HandleCalendarDateSelected;
+            calendar.EntryClicked += HandleCalendarEntryClicked;
+        }
+
+        private void UnsubscribeFromCalendar()
+        {
+            if (calendar == null)
+                return;
+
+            calendar.ViewAllRequested -= ShowWeek;
+            calendar.DateSelected -= HandleCalendarDateSelected;
+            calendar.EntryClicked -= HandleCalendarEntryClicked;
+        }
+
+        /// <summary>In the week view the list follows the week selected in the calendar.</summary>
+        private void HandleCalendarDateSelected(DateTime date)
+        {
+            if (currentMode != ContentMode.Week || timeManager == null)
+                return;
+
+            int week = timeManager.DateToWeek(date);
+            if (week == weekViewWeek)
+                return;
+
+            weekViewWeek = week;
+
+            if (!isActiveAndEnabled)
+                return;
+
+            RefreshWeekList();
+            ScrollNewsListToTop();
+        }
+
+        private void HandleCalendarEntryClicked(WeekEntry entry)
+        {
+            if (entry.IsEvent)
+                ShowEventDetails(entry.Event);
+            else if (entry.News != null)
+                HandleNewsClicked(entry.News);
         }
 
 
@@ -254,6 +397,11 @@ namespace AntiqueTradingSimulator.UI
             Bind(officialFilterButton, ShowOfficial);
             Bind(rumoursFilterButton, ShowRumours);
             Bind(leakedFilterButton, ShowLeaked);
+            Bind(eventsFilterButton, ShowEvents);
+
+            Bind(previousWeekButton, ShowPreviousWeek);
+            Bind(nextWeekButton, ShowNextWeek);
+            Bind(closeWeekButton, ShowNewsMode);
 
             Bind(createEventButton, OpenCreateEvent);
 
@@ -293,6 +441,8 @@ namespace AntiqueTradingSimulator.UI
             SetButtonSelected(newsTabButton, true);
             SetButtonSelected(activeEventsTabButton, false);
 
+            SetWeekViewVisible(false);
+
             RefreshNewsList();
         }
 
@@ -311,6 +461,8 @@ namespace AntiqueTradingSimulator.UI
 
             SetButtonSelected(newsTabButton, false);
             SetButtonSelected(activeEventsTabButton, true);
+
+            SetWeekViewVisible(false);
 
             RefreshActiveEventsList();
         }
@@ -409,7 +561,7 @@ namespace AntiqueTradingSimulator.UI
             OpenNewsDetails();
 
             // Panel is active now, so it can fill its texts.
-            if (newsDetailsUI != null && currentMode == ContentMode.News)
+            if (newsDetailsUI != null && currentMode != ContentMode.ActiveEvents)
             {
                 newsDetailsUI.ShowNews(news);
                 shownNews = news;
@@ -432,8 +584,23 @@ namespace AntiqueTradingSimulator.UI
                 case NewsFilter.Leaked:
                     return news.Type == AntiqueTradingSimulator.News.NewsType.Leak;
 
+                case NewsFilter.Events:
+                    return false;
+
                 default:
                     return true;
+            }
+        }
+
+        private bool MatchesCurrentFilter(WeekEntry entry)
+        {
+            switch (currentFilter)
+            {
+                case NewsFilter.Official: return entry.Kind == WeekEntryKind.Official;
+                case NewsFilter.Rumours: return entry.Kind == WeekEntryKind.Rumour;
+                case NewsFilter.Leaked: return entry.Kind == WeekEntryKind.Leaked;
+                case NewsFilter.Events: return entry.Kind == WeekEntryKind.Event;
+                default: return true;
             }
         }
 
@@ -444,7 +611,7 @@ namespace AntiqueTradingSimulator.UI
 
         public void OpenNewsDetails()
         {
-            if (currentMode != ContentMode.News)
+            if (currentMode == ContentMode.ActiveEvents)
                 return;
 
             SetActive(calendarPanel, false);
@@ -459,7 +626,7 @@ namespace AntiqueTradingSimulator.UI
             SetActive(newsDetails, false);
             SetActive(eventDetails, false);
 
-            if (currentMode == ContentMode.News)
+            if (currentMode != ContentMode.ActiveEvents)
                 SetActive(calendarPanel, true);
         }
 
@@ -566,10 +733,7 @@ namespace AntiqueTradingSimulator.UI
                 $"(Week {activeEvent.StartWeek}-{activeEvent.EndWeek})"
             );
 
-            OpenEventDetails();
-
-            if (eventDetailsUI != null && currentMode == ContentMode.ActiveEvents)
-                eventDetailsUI.ShowEvent(activeEvent);
+            ShowEventDetails(activeEvent);
         }
 
 
@@ -577,19 +741,35 @@ namespace AntiqueTradingSimulator.UI
         // EVENT DETAILS
         // =====================================================
 
+        /// <summary>Opens the event details in place of the calendar (any tab: active events, week view, calendar list).</summary>
         public void OpenEventDetails()
         {
-            if (currentMode != ContentMode.ActiveEvents)
-                return;
+            shownNews = null;
 
             SetActive(calendarPanel, false);
             SetActive(newsDetails, false);
             SetActive(eventDetails, true);
         }
 
+        private void ShowEventDetails(ActiveEvent activeEvent)
+        {
+            if (activeEvent == null)
+                return;
+
+            OpenEventDetails();
+
+            // Panel is active now, so it can fill its texts.
+            if (eventDetailsUI != null)
+                eventDetailsUI.ShowEvent(activeEvent);
+        }
+
         public void CloseEventDetails()
         {
             SetActive(eventDetails, false);
+
+            // The Active Events tab has no calendar; the other modes show it again.
+            if (currentMode != ContentMode.ActiveEvents)
+                SetActive(calendarPanel, true);
         }
 
 
@@ -617,31 +797,220 @@ namespace AntiqueTradingSimulator.UI
             SetFilter(NewsFilter.Leaked);
         }
 
+        public void ShowEvents()
+        {
+            SetFilter(NewsFilter.Events);
+        }
+
         private void SetFilter(NewsFilter filter)
         {
             currentFilter = filter;
 
-            SetButtonSelected(
-                allFilterButton,
-                filter == NewsFilter.All
+            UpdateFilterButtons();
+
+            if (currentMode == ContentMode.Week)
+                RefreshWeekList();
+            else
+                RefreshNewsList();
+        }
+
+        private void UpdateFilterButtons()
+        {
+            SetButtonSelected(allFilterButton, currentFilter == NewsFilter.All);
+            SetButtonSelected(officialFilterButton, currentFilter == NewsFilter.Official);
+            SetButtonSelected(rumoursFilterButton, currentFilter == NewsFilter.Rumours);
+            SetButtonSelected(leakedFilterButton, currentFilter == NewsFilter.Leaked);
+            SetButtonSelected(eventsFilterButton, currentFilter == NewsFilter.Events);
+        }
+
+
+        // =====================================================
+        // WEEK VIEW
+        // =====================================================
+
+        /// <summary>
+        /// Shows everything the player knows about the week of <paramref name="date"/> in the news list:
+        /// events running that week (active or ended) and all news published that week – also those
+        /// whose event has already started, which the News tab no longer lists.
+        /// Opened by "View all …" under the calendar; the list then follows the calendar's selected week.
+        /// </summary>
+        public void ShowWeek(DateTime date)
+        {
+            if (timeManager == null)
+            {
+                Debug.LogError("NewsEventsView: TimeManager is not assigned.", this);
+                return;
+            }
+
+            currentMode = ContentMode.Week;
+            weekViewWeek = timeManager.DateToWeek(date);
+            shownNews = null;
+
+            SetActive(newsContent, true);
+            SetActive(activeEventsContent, false);
+
+            SetActive(calendarPanel, true);
+            SetActive(newsDetails, false);
+            SetActive(eventDetails, false);
+
+            // Neither tab is the current one – clicking either leaves the week view.
+            SetButtonSelected(newsTabButton, false);
+            SetButtonSelected(activeEventsTabButton, false);
+
+            SetWeekViewVisible(true);
+            UpdateFilterButtons();
+
+            RefreshWeekList();
+            ScrollNewsListToTop();
+        }
+
+        public void ShowPreviousWeek()
+        {
+            StepWeek(-1);
+        }
+
+        public void ShowNextWeek()
+        {
+            StepWeek(1);
+        }
+
+        /// <summary>Weeks from the campaign's first week up to the current one (later weeks are still empty).</summary>
+        private void StepWeek(int delta)
+        {
+            if (currentMode != ContentMode.Week || timeManager == null)
+                return;
+
+            int week = weekViewWeek + delta;
+            if (week < FirstWeek || (delta > 0 && week > timeManager.CurrentWeek))
+                return;
+
+            weekViewWeek = week;
+
+            // Keep the calendar on the same week. For the current week select today,
+            // so the calendar (and with it this list) keeps following the game time.
+            if (calendar != null)
+            {
+                DateTime date = week == timeManager.CurrentWeek
+                    ? timeManager.CurrentDate
+                    : timeManager.WeekToDate(week);
+
+                calendar.SelectDate(date); // raises DateSelected – ignored, the week is already set
+            }
+
+            RefreshWeekList();
+            ScrollNewsListToTop();
+        }
+
+        private void ScrollNewsListToTop()
+        {
+            ScrollRect scroll = newsListContainer != null
+                ? newsListContainer.GetComponentInParent<ScrollRect>()
+                : null;
+
+            if (scroll != null)
+                scroll.verticalNormalizedPosition = 1f;
+        }
+
+        private int FirstWeek => timeManager != null ? timeManager.DateToWeek(timeManager.StartDate) : 1;
+
+        private void RefreshWeekList()
+        {
+            if (timeManager == null || newsListContainer == null ||
+                newsListItemPrefab == null || activeEventListItemPrefab == null)
+            {
+                Debug.LogError(
+                    "NewsEventsView: the week view needs TimeManager, News List Container " +
+                    "and both list item prefabs assigned.",
+                    this
+                );
+
+                return;
+            }
+
+            ClearNewsList();
+
+            WeekEntries.Collect(
+                weekViewWeek,
+                eventManager,
+                newsManager,
+                NewsPresentation.GetAccessLevel(player),
+                weekEntries
             );
 
-            SetButtonSelected(
-                officialFilterButton,
-                filter == NewsFilter.Official
-            );
+            int currentWeek = timeManager.CurrentWeek;
 
-            SetButtonSelected(
-                rumoursFilterButton,
-                filter == NewsFilter.Rumours
-            );
+            // Same order as the list under the calendar: events first, then news in publishing order.
+            foreach (WeekEntry entry in weekEntries)
+            {
+                if (!MatchesCurrentFilter(entry))
+                    continue;
 
-            SetButtonSelected(
-                leakedFilterButton,
-                filter == NewsFilter.Leaked
-            );
+                if (entry.IsEvent)
+                {
+                    ActiveEventListItemUI item = Instantiate(
+                        activeEventListItemPrefab,
+                        newsListContainer
+                    );
 
-            RefreshNewsList();
+                    item.Setup(entry.Event, currentWeek, ShowEventDetails);
+                }
+                else
+                {
+                    NewsListItemUI item = Instantiate(
+                        newsListItemPrefab,
+                        newsListContainer
+                    );
+
+                    item.Setup(entry.News, HandleNewsClicked, timeManager);
+                }
+            }
+
+            UpdateWeekBar();
+            UpdateCounts();
+        }
+
+        /// <summary>
+        /// "Week of 3 March 1884 · 5 weeks ago" (counts are on the filter chips), plus a note for
+        /// weeks with nothing in them. Also the arrow states.
+        /// </summary>
+        private void UpdateWeekBar()
+        {
+            if (timeManager == null)
+                return;
+
+            int currentWeek = timeManager.CurrentWeek;
+
+            if (weekTitleText != null)
+            {
+                string title = $"Week of {Core.TimeManager.FormatLong(timeManager.WeekToDate(weekViewWeek))}" +
+                               $"  ·  {NewsPresentation.RelativeWeeks(weekViewWeek - currentWeek).ToLowerInvariant()}";
+
+                if (weekEntries.Count == 0)
+                    title += weekViewWeek >= currentWeek ? "  ·  quiet so far" : "  ·  a quiet week";
+
+                weekTitleText.text = title;
+            }
+
+            if (previousWeekButton != null)
+                previousWeekButton.interactable = weekViewWeek > FirstWeek;
+
+            if (nextWeekButton != null)
+                nextWeekButton.interactable = weekViewWeek < currentWeek;
+        }
+
+        /// <summary>The week bar and the Events chip exist only in the week view.</summary>
+        private void SetWeekViewVisible(bool visible)
+        {
+            SetActive(weekBar, visible);
+
+            if (eventsFilterButton != null)
+                eventsFilterButton.gameObject.SetActive(visible);
+
+            if (!visible && currentFilter == NewsFilter.Events)
+            {
+                currentFilter = NewsFilter.All;
+                UpdateFilterButtons();
+            }
         }
 
 
@@ -680,10 +1049,39 @@ namespace AntiqueTradingSimulator.UI
             SetButtonLabel(newsTabButton, $"News  ({all})");
             SetButtonLabel(activeEventsTabButton, $"Active Events  ({activeEvents})");
 
+            if (currentMode == ContentMode.Week)
+            {
+                UpdateWeekFilterCounts();
+                return;
+            }
+
             SetButtonLabel(allFilterButton, $"All  ({all})");
             SetButtonLabel(officialFilterButton, $"Official  ({official})");
             SetButtonLabel(rumoursFilterButton, $"Rumours  ({rumours})");
             SetButtonLabel(leakedFilterButton, $"Leaked  ({leaked})");
+        }
+
+        /// <summary>In the week view the filter chips count the shown week's entries (the tabs keep the global counts).</summary>
+        private void UpdateWeekFilterCounts()
+        {
+            int official = 0, rumours = 0, leaked = 0, events = 0;
+
+            foreach (WeekEntry entry in weekEntries)
+            {
+                switch (entry.Kind)
+                {
+                    case WeekEntryKind.Official: official++; break;
+                    case WeekEntryKind.Rumour: rumours++; break;
+                    case WeekEntryKind.Leaked: leaked++; break;
+                    case WeekEntryKind.Event: events++; break;
+                }
+            }
+
+            SetButtonLabel(allFilterButton, $"All  ({weekEntries.Count})");
+            SetButtonLabel(officialFilterButton, $"Official  ({official})");
+            SetButtonLabel(rumoursFilterButton, $"Rumours  ({rumours})");
+            SetButtonLabel(leakedFilterButton, $"Leaked  ({leaked})");
+            SetButtonLabel(eventsFilterButton, $"Events  ({events})");
         }
 
         private void UpdateAccessLevelText()
