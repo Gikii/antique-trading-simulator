@@ -8,7 +8,10 @@ namespace AntiqueTradingSimulator.Contracts
 
         public List<string> ListedContractIds = new List<string>();
 
-        public List<string> FeedMessages = new List<string>();
+        /// <summary>Contract history, newest first. (Saves from before it was structured had FeedMessages – ignored.)</summary>
+        public List<ContractFeedEntry> FeedEntries = new List<ContractFeedEntry>();
+
+        public ContractFeedTotals FeedPlayerTotals = new ContractFeedTotals();
     }
 
     public class ContractState

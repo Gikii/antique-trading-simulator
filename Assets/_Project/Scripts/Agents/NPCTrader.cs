@@ -1106,6 +1106,10 @@ namespace AntiqueTradingSimulator.Agents
             Inventory.CommitToContract(chosen.ContractId);
             Record.ContractAccepted();
 
+            // Exclusive contracts are recorded by ClaimContract above; open ones are never claimed.
+            if (chosen.Type != ContractType.Exclusive)
+                _contractManager.RecordTakenOn(chosen, Id);
+
             _contractReserve = CalculateContractReserve();
             _weekBudget = Mathf.Min(_weekBudget, Mathf.Max(0f, Inventory.Cash - _contractReserve));
 

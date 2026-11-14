@@ -220,12 +220,41 @@ namespace AntiqueTradingSimulator.Contracts
             foreach (var contract in toExpire)
             {
                 contract.SetStatusExpired();
-                ApplyExpiryConsequences(contract);
+                float penaltyPaid = ApplyExpiryConsequences(contract);
                 _contracts.Remove(contract);
+
+                RecordExpiry(contract, penaltyPaid, currentWeek);
 
                 Debug.Log($"ContractManager: contract {contract.ContractId} expired unfulfilled on week {currentWeek}.");
                 OnContractExpired?.Invoke(contract);
             }
+        }
+
+        /// <summary>
+        /// History entry for a contract that ran out: "failed" for whoever had committed to it (the claimant
+        /// of an exclusive one, anyone who accepted an open one – before OnContractExpired lets them drop
+        /// it), otherwise "expired".
+        /// </summary>
+        private void RecordExpiry(Contract contract, float penaltyPaid, int week)
+        {
+            if (contract.IsClaimed)
+            {
+                Feed.AddFailed(contract, contract.ClaimedByTraderId, penaltyPaid, week);
+                return;
+            }
+
+            bool anyoneCommitted = false;
+            foreach (var pair in _inventoriesByTraderId)
+            {
+                if (pair.Value == null || !pair.Value.IsCommittedToContract(contract.ContractId))
+                    continue;
+
+                Feed.AddFailed(contract, pair.Key, 0f, week);
+                anyoneCommitted = true;
+            }
+
+            if (!anyoneCommitted)
+                Feed.AddExpired(contract, week);
         }
 
         /// <summary>
@@ -236,10 +265,11 @@ namespace AntiqueTradingSimulator.Contracts
         /// is responsible for releasing its own reservations once it notices the contract
         /// is no longer Active.
         /// </summary>
-        private void ApplyExpiryConsequences(Contract contract)
+        /// <returns>The penalty actually charged (0 when none).</returns>
+        private float ApplyExpiryConsequences(Contract contract)
         {
-            if (!contract.IsClaimed) return;
-            if (!_inventoriesByTraderId.TryGetValue(contract.ClaimedByTraderId, out var inventory)) return;
+            if (!contract.IsClaimed) return 0f;
+            if (!_inventoriesByTraderId.TryGetValue(contract.ClaimedByTraderId, out var inventory)) return 0f;
 
             inventory.ReleaseAllReservationsForContract(contract.ContractId);
 
@@ -247,7 +277,10 @@ namespace AntiqueTradingSimulator.Contracts
             {
                 inventory.RemoveCash(contract.Penalty, LedgerCategory.Penalty, $"Penalty for failed contract ({contract.Requirement})");
                 Debug.Log($"ContractManager: {contract.ClaimedByTraderId} incurred a {contract.Penalty:F2} penalty for failing exclusive contract {contract.ContractId}.");
+                return contract.Penalty;
             }
+
+            return 0f;
         }
 
         public Contract GenerateContract(int currentWeek) => GenerateContract(currentWeek, null);
@@ -308,7 +341,7 @@ namespace AntiqueTradingSimulator.Contracts
 
             Debug.Log($"ContractManager: generated {contract.Type} contract ({contract.ContractId}) on week {currentWeek} for {requirement.Quantity} antiques at average price {requirement.AverageReferenceUnitPrice(economyManager.Market)} to be fullfilled by week {contract.DeadlineWeek} with total payout {contract.TotalReward}");
             OnContractCreated?.Invoke(contract);
-            Feed.AddListed(contract);
+            Feed.AddListed(contract, currentWeek);
             return contract;
         }
 
@@ -526,7 +559,7 @@ namespace AntiqueTradingSimulator.Contracts
 
             Debug.Log($"ContractManager: {traderId} fulfilled {contract.Type} contract {contract.ContractId} in full for {contract.TotalReward:F2} on week {timeManager.CurrentWeek}.");
             OnContractFulfilled?.Invoke(contract);
-            Feed.AddFulfilled(contract);
+            Feed.AddFulfilled(contract, traderId, CurrentWeek);
 
             return true;
         }
@@ -539,9 +572,21 @@ namespace AntiqueTradingSimulator.Contracts
 
             Debug.Log($"ContractManager: contract {contract.ContractId} claimed by {traderId}.");
             OnContractClaimed?.Invoke(contract, traderId);
-            Feed.AddExclusiveClaimed(contract);
+            Feed.AddTakenOn(contract, traderId, CurrentWeek);
             return true;
         }
+
+        /// <summary>
+        /// Notes in the contract history that a trader committed to an open contract. Open contracts are
+        /// never claimed (anyone may deliver), so ClaimContract doesn't see these – the player's accept does.
+        /// </summary>
+        public void RecordTakenOn(Contract contract, string traderId)
+        {
+            if (contract == null || string.IsNullOrEmpty(traderId)) return;
+            Feed.AddTakenOn(contract, traderId, CurrentWeek);
+        }
+
+        private int CurrentWeek => timeManager != null ? timeManager.CurrentWeek : 1;
 
         // ---------------------------------------------------------------- save / load
 
@@ -566,7 +611,8 @@ namespace AntiqueTradingSimulator.Contracts
                 state.ListedContractIds.Add(contract.ContractId);
             }
 
-            state.FeedMessages = Feed.CaptureState();
+            state.FeedEntries = Feed.CaptureEntries();
+            state.FeedPlayerTotals = Feed.CaptureTotals();
 
             return state;
         }
@@ -587,7 +633,7 @@ namespace AntiqueTradingSimulator.Contracts
                 return;
             }
 
-            Feed.RestoreState(state.FeedMessages);
+            Feed.RestoreState(state.FeedEntries, state.FeedPlayerTotals);
 
             if (state.Contracts != null)
             {

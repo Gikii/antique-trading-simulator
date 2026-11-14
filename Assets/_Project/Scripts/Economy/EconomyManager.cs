@@ -172,6 +172,8 @@ namespace AntiqueTradingSimulator.Economy
         private void InitializeMarket()
         {
             Market = new Market.Market(_inventories);
+            // The market history stamps entries with the game week; read lazily (time may start later).
+            Market.Feed.WeekProvider = () => _timeManager != null ? _timeManager.CurrentWeek : 1;
 
             List<AntiqueDefinition> allDefinitions = AntiqueDatabase.GetAll();
 

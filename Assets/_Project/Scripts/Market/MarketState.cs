@@ -14,7 +14,12 @@ namespace AntiqueTradingSimulator.Market
         /// <summary>Listings without owners.</summary>
         public List<AntiqueState> UnownedListings = new List<AntiqueState>();
 
-        public List<string> FeedMessages = new List<string>();
+        /// <summary>Market history, newest first. (Saves from before it was structured had FeedMessages – ignored.)</summary>
+        public List<MarketFeedEntry> FeedEntries = new List<MarketFeedEntry>();
+
+        public MarketFeedTotals FeedPlayerTotals = new MarketFeedTotals();
+
+        public MarketWeekStats FeedWeekStats = new MarketWeekStats();
     }
 
     public class MarketTypeState

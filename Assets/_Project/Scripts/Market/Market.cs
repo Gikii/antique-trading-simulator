@@ -160,7 +160,7 @@ namespace AntiqueTradingSimulator.Market
             listing.MarketListedOnWeek = currentWeek;
             RecalculatePrice(listing);
             _listings.Add(listing);
-            Feed.AddListing(listing.Name, listing.SalePrice);
+            Feed.AddListed();
             OnListingAdded?.Invoke(listing);
         }
 
@@ -218,6 +218,10 @@ namespace AntiqueTradingSimulator.Market
                 Debug.LogWarning($"Market: listing with ID {listingId} not found");
                 return false;
             }
+            // Read before settling: settling clears the asking price, and the owner changes below.
+            float price = listing.SalePrice;
+            string sellerId = listing.IsListedForSale ? listing.OwnerId : "";
+
             // An owner-set listing: the owner still holds the antique and gets paid now.
             if (listing.IsListedForSale)
                 SettleOwnerListing(listing);
@@ -227,6 +231,7 @@ namespace AntiqueTradingSimulator.Market
             ApplyBuyPressure(listing.DefinitionId);
             OnListingRemoved?.Invoke(listing);
 
+            Feed.AddPurchase(listing.Name, newOwnerId, sellerId, price);
             return true;
         }
 
@@ -275,6 +280,7 @@ namespace AntiqueTradingSimulator.Market
 
             string name = listing.Name;
             float price = listing.AskingPrice;
+            string sellerId = listing.OwnerId;
 
             SettleOwnerListing(listing);
             listing.OwnerId = "";
@@ -282,7 +288,7 @@ namespace AntiqueTradingSimulator.Market
             ApplyBuyPressure(listing.DefinitionId);
             OnListingRemoved?.Invoke(listing);
 
-            Feed.AddPurchase(CollectorBuyerName, name, price);
+            Feed.AddCollectorPurchase(name, sellerId, price);
             return true;
         }
 
@@ -433,6 +439,8 @@ namespace AntiqueTradingSimulator.Market
                 return;
             }
 
+            string sellerId = listing.OwnerId;
+
             // Relisting means relinquishing ownership — becomes an anonymous
             // market listing again until someone else buys it.
             listing.OwnerId = "";
@@ -442,6 +450,9 @@ namespace AntiqueTradingSimulator.Market
 
             ApplySellPressure(listing.DefinitionId);
             AddListing(listing, currentWeek);
+
+            // CurrentPrice after relisting is what the seller is paid (TraderInventory.Sell).
+            Feed.AddSoldToMarket(listing.Name, sellerId, listing.CurrentPrice);
         }
 
         /// <summary>
@@ -542,7 +553,12 @@ namespace AntiqueTradingSimulator.Market
         /// </summary>
         public MarketState CaptureState()
         {
-            var state = new MarketState { FeedMessages = Feed.CaptureState() };
+            var state = new MarketState
+            {
+                FeedEntries = Feed.CaptureEntries(),
+                FeedPlayerTotals = Feed.CaptureTotals(),
+                FeedWeekStats = Feed.CaptureWeekStats()
+            };
 
             foreach (var typeState in _typeStates.Values)
             {
@@ -618,7 +634,7 @@ namespace AntiqueTradingSimulator.Market
                 }
             }
 
-            Feed.RestoreState(state.FeedMessages);
+            Feed.RestoreState(state.FeedEntries, state.FeedPlayerTotals, state.FeedWeekStats);
         }
 
         private Antique FindHeldAntique(string listingId)

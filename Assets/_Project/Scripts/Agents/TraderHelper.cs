@@ -27,15 +27,12 @@ namespace AntiqueTradingSimulator.Agents
                 Debug.Log($"{traderName}: listing {listingId} is no longer available");
                 return false;
             }
-            string antiqueName = listing != null ? listing.Name : null;
-            float price = listing != null ? listing.SalePrice : 0f;
-
             TransportQuote quote = transport != null && listing != null ? transport.Quote(listing, option, buyer: inventory) : null;
 
             bool success = inventory.Buy(market, listingId, currentWeek, quote);
             LogResult(traderName, "buy", listingId, success, inventory.Cash);
             if (success) {
-                market.Feed.AddPurchase(traderName, antiqueName, price);
+                // Market.Buy records the purchase in the market history (with buyer and seller).
                 if (quote != null)
                     transport.Dispatch(listing, inventory, quote, traderName);
             }

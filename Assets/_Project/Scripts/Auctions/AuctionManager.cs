@@ -398,8 +398,7 @@ namespace AntiqueTradingSimulator.Auctions
                 if (market != null)
                 {
                     market.ApplyAuctionResult(lot.Antique.DefinitionId, lot.HammerPrice, week, signal);
-                    market.Feed.Add($"Auction: {lot.Name} sold to {winnerName} for {lot.HammerPrice:F0} £ " +
-                                    $"(estimate {lot.EstimateLow:F0}–{lot.EstimateHigh:F0} £)");
+                    market.Feed.AddAuctionSold(lot.Name, lot.WinnerId, lot.HammerPrice);
                 }
             }
             else
@@ -409,7 +408,7 @@ namespace AntiqueTradingSimulator.Auctions
                 if (market != null)
                 {
                     market.ApplyAuctionResult(lot.Antique.DefinitionId, 0f, week, -Settings.UnsoldDemandPenalty);
-                    market.Feed.Add($"Auction: {lot.Name} found no buyer at {lot.StartPrice:F0} £");
+                    market.Feed.AddAuctionUnsold(lot.Name, lot.StartPrice);
                 }
             }
 

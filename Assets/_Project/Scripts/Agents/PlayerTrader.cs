@@ -198,6 +198,10 @@ namespace AntiqueTradingSimulator.Agents
             if (!Inventory.CommitToContract(contractId))
                 return false;
 
+            // Exclusive contracts are recorded by ClaimContract above; open ones are never claimed.
+            if (contract.Type != ContractType.Exclusive)
+                contractManager.RecordTakenOn(contract, Antique.PlayerOwnerId);
+
             OnContractAccepted?.Invoke(contract);
             return true;
         }
