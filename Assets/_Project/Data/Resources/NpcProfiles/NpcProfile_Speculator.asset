@@ -18,29 +18,35 @@ MonoBehaviour:
   - Kessler Trading
   - Brightwater Lots
   StartingCash: 3000
-  AccessLevel: 3
   PreferredTypes: 
   PreferredCountries: 
   PreferredCenturies: 
+  ActionsPerPeriod: 5
+  ContractSlotShare: 0.8
+  MinBargainScore: 0.08
+  AccessLevel: 5
   RumorTrust: 0.6
-  LeakTrust: 0.9
-  MinReactionDelayDays: 0
-  MaxReactionDelayDays: 1
-  DailyBudgetFraction: 0.35
+  LeakTrust: 0.95
+  MinReactionDelayWeeks: 0
+  MaxReactionDelayWeeks: 1
+  WeeklyBudgetFraction: 0.35
   MaxPriceMultiplierWillingToPay: 0.8
   RiskTolerance: 0.8
   MinConditionToBuy: 0
   ConditionPremium: 0
   NeverSells: 0
   ProfitTargetMultiplier: 1.2
-  MinHoldingDaysBeforeSell: 1
-  PatientSellAfterDays: 6
+  MinHoldingWeeksBeforeSell: 1
+  PatientSellAfterWeeks: 6
   PatientProfitMultiplier: 1.05
   StopLossMultiplier: 0.75
   ListsOnMarket: 1
   ListingMarkup: 1.15
-  RelistAfterDays: 4
+  RelistAfterWeeks: 4
+  SeasonalForesight: 0.4
+  SeasonalHorizonWeeks: 3
   TakesContracts: 1
+  ContractPanicWeeks: 2
   AuctionAttendance: 0.7
   AuctionValueMultiplier: 1
   AuctionBudgetShare: 0.6
@@ -48,5 +54,3 @@ MonoBehaviour:
   AuctionFeverChance: 0.2
   AuctionFeverRaise: 0.1
   AuctionHesitation: 0.3
-  SeasonalForesight: 0.4
-  SeasonalHorizonDays: 3
