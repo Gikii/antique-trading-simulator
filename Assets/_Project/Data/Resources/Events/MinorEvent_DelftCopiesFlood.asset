@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_DelftCopiesFlood
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 0b26482ce2f5404eaab79af39e0b892f
+  DisplayName: A Pottery Copies the Old Delft Patterns
+  EventType: 1
+  Description: A large pottery {has begun|will begin} turning out copies of old Delft
+    blue and white by the thousand. The shops {are full|will be full} of them, and
+    the real thing {looks|will look} less special beside so many cheap imitations.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 0
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277157
+  - rid: 1280112227729277158
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277157
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 11
+        Country: 0
+        Century: 0
+        tempDemandChange: -1
+        permDemandChange: -0.25
+    - rid: 1280112227729277158
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 7
+        Century: 0
+        tempDemandChange: -0.5
+        permDemandChange: 0

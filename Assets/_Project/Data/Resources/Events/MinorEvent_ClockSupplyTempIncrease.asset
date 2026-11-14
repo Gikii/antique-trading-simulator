@@ -17,14 +17,18 @@ MonoBehaviour:
   EventType: 1
   Description: A minor antique clock collector has passed away and their estate {is|will
     be} selling their collection. More clocks may appear at the market.
-  DurationDays: 3
-  MinLeadDays: 3
-  MaxLeadDays: 7
+  DurationWeeks: 3
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 7
   PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: -1
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
-  OfficialAnnouncementDaysBefore: 1
+  OfficialAnnouncementWeeksBefore: 1
   CreateRumour: 1
   RumorCredibility: 0.5
   CreateLeak: 1

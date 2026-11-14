@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_ArmouryMuseumOpens
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 936b0e9c64de4e20bfb7c6712524bb9e
+  DisplayName: A National Armoury Museum Opens
+  EventType: 1
+  Description: A new museum of arms and armour {has opened|will open} its galleries,
+    and its trustees {are still filling|will still be filling} the empty cases. Blades
+    and armour from the age of chivalry {are wanted|will be wanted} by the museum
+    and by every collector who has seen it.
+  DurationWeeks: 5
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277055
+  - rid: 1280112227729277056
+  - rid: 1280112227729277057
+  - rid: 1280112227729277058
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277055
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 15
+        Country: 0
+        Century: 0
+        tempDemandChange: 1.5
+        permDemandChange: 0.25
+    - rid: 1280112227729277056
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 2
+        AntiqueType: 0
+        Country: 0
+        Century: 15
+        tempDemandChange: 0.5
+        permDemandChange: 0
+    - rid: 1280112227729277057
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 2
+        AntiqueType: 0
+        Country: 0
+        Century: 16
+        tempDemandChange: 0.5
+        permDemandChange: 0
+    - rid: 1280112227729277058
+      type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 1
+        Scope: 1
+        AntiqueType: 15
+        Century: 0
+        Country: 0
+        Quantity: 0
+        MinCondition: 0.9
+        DurationWeeks: 8
+        RewardPerUnit: 0
+        Type: 2
+        Penalty: -1
+        ClassName: Prestige
+        RequiredReputation: -1

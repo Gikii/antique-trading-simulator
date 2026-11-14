@@ -1,0 +1,2255 @@
+# =====================================================================================
+#  MINOR EVENT PROPOSALS — Antique Trading Simulator
+# =====================================================================================
+#
+#  One block per event. Field names match EventDefinition and the EventEffect classes,
+#  so each block can be copied straight into an asset in the Inspector (or read by an
+#  importer later). Enums are written by NAME, not by number.
+#
+#  Fields that are not listed take the class default:
+#    EventType: Minor · Annual: false · FailureChance: 0 · CanBeFakeNews: true
+#    CreateOfficialNews: true · OfficialAnnouncementWeeksBefore: 1
+#    CreateRumour: false · RumorCredibility: 0.5 · CreateLeak: false · LeakCredibility: 0.9
+#
+#  "Tendency" is NOT an engine field. It's a design note on the overall price direction
+#  (Up / Down / Mixed / Opportunity) to help with balancing. Delete it on import.
+#
+#  Descriptions use the existing {present|future} token syntax (TextHelper.Resolve).
+#
+#  Antiques are only ever collected, never used: effects are driven by collectors,
+#  dealers, fashion, scholarship, sales or transport, not by an object's practical use.
+#  The one exception is intrinsic material value. Precious metal is worth its weight
+#  whatever the object, so bullion prices may move coins, silverware and jewellery.
+#
+# -------------------------------------------------------------------------------------
+#  QUICK REFERENCE
+# -------------------------------------------------------------------------------------
+#  AntiqueType : Clock Vase Furniture Painting Sculpture Jewelry Coin Book Rug Silverware
+#                Ceramic Porcelain Mirror Lamp Weapon Instrument Textile Toy   (Other = any)
+#  Country     : England France Italy Germany Spain Portugal Netherlands Austria Russia
+#                China Japan India Turkey UnitedStates Poland                  (Other = any)
+#  Century     : XII XIII XIV XV XVI XVII XVIII XIX XX                        (Unknown = any)
+#  Seasons     : All, or any list of Spring Summer Autumn Winter
+#  ShippingZone: Local Domestic International
+#
+#  ChangeDemandEffect      Scope (AntiqueType|Country|Century) + matching field,
+#                          tempDemandChange, permDemandChange
+#  ChangeSupplyEffect      Scope + matching field, tempSupplyChange, permSupplyChange
+#  CreateAntiqueOnMarketEventEffect
+#                          MinCount, MaxCount, AntiqueType, Country, Century,
+#                          Condition (0 = roll, else 0.3–1.0), PriceFactor (0 = roll, else 0.7–1.25),
+#                          RandomizeShippingZone, ShippingZone, AddSupplyPressure
+#  CreateContractEventEffect
+#                          MinCount, MaxCount, Scope (Random|AntiqueType|Country|Century) + field,
+#                          Quantity (0 = roll), MinCondition (0 = roll, else 0–1.0),
+#                          DurationWeeks (0 = roll), RewardPerUnit (0 = normal),
+#                          Type (Random|Open|Exclusive), Penalty (-1 = auto),
+#                          ClassName ("" = rolled, Standard, Premium, Prestige),
+#                          RequiredReputation (-1 = from class)
+#  TransportDelayEffect    Zone, NewShipmentDelayWeeks, InTransitDelayWeeks
+#
+#  Effect magnitudes follow the existing assets: temp ±0.5–2.5, perm ±0.25–0.75.
+#  Event durations: long 5–6 weeks, medium 3–4, short 1–2.
+# =====================================================================================
+
+Events:
+
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  ANNUAL FIXTURES
+# ─────────────────────────────────────────────────────────────────────────────────────
+
+- AssetName: MinorEvent_ParisSalon
+  Tendency: Up
+  DisplayName: The Paris Salon
+  Description: The Salon {has opened|will open} at the Palais de l'Industrie, and the
+    critics {are filling|will fill} every column with talk of pictures. French collectors
+    {buy|will buy} with the confidence of the season, and dealers {are sending|will send}
+    their best canvases to Paris.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: false
+  Annual: true
+  AnnualMonth: 5
+  AnnualDay: 1
+  AllowedSeasons: [Spring]
+  CanBeFakeNews: false
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: false
+  CreateLeak: true
+  LeakCredibility: 0.95
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Painting
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: France
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 2
+      Scope: AntiqueType
+      AntiqueType: Painting
+      MinCondition: 0.7
+      ClassName: Premium
+
+- AssetName: MinorEvent_LeipzigBookFair
+  Tendency: Up
+  DisplayName: The Leipzig Book Fair
+  Description: Booksellers from every German state {are gathering|will gather} in Leipzig
+    for the spring fair. Old stock {changes|will change} hands by the cartload, and the
+    bibliophiles who follow the trade {are paying|will pay} well for early printing.
+  DurationWeeks: 2
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: false
+  Annual: true
+  AnnualMonth: 4
+  AnnualDay: 15
+  AllowedSeasons: [Spring]
+  CreateRumour: true
+  RumorCredibility: 0.5
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Book
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XV
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 3
+      AntiqueType: Book
+      Country: Germany
+      RandomizeShippingZone: false
+      ShippingZone: International
+
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Book
+      tempSupplyChange: 0.75
+      permSupplyChange: 0
+- AssetName: MinorEvent_NurembergToyFair
+  Tendency: Up
+  DisplayName: The Nuremberg Toy Fair
+  Description: The toymakers of Nuremberg {have laid out|will lay out} their wares for the
+    buyers from abroad. Alongside the new stock, old tin and wooden pieces {are turning|will
+    turn} up from the workshops' back rooms, and collectors of childhood things {follow|will
+    follow} close behind.
+  DurationWeeks: 2
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: false
+  Annual: true
+  AnnualMonth: 2
+  AnnualDay: 1
+  AllowedSeasons: [Winter]
+  CreateRumour: true
+  RumorCredibility: 0.5
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Toy
+      tempDemandChange: 1.25
+      permDemandChange: 0
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 4
+      AntiqueType: Toy
+      Country: Germany
+      RandomizeShippingZone: false
+      ShippingZone: International
+
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Toy
+      tempSupplyChange: 0.75
+      permSupplyChange: 0
+- AssetName: MinorEvent_MichaelmasQuarterDay
+  Tendency: Down
+  DisplayName: Michaelmas Rents Fall Due
+  Description: Michaelmas {has come|is coming} and with it the quarter's rents. Tenants
+    and small landlords {are selling|will sell} whatever they can spare to settle their
+    accounts, and furniture and clocks {crowd|will crowd} the provincial salerooms.
+  DurationWeeks: 2
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 3
+  PlayerSelectsLeadTime: false
+  Annual: true
+  AnnualMonth: 9
+  AnnualDay: 29
+  AllowedSeasons: [Autumn]
+  CreateRumour: false
+  Effects:
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Furniture
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Clock
+      tempSupplyChange: 0.75
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: England
+      tempSupplyChange: 0.5
+      permSupplyChange: 0
+
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  EXHIBITIONS, FASHIONS AND REVIVALS
+# ─────────────────────────────────────────────────────────────────────────────────────
+
+- AssetName: MinorEvent_JapaneseVillageExhibition
+  Tendency: Up
+  DisplayName: A Japanese Village in the Park
+  Description: A Japanese village {has been|will be} built in the park, with craftsmen at
+    work before the crowds. Society {cannot get|will not get} enough of lacquer, screens
+    and stoneware, and the dealers {are shipping|will ship} in whatever they can find.
+  DurationWeeks: 6
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: true
+  AllowedSeasons: [Spring, Summer]
+  FailureChance: 0.05
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: true
+  RumorCredibility: 0.55
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Japan
+      tempDemandChange: 2
+      permDemandChange: 0.5
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Ceramic
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 4
+      Country: Japan
+      RandomizeShippingZone: false
+      ShippingZone: International
+
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Japan
+      tempSupplyChange: 1
+      permSupplyChange: 0
+- AssetName: MinorEvent_GothicRevival
+  Tendency: Up
+  DisplayName: The Gothic Taste Returns
+  Description: Architects {are building|will build} in the pointed style again, and the new
+    churches and town halls {want|will want} old work to match. Medieval carving and anything
+    from the age of the cathedrals {is sought|will be sought} by builders and collectors alike.
+  DurationWeeks: 6
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.85
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XIII
+      tempDemandChange: 1.5
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XIV
+      tempDemandChange: 1
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Sculpture
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: Century
+      Century: XIII
+      DurationWeeks: 6
+      Type: Open
+
+- AssetName: MinorEvent_FlorentineQuatercentenary
+  Tendency: Up
+  DisplayName: Quatercentenary of a Florentine Master
+  Description: Florence {is marking|will mark} four hundred years since the birth of one of
+    its great masters. Scholars {are publishing|will publish} new studies, and anything from
+    the Italian Renaissance {draws|will draw} a crowd at auction.
+  DurationWeeks: 5
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: false
+  CanBeFakeNews: false
+  OfficialAnnouncementWeeksBefore: 2
+  CreateLeak: true
+  LeakCredibility: 0.95
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Italy
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVI
+      tempDemandChange: 1
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Painting
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_GrandTourVases
+  Tendency: Up
+  DisplayName: Classical Vases Back in Fashion
+  Description: A much-admired drawing room in the capital {has been|will be} done in the
+    classical manner, and the illustrated papers {are copying|will copy} it page by page.
+    Every hostess {wants|will want} a pair of vases on the chimneypiece, and the older Italian
+    pieces {are|will be} the ones to have.
+  DurationWeeks: 4
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Vase
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Italy
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVIII
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_TurqueriePassion
+  Tendency: Up
+  DisplayName: A Passion for the Oriental Room
+  Description: The smoking room hung with carpets and cushions {has become|is becoming} the
+    fashion in every good house. Ottoman rugs and embroideries {are sold|will sell} as fast as
+    the dealers can unroll them, and the merchants of Constantinople {are raising|will raise}
+    their prices.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Rug
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Turkey
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Textile
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Turkey
+      tempSupplyChange: -0.5
+      permSupplyChange: 0
+
+- AssetName: MinorEvent_LaceCollectingFashion
+  Tendency: Up
+  DisplayName: Society Takes to Collecting Old Lace
+  Description: The great dressmakers {have hung|will hang} cases of antique lace in their
+    salons, and their clients {have taken|will take} to collecting it. Old Flemish and French
+    pieces {fetch|will fetch} more than they have in a generation.
+  DurationWeeks: 4
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: false
+  AllowedSeasons: [Spring, Autumn]
+  CreateRumour: true
+  RumorCredibility: 0.5
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Textile
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Netherlands
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 2
+      Scope: AntiqueType
+      AntiqueType: Textile
+      DurationWeeks: 4
+      Type: Open
+      ClassName: Standard
+
+- AssetName: MinorEvent_ModernStyleShop
+  Tendency: Mixed
+  DisplayName: A New Style in the Shop Windows
+  Description: A shop selling furnishings in the new style {has opened|will open} on the
+    boulevard, all whiplash curves and coloured glass. The young {are buying|will buy} modern
+    lamps and ornaments, and the heavy taste of the last century {looks|will look} suddenly
+    old-fashioned.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.85
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XX
+      tempDemandChange: 1.5
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Lamp
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XIX
+      tempDemandChange: -0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_MingTreatisePublished
+  Tendency: Up
+  DisplayName: A Treatise on Early Ming Wares
+  Description: A learned treatise on the porcelain of the early Ming emperors {has
+    appeared|is about to appear}, with plates of every mark and glaze. Collectors {are
+    reading|will read} it with the catalogue in one hand, and the pieces it praises {are
+    climbing|will climb} in price.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.45
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XV
+      tempDemandChange: 1.5
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: China
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Porcelain
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_AmericanCentennial
+  Tendency: Up
+  DisplayName: Centennial Fever Across the Atlantic
+  Description: The Americans {are celebrating|will celebrate} a hundred years of their
+    republic with an exhibition in Philadelphia. Families {are looking|will look} for chairs
+    and silver from the founding years, and their agents {are cabling|will cable} offers to
+    dealers on this side of the ocean.
+  DurationWeeks: 6
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: true
+  AllowedSeasons: [Spring, Summer]
+  CanBeFakeNews: false
+  OfficialAnnouncementWeeksBefore: 2
+  CreateLeak: true
+  LeakCredibility: 0.95
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: UnitedStates
+      tempDemandChange: 2
+      permDemandChange: 0.5
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVIII
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 2
+      Scope: Country
+      Country: UnitedStates
+      DurationWeeks: 6
+      Type: Random
+
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  COURTS, CEREMONIES AND INSTITUTIONS
+# ─────────────────────────────────────────────────────────────────────────────────────
+
+- AssetName: MinorEvent_CoronationInLondon
+  Tendency: Up
+  DisplayName: A Coronation in London
+  Description: The coronation {has been|will be} held at Westminster, and the capital {is
+    full|will be full} of peers and foreign princes. Plate, jewels and anything English with a
+    noble provenance {fetch|will fetch} coronation prices.
+  DurationWeeks: 5
+  MinLeadWeeks: 4
+  MaxLeadWeeks: 9
+  PlayerSelectsLeadTime: false
+  AllowedSeasons: [Spring, Summer]
+  CanBeFakeNews: false
+  OfficialAnnouncementWeeksBefore: 3
+  CreateLeak: true
+  LeakCredibility: 0.95
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: England
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Silverware
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Jewelry
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 2
+      Scope: AntiqueType
+      AntiqueType: Silverware
+      DurationWeeks: 4
+      Type: Open
+
+- AssetName: MinorEvent_GrandDucalWedding
+  Tendency: Up
+  DisplayName: A Grand-Ducal Wedding in St Petersburg
+  Description: A grand duke {is marrying|will marry} a foreign princess, and the Russian court
+    {is ordering|will order} gifts on a scale not seen in years. Jewellers and silversmiths
+    {are selling|will sell} out their old stock, and the court's agents {have come|are coming}
+    west with open purses.
+  DurationWeeks: 4
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: true
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: true
+  RumorCredibility: 0.55
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Jewelry
+      tempDemandChange: 2
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Russia
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Silverware
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: AntiqueType
+      AntiqueType: Jewelry
+      MinCondition: 0.8
+      DurationWeeks: 4
+      Type: Exclusive
+      ClassName: Premium
+
+- AssetName: MinorEvent_IndianDurbar
+  Tendency: Up
+  DisplayName: A Durbar Is Proclaimed in Delhi
+  Description: The princes of India {are assembling|will assemble} at Delhi for a durbar of
+    great splendour. The papers {print|will print} engravings of jewelled arms and embroidered
+    hangings, and collectors at home {want|will want} pieces of their own. Agents in Bombay
+    {are sending|will send} what they can.
+  DurationWeeks: 5
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: false
+  AllowedSeasons: [Autumn, Winter]
+  CanBeFakeNews: false
+  OfficialAnnouncementWeeksBefore: 2
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: India
+      tempDemandChange: 1.5
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Textile
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Weapon
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 3
+      Country: India
+      RandomizeShippingZone: false
+      ShippingZone: International
+
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: India
+      tempSupplyChange: 0.5
+      permSupplyChange: 0
+- AssetName: MinorEvent_ViennaInstrumentMuseum
+  Tendency: Up
+  DisplayName: A Museum of Instruments for Vienna
+  Description: A wealthy patron {has endowed|will endow} a museum of historical instruments in
+    Vienna, and its keepers {are filling|will fill} the cases with the finest they can find. Old
+    violins and keyboards {are leaving|will leave} the dealers' back rooms at prices the trade
+    has not seen before.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Instrument
+      tempDemandChange: 2
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Austria
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: AntiqueType
+      AntiqueType: Instrument
+      Quantity: 3
+      MinCondition: 0.7
+      DurationWeeks: 6
+      Type: Open
+      ClassName: Premium
+
+- AssetName: MinorEvent_ArmouryMuseumOpens
+  Tendency: Up
+  DisplayName: A National Armoury Museum Opens
+  Description: A new museum of arms and armour {has opened|will open} its galleries, and its
+    trustees {are still filling|will still be filling} the empty cases. Blades and armour from
+    the age of chivalry {are wanted|will be wanted} by the museum and by every collector who
+    has seen it.
+  DurationWeeks: 5
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: false
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Weapon
+      tempDemandChange: 1.5
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XV
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVI
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: AntiqueType
+      AntiqueType: Weapon
+      MinCondition: 0.9
+      DurationWeeks: 8
+      Type: Exclusive
+      ClassName: Prestige
+
+- AssetName: MinorEvent_RijksmuseumGalleries
+  Tendency: Up
+  DisplayName: New Galleries Open in Amsterdam
+  Description: The national museum in Amsterdam {has opened|will open} its new galleries of
+    the Golden Age. Dutch collectors {are buying|will buy} back their country's heritage, and
+    the museum itself {is putting|will put} commissions out to the trade.
+  DurationWeeks: 5
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: false
+  CanBeFakeNews: false
+  OfficialAnnouncementWeeksBefore: 2
+  CreateLeak: true
+  LeakCredibility: 0.95
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Netherlands
+      tempDemandChange: 1.5
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVII
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: Country
+      Country: Netherlands
+      MinCondition: 0.9
+      DurationWeeks: 8
+      Type: Exclusive
+      ClassName: Prestige
+
+- AssetName: MinorEvent_CracowNationalMuseum
+  Tendency: Up
+  DisplayName: A National Museum for Cracow
+  Description: A national museum {has been|is to be} founded in the Cloth Hall at Cracow, and
+    Polish families {are giving|will give} and {buying|buy} in equal
+    measure. Anything with a Polish
+    past {finds|will find} a patriotic buyer.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: true
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Poland
+      tempDemandChange: 1.5
+      permDemandChange: 0.25
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Poland
+      tempSupplyChange: -0.5
+      permSupplyChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 2
+      Scope: Country
+      Country: Poland
+      DurationWeeks: 6
+      Type: Random
+
+- AssetName: MinorEvent_LisbonDiscoveriesExhibition
+  Tendency: Up
+  DisplayName: Lisbon Remembers the Age of Discovery
+  Description: Lisbon {is holding|will hold} an exhibition in honour of its navigators, with
+    charts, tiles and treasures brought out of the old houses. The age of the caravels {has
+    caught|will catch} the fancy of collectors, and a few families {are offering|will offer}
+    pieces quietly to the trade.
+  DurationWeeks: 4
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: false
+  AllowedSeasons: [Spring, Summer, Autumn]
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Portugal
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVI
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Ceramic
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 1
+      MaxCount: 2
+      Country: Portugal
+      Century: XVI
+      RandomizeShippingZone: false
+      ShippingZone: International
+
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Portugal
+      tempSupplyChange: 0.5
+      permSupplyChange: 0
+- AssetName: MinorEvent_ArchaeologicalSocietyCabinet
+  Tendency: Up
+  DisplayName: An Antiquarian Society Fills Its Cabinet
+  Description: A learned society of antiquaries {has received|will receive} a large bequest
+    and {is resolved|is expected} to spend it on the earliest pieces it can find. Its
+    secretaries {are writing|will write} to every reputable dealer, and the trade in the
+    oldest centuries {is stirring|will stir} for the first time in years.
+  DurationWeeks: 6
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.45
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XII
+      tempDemandChange: 1.5
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XIII
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: Century
+      Century: XII
+      DurationWeeks: 8
+      Type: Exclusive
+      ClassName: Prestige
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: Century
+      Century: XIII
+      DurationWeeks: 6
+      Type: Open
+      ClassName: Premium
+
+- AssetName: MinorEvent_BibliophileSocietyFounded
+  Tendency: Up
+  DisplayName: A Bibliophile Club Is Founded
+  Description: A club of wealthy book collectors {has been|will be} founded in the capital,
+    with a library to fill and a rule against anything printed after 1600. Its members {are
+    bidding|will bid} hard for early printing, and booksellers {are raising|will raise} their
+    catalogue prices to match.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Book
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XV
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVI
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: AntiqueType
+      AntiqueType: Book
+      MinCondition: 0.7
+      DurationWeeks: 6
+      Type: Exclusive
+      ClassName: Premium
+
+- AssetName: MinorEvent_NumismaticCongress
+  Tendency: Up
+  DisplayName: An International Numismatic Congress
+  Description: Coin collectors from a dozen countries {are meeting|will meet} for a congress
+    in the capital. Papers on ancient and medieval coinage {are read|will be read} each
+    morning, and every afternoon the delegates {go|will go} shopping.
+  DurationWeeks: 3
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: false
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: true
+  RumorCredibility: 0.5
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Coin
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 2
+      MaxCount: 2
+      Scope: AntiqueType
+      AntiqueType: Coin
+      DurationWeeks: 4
+      Type: Open
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 3
+      AntiqueType: Coin
+      RandomizeShippingZone: true
+
+- AssetName: MinorEvent_NavalHorologyCollection
+  Tendency: Up
+  DisplayName: The Admiralty Founds a Collection of Clocks
+  Description: The Admiralty {has opened|will open} a gallery at the naval college for the
+    history of timekeeping, and its first cases {stand|will stand} empty. Its officers {are
+    buying|will buy} fine English clocks of every period, and {pay|will pay} without haggling.
+  DurationWeeks: 3
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Clock
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: England
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: AntiqueType
+      AntiqueType: Clock
+      Quantity: 3
+      MinCondition: 0.7
+      DurationWeeks: 4
+      Type: Exclusive
+
+- AssetName: MinorEvent_VersaillesMirrorsRestored
+  Tendency: Up
+  DisplayName: Restoration of a Palace Hall of Mirrors
+  Description: The great hall of mirrors at a French palace {is being|will be} restored, and
+    the works {need|will need} old glass of the right period. The commission's agents {are
+    buying|will buy} looking-glasses of the grand century wherever they can be found.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Mirror
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVII
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: France
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: AntiqueType
+      AntiqueType: Mirror
+      Quantity: 2
+      MinCondition: 0.9
+      DurationWeeks: 8
+      Type: Exclusive
+      ClassName: Prestige
+
+- AssetName: MinorEvent_RoyalNurseryRefurnished
+  Tendency: Up
+  DisplayName: A Royal Nursery Is Refurnished
+  Description: The court {has announced|will announce} the birth of an heir, and the royal
+    nursery {is being|will be} furnished in the old manner. Ladies of fashion {follow|will
+    follow} the example, and antique dolls, rocking horses and painted toys {are bought|will
+    be bought} up as keepsakes.
+  DurationWeeks: 4
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.55
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Toy
+      tempDemandChange: 1.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Germany
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Furniture
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_MoscowMerchantsCollect
+  Tendency: Up
+  DisplayName: Moscow Merchants Take to Collecting
+  Description: The merchant princes of Moscow {have discovered|are discovering} a taste for
+    their country's past. Old icons and church painting {are leaving|will leave} the
+    monasteries for private chapels, and their prices {double|may double} within the season.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Russia
+      tempDemandChange: 1.5
+      permDemandChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVI
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Painting
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Russia
+      tempSupplyChange: 0.5
+      permSupplyChange: 0
+
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  COMMISSIONS AND CLIENTS (contract-heavy)
+# ─────────────────────────────────────────────────────────────────────────────────────
+
+- AssetName: MinorEvent_RivieraHotelBoom
+  Tendency: Up
+  DisplayName: Grand Hotels Rise on the Riviera
+  Description: Three grand hotels {are opening|will open} on the Riviera this season, and
+    their proprietors {want|will want} every salon to look like a palace. Their buyers {are
+    ordering|will order} furniture, glass and carpets by the room.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: true
+  AllowedSeasons: [Autumn, Winter]
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Furniture
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Mirror
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Lamp
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Rug
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 2
+      MaxCount: 3
+      Scope: AntiqueType
+      AntiqueType: Furniture
+      Quantity: 4
+      DurationWeeks: 5
+      Type: Open
+
+- AssetName: MinorEvent_CostumeDramaFashion
+  Tendency: Opportunity
+  DisplayName: A Costume Drama Sets the Fashion
+  Description: A costume drama {has become|is set to become} the success of the season, and
+    its audiences {leave|will leave} the theatre wanting the period in their own homes. Its
+    admirers {are asking|will ask} the trade for furniture, arms and hangings of the kind seen
+    on the stage, and they {want|will want} them quickly.
+  DurationWeeks: 2
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  Effects:
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: AntiqueType
+      AntiqueType: Furniture
+      Quantity: 2
+      DurationWeeks: 3
+      Type: Open
+      ClassName: Standard
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: AntiqueType
+      AntiqueType: Weapon
+      Quantity: 2
+      DurationWeeks: 3
+      Type: Open
+      ClassName: Standard
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: AntiqueType
+      AntiqueType: Textile
+      DurationWeeks: 3
+      Type: Open
+      ClassName: Standard
+
+- AssetName: MinorEvent_DepartmentStoreShowpieces
+  Tendency: Up
+  DisplayName: A Department Store Seeks Showpieces
+  Description: A new department store {is opening|will open} on the high street with a hall
+    given over to antiques. Its buyers {are placing|will place} orders across the trade, and
+    porcelain and silver {are|will be} first on their lists.
+  DurationWeeks: 3
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Porcelain
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Silverware
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 2
+      MaxCount: 3
+      Scope: Random
+      DurationWeeks: 4
+      Type: Open
+      ClassName: Standard
+
+- AssetName: MinorEvent_PalaceInFrenchTaste
+  Tendency: Up
+  DisplayName: A Palace Refurnished in the French Taste
+  Description: A German prince {is refurnishing|will refurnish} his summer palace in the manner
+    of Versailles. His chamberlain {has orders|will have orders} to buy French work of the last
+    century, and the Paris dealers {are already|will soon be} raising their prices.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: France
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVIII
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 2
+      Scope: Country
+      Country: France
+      MinCondition: 0.7
+      DurationWeeks: 6
+      Type: Exclusive
+      ClassName: Premium
+
+- AssetName: MinorEvent_AmericanHeiressBuys
+  Tendency: Up
+  DisplayName: An American Heiress Comes Shopping
+  Description: The daughter of an American railway fortune {has arrived|will arrive} in
+    Europe with a new title and an empty house on Fifth Avenue. Her people {are buying|will
+    buy} old English and French pieces by the roomful, and the dealers who reach her first
+    {name|will name} their own price.
+  DurationWeeks: 4
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.55
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: England
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: France
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVIII
+      tempDemandChange: 0.5
+      permDemandChange: 0
+    - Effect: CreateContractEventEffect
+      MinCount: 2
+      MaxCount: 3
+      Scope: Random
+      DurationWeeks: 5
+      Type: Open
+      ClassName: Premium
+
+- AssetName: MinorEvent_EmbassyGiftOrder
+  Tendency: Opportunity
+  DisplayName: An Embassy Orders Diplomatic Gifts
+  Description: The Japanese legation {is preparing|will prepare} a mission to the courts of
+    Europe and {needs|will need} gifts that flatter each host. Its secretaries {are asking|will
+    ask} discreetly for fine European pieces, and they {pay|will pay} promptly.
+  DurationWeeks: 3
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: false
+  CreateRumour: false
+  CreateLeak: true
+  LeakCredibility: 0.85
+  Effects:
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: Country
+      Country: England
+      Quantity: 2
+      MinCondition: 0.8
+      DurationWeeks: 4
+      Type: Exclusive
+      ClassName: Premium
+    - Effect: CreateContractEventEffect
+      MinCount: 1
+      MaxCount: 1
+      Scope: Country
+      Country: Germany
+      Quantity: 2
+      MinCondition: 0.8
+      DurationWeeks: 4
+      Type: Exclusive
+      ClassName: Premium
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Clock
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  SALES, DISCOVERIES AND DISPERSALS (antiques on the market)
+# ─────────────────────────────────────────────────────────────────────────────────────
+
+- AssetName: MinorEvent_ShipwreckSalvage
+  Tendency: Opportunity
+  DisplayName: Cargo of an Old Wreck Is Salvaged
+  Description: Divers {have raised|are raising} the cargo of a merchantman lost on a Dutch
+    voyage from Canton. Chests of porcelain and coin {are coming|will come} to auction still
+    crusted from the sea, and the story of the wreck {is bringing|will bring} new
+    buyers to the rooms.
+  DurationWeeks: 3
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: false
+  AllowedSeasons: [Spring, Summer]
+  FailureChance: 0.1
+  CreateRumour: true
+  RumorCredibility: 0.45
+  CreateLeak: true
+  LeakCredibility: 0.85
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 3
+      MaxCount: 5
+      AntiqueType: Porcelain
+      Country: China
+      Century: XVII
+      Condition: 0.45
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 3
+      AntiqueType: Coin
+      Country: Netherlands
+      Condition: 0.4
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Porcelain
+      tempSupplyChange: 0.5
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: China
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Porcelain
+      tempDemandChange: 0.75
+      permDemandChange: 0
+- AssetName: MinorEvent_AlpineMonasteryDissolved
+  Tendency: Down
+  DisplayName: An Alpine Monastery Is Dissolved
+  Description: The government {has dissolved|is set to dissolve} an old monastery in the
+    Tyrol, and its library and chapel {are going|will go} under the hammer. Early books and
+    carved saints {come|will come} to market in a single week, more than the trade can take
+    at once.
+  DurationWeeks: 4
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 4
+      AntiqueType: Book
+      Country: Austria
+      Century: XV
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 1
+      MaxCount: 2
+      AntiqueType: Sculpture
+      Country: Austria
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Austria
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Century
+      Century: XV
+      tempSupplyChange: 0.5
+      permSupplyChange: 0
+
+- AssetName: MinorEvent_CountryHouseSale
+  Tendency: Down
+  DisplayName: A Great Country House Sells Up
+  Description: The heirs of an old county family {are selling|will sell} the house and every
+    stick in it. Marquees {go up|will go up} on the lawn for a sale that lasts the week, and
+    good English furniture and family portraits {go|will go} cheaply for want of bidders.
+  DurationWeeks: 3
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: true
+  AllowedSeasons: [Spring, Summer, Autumn]
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 3
+      MaxCount: 4
+      AntiqueType: Furniture
+      Country: England
+      RandomizeShippingZone: false
+      ShippingZone: Domestic
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 1
+      MaxCount: 2
+      AntiqueType: Painting
+      Country: England
+      RandomizeShippingZone: false
+      ShippingZone: Domestic
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: England
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Furniture
+      tempDemandChange: -0.25
+      permDemandChange: 0
+
+- AssetName: MinorEvent_SpanishConventTreasury
+  Tendency: Mixed
+  DisplayName: A Spanish Convent Sells Its Treasury
+  Description: A poor convent in Castile {has been|will be} given leave to sell its treasury
+    to repair the roof. Altar silver and old vestments {are offered|will be offered} to the
+    trade, and the sale {is drawing|will draw} fresh attention to Spanish work of the period.
+  DurationWeeks: 4
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 3
+      AntiqueType: Silverware
+      Country: Spain
+      Century: XVII
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 1
+      MaxCount: 2
+      AntiqueType: Textile
+      Country: Spain
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Spain
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Spain
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_NeapolitanHoard
+  Tendency: Mixed
+  DisplayName: A Coin Hoard Unearthed near Naples
+  Description: Labourers digging a railway cutting near Naples {have struck|are said to have
+    struck} a jar of old coins. Part of the find {is being|will be} sold before the
+    authorities can claim it, and collectors {are hurrying|will hurry} to see what
+    surfaces.
+  DurationWeeks: 3
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: false
+  FailureChance: 0.1
+  CreateRumour: true
+  RumorCredibility: 0.4
+  CreateLeak: true
+  LeakCredibility: 0.85
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 3
+      MaxCount: 5
+      AntiqueType: Coin
+      Country: Italy
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Coin
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Italy
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Coin
+      tempDemandChange: 0.75
+      permDemandChange: 0
+- AssetName: MinorEvent_PortugueseFamilyEmigrates
+  Tendency: Down
+  DisplayName: A Noble House Leaves for Brazil
+  Description: An old Portuguese family {is leaving|will leave} for its estates in Brazil and
+    {is selling|will sell} what it cannot ship. Furniture and tiles from the Lisbon palace
+    {are crowding|will crowd} the salerooms, and buyers {are in no hurry|will be in no hurry}.
+  DurationWeeks: 3
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 3
+      Country: Portugal
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Portugal
+      tempSupplyChange: 1.5
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Portugal
+      tempDemandChange: -0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_CustomsSeizureAuction
+  Tendency: Opportunity
+  DisplayName: Customs Auctions Seized Goods
+  Description: The customs house {is auctioning|will auction} a year of seized contraband
+    from the Levant trade. Daggers, jewellery and bales of carpet {are going|will go} for
+    whatever the room will bid, and few dealers {know|will know} quite what they are buying.
+  DurationWeeks: 1
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 1
+      MaxCount: 2
+      AntiqueType: Weapon
+      Country: Turkey
+      RandomizeShippingZone: false
+      ShippingZone: Local
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 1
+      MaxCount: 2
+      AntiqueType: Jewelry
+      Country: Turkey
+      RandomizeShippingZone: false
+      ShippingZone: Local
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 1
+      MaxCount: 2
+      AntiqueType: Rug
+      Country: Turkey
+      RandomizeShippingZone: false
+      ShippingZone: Local
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Turkey
+      tempSupplyChange: 0.75
+      permSupplyChange: 0
+
+- AssetName: MinorEvent_ClockmakersGuildCollection
+  Tendency: Opportunity
+  DisplayName: A Clockmakers' Guild Sells Its Masterpieces
+  Description: An old guild of Black Forest clockmakers {is winding up|will wind up} its
+    affairs and {is selling|will sell} the masterpieces its members submitted over the
+    centuries. Collectors {are coming|will come} from every
+    country to see them, and each piece is perfect.
+  DurationWeeks: 3
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 1
+      MaxCount: 2
+      AntiqueType: Clock
+      Country: Germany
+      Condition: 0.95
+      PriceFactor: 1.2
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Clock
+      tempDemandChange: 0.75
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Germany
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Clock
+      tempSupplyChange: 0.5
+      permSupplyChange: 0
+- AssetName: MinorEvent_IndiaHouseClearance
+  Tendency: Down
+  DisplayName: An Old Trading Company Clears Its Warehouses
+  Description: The old company that once traded with India {is clearing|will clear} its
+    London warehouses before they are pulled down. Chests unopened for half a century {are
+    sold|will be sold} by the lot, and Indian goods {go|will go} cheaply while the sale lasts.
+  DurationWeeks: 3
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 4
+      Country: India
+      Century: XVIII
+      RandomizeShippingZone: false
+      ShippingZone: Local
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: India
+      tempSupplyChange: 1.5
+      permSupplyChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: India
+      tempDemandChange: -0.5
+      permDemandChange: 0
+
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  SCANDALS, SLUMPS AND FALLING FASHIONS
+# ─────────────────────────────────────────────────────────────────────────────────────
+
+- AssetName: MinorEvent_PorcelainForgeriesExposed
+  Tendency: Down
+  DisplayName: Forged Porcelain Exposed
+  Description: An expert {has shown|is about to show} that a whole class of prized porcelain
+    marks were painted in a modern workshop. Collectors {are sending|will send} their pieces
+    back to the dealers, and nobody {wants|will want} to buy until the dust settles.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.45
+  CreateLeak: true
+  LeakCredibility: 0.85
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Porcelain
+      tempDemandChange: -1.5
+      permDemandChange: -0.25
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: China
+      tempDemandChange: -0.5
+      permDemandChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Porcelain
+      tempSupplyChange: 0.75
+      permSupplyChange: 0
+
+- AssetName: MinorEvent_OldMasterScandal
+  Tendency: Down
+  DisplayName: Scandal Over a False Old Master
+  Description: A picture sold as a Renaissance masterpiece {has been|is about to be} unmasked
+    as the work of a living copyist. The courts {are hearing|will hear} the case, and buyers
+    of Italian pictures {are|will be} wary of anything without an unbroken provenance.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.45
+  CreateLeak: true
+  LeakCredibility: 0.85
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Painting
+      tempDemandChange: -1.25
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Italy
+      tempDemandChange: -0.75
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XVI
+      tempDemandChange: -0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_DelftCopiesFlood
+  Tendency: Down
+  DisplayName: A Pottery Copies the Old Delft Patterns
+  Description: A large pottery {has begun|will begin} turning out copies of old Delft blue and
+    white by the thousand. The shops {are full|will be full} of them, and the real thing {looks|will
+    look} less special beside so many cheap imitations.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Ceramic
+      tempDemandChange: -1
+      permDemandChange: -0.25
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Netherlands
+      tempDemandChange: -0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_OrnateLampsOutOfFavour
+  Tendency: Down
+  DisplayName: The Ornate Lamp Falls Out of Favour
+  Description: A much-read critic of taste {has declared|is about to declare} the ornate lamps
+    of the last century the height of vulgarity. Fashionable households {are sending|will send}
+    theirs to the salerooms, and collectors {are|will be} in no hurry to take them on.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Lamp
+      tempDemandChange: -1.5
+      permDemandChange: -0.25
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Lamp
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XIX
+      tempDemandChange: -0.25
+      permDemandChange: 0
+- AssetName: MinorEvent_CourtMourning
+  Tendency: Down
+  DisplayName: The Court Goes into Mourning
+  Description: The court {has gone|will go} into mourning for a royal prince, and society {has
+    put|will put} away its colours for the season. Balls {are cancelled|will be cancelled}, and
+    collectors {put off|will put off} buying jewels, old silks and plate until the court is out of
+    black.
+  DurationWeeks: 4
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 3
+  PlayerSelectsLeadTime: false
+  CanBeFakeNews: false
+  CreateRumour: false
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Jewelry
+      tempDemandChange: -1.25
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Textile
+      tempDemandChange: -1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Silverware
+      tempDemandChange: -0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_BourseSpeculatorsRuined
+  Tendency: Down
+  DisplayName: Speculators Ruined on the Bourse
+  Description: A mining share that every Paris speculator held {has collapsed|is about to
+    collapse} overnight. The ruined {are selling|will sell} their wives' jewels and their
+    salon furniture, and the buyers who remain {are|will be} in no mood to bid.
+  DurationWeeks: 4
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Jewelry
+      tempSupplyChange: 1.5
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: France
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Jewelry
+      tempDemandChange: -0.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Century
+      Century: XIX
+      tempDemandChange: -0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_RoyalCoinCabinetDispersed
+  Tendency: Mixed
+  DisplayName: A Royal Coin Cabinet Is Dispersed
+  Description: A royal coin cabinet, formed over three reigns, {is being|will be} sold to settle
+    the crown's debts. Thousands of coins {are coming|will come} to the rooms over the following
+    weeks, and collectors who never hoped to see such pieces offered {are travelling|will travel}
+    from abroad to bid.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: false
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Coin
+      tempSupplyChange: 2
+      permSupplyChange: 0.25
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Coin
+      tempDemandChange: 1.25
+      permDemandChange: 0
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 2
+      MaxCount: 4
+      AntiqueType: Coin
+      RandomizeShippingZone: true
+- AssetName: MinorEvent_RuralHardship
+  Tendency: Down
+  DisplayName: A Poor Harvest in the Provinces
+  Description: Rain {has ruined|threatens to ruin} the harvest across the provinces, and the
+    squires and farmers {are short|will be short} of money for the winter. Heirlooms {come|will
+    come} out of the farmhouses, and nobody in the country {has|will have} money to buy them.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: false
+  AllowedSeasons: [Autumn]
+  CreateRumour: true
+  RumorCredibility: 0.5
+  Effects:
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Furniture
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Clock
+      tempSupplyChange: 0.5
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Ceramic
+      tempSupplyChange: 0.5
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Furniture
+      tempDemandChange: -0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_ImportDutyRaised
+  Tendency: Mixed
+  DisplayName: A New Duty on Foreign Wares
+  Description: Parliament {has voted|is expected to vote} a heavy duty on goods from the East.
+    Fewer crates {come|will come} through the docks, and buyers {think|will think} twice before
+    paying the duty on top of the price.
+  DurationWeeks: 6
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: true
+  FailureChance: 0.15
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: true
+  RumorCredibility: 0.45
+  CreateLeak: true
+  LeakCredibility: 0.85
+  Effects:
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: China
+      tempSupplyChange: -1
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Japan
+      tempSupplyChange: -1
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: India
+      tempSupplyChange: -0.75
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: China
+      tempDemandChange: -0.5
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Japan
+      tempDemandChange: -0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_CholeraInThePorts
+  Tendency: Down
+  DisplayName: Cholera in the Port Cities
+  Description: Cholera {has broken|is feared to break} out in the port cities, and ships from
+    abroad {are held|will be held} in quarantine. Old carpets and hangings {are|will be}
+    suspected of carrying the contagion, and few buyers {are willing|will be willing}
+    to go near them.
+  DurationWeeks: 4
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: false
+  AllowedSeasons: [Summer]
+  CreateRumour: true
+  RumorCredibility: 0.55
+  CreateLeak: false
+  Effects:
+    - Effect: TransportDelayEffect
+      Zone: International
+      NewShipmentDelayWeeks: 1
+      InTransitDelayWeeks: 1
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Textile
+      tempDemandChange: -1
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Rug
+      tempDemandChange: -1
+      permDemandChange: 0
+
+- AssetName: MinorEvent_RhineWarScare
+  Tendency: Down
+  DisplayName: War Scare on the Rhine
+  Description: Troops {are massing|are said to be massing} on both banks of the Rhine, and the
+    papers {talk|will talk} of nothing but war. French and German families {are sending|will
+    send} their collections abroad to be sold while they still can, the frontier roads {are
+    choked|will be choked}, and no collector on either side of the river {is|will be} buying.
+  DurationWeeks: 4
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: false
+  FailureChance: 0.2
+  CreateRumour: true
+  RumorCredibility: 0.4
+  CreateLeak: true
+  LeakCredibility: 0.8
+  Effects:
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Germany
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: France
+      tempSupplyChange: 1
+      permSupplyChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Germany
+      tempDemandChange: -0.75
+      permDemandChange: 0
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: France
+      tempDemandChange: -0.75
+      permDemandChange: 0
+    - Effect: TransportDelayEffect
+      Zone: International
+      NewShipmentDelayWeeks: 1
+      InTransitDelayWeeks: 0
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  SCARCITY AND DISRUPTION (transport + supply squeezes)
+# ─────────────────────────────────────────────────────────────────────────────────────
+
+- AssetName: MinorEvent_AlpinePassesSnowedIn
+  Tendency: Up
+  DisplayName: Snow Closes the Alpine Passes
+  Description: Heavy snow {has closed|will close} the passes over the Alps, and the carriers
+    from Italy {wait|will wait} for the roads to clear. Italian pieces {grow|will grow} scarce
+    on this side of the mountains.
+  DurationWeeks: 2
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 3
+  PlayerSelectsLeadTime: false
+  AllowedSeasons: [Winter]
+  CreateRumour: true
+  RumorCredibility: 0.6
+  CreateLeak: false
+  Effects:
+    - Effect: TransportDelayEffect
+      Zone: International
+      NewShipmentDelayWeeks: 1
+      InTransitDelayWeeks: 1
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Italy
+      tempSupplyChange: -1
+      permSupplyChange: 0
+
+- AssetName: MinorEvent_CanalBlocked
+  Tendency: Up
+  DisplayName: A Steamer Grounds in the Canal
+  Description: A steamer {has run|is reported to have run} aground in the canal, and the
+    shipping from the East {is backed up|will back up} for a hundred miles. Indian and far
+    eastern goods {are slow|will be slow} to arrive, and the few on hand {sell|will sell} at a
+    premium.
+  DurationWeeks: 2
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 3
+  PlayerSelectsLeadTime: false
+  CreateRumour: true
+  RumorCredibility: 0.55
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: TransportDelayEffect
+      Zone: International
+      NewShipmentDelayWeeks: 2
+      InTransitDelayWeeks: 1
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: India
+      tempSupplyChange: -1
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: China
+      tempSupplyChange: -0.5
+      permSupplyChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Japan
+      tempSupplyChange: -0.5
+      permSupplyChange: 0
+
+- AssetName: MinorEvent_MothYear
+  Tendency: Up
+  DisplayName: A Bad Year for Moth
+  Description: A warm, damp summer {has brought|will bring} moth into every house and
+    warehouse. Carpets and old fabrics {are lost|will be lost} by the bale, and what survives
+    in good order {is|will be} worth more for it.
+  DurationWeeks: 4
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: false
+  AllowedSeasons: [Summer]
+  CreateRumour: true
+  RumorCredibility: 0.5
+  Effects:
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Textile
+      tempSupplyChange: -1
+      permSupplyChange: -0.25
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Rug
+      tempSupplyChange: -1
+      permSupplyChange: -0.25
+
+- AssetName: MinorEvent_WarehouseFireAntwerp
+  Tendency: Up
+  DisplayName: Fire in the Antwerp Warehouses
+  Description: Fire {has swept|is reported to have swept} through a row of warehouses on the
+    Antwerp quays. A season's stock of Dutch and Flemish goods {has been|may have been} lost,
+    and the dealers who still have some {are holding|will hold} out for higher prices.
+  DurationWeeks: 4
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 3
+  PlayerSelectsLeadTime: false
+  FailureChance: 0.1
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Netherlands
+      tempSupplyChange: -1.5
+      permSupplyChange: -0.5
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Netherlands
+      tempDemandChange: 0.5
+      permDemandChange: 0
+
+- AssetName: MinorEvent_PetersburgExportBan
+  Tendency: Up
+  DisplayName: St Petersburg Forbids the Export of Antiquities
+  Description: The imperial government {has forbidden|is preparing to forbid} the export of
+    old Russian works of art. The border {is|will be} closed to the dealers' crates, and what
+    is already in the West {becomes|will become} scarce at once.
+  DurationWeeks: 6
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: true
+  FailureChance: 0.1
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: true
+  RumorCredibility: 0.45
+  CreateLeak: true
+  LeakCredibility: 0.85
+  Effects:
+    - Effect: ChangeSupplyEffect
+      Scope: Country
+      Country: Russia
+      tempSupplyChange: -1.5
+      permSupplyChange: -0.25
+    - Effect: ChangeDemandEffect
+      Scope: Country
+      Country: Russia
+      tempDemandChange: 0.75
+      permDemandChange: 0
+
+- AssetName: MinorEvent_CremonaWorkshopCloses
+  Tendency: Mixed
+  DisplayName: A Cremona Workshop Sells Its Patterns
+  Description: The last of the old violin workshops in Cremona {has closed|is closing}, and its
+    moulds, tools and unfinished instruments {are being|will be} sold. Collectors and dealers {are
+    arriving|will arrive} from every capital, and Italian instruments {are|will be} the talk of
+    the trade.
+  DurationWeeks: 3
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: true
+  CreateRumour: true
+  RumorCredibility: 0.5
+  CreateLeak: true
+  LeakCredibility: 0.9
+  Effects:
+    - Effect: CreateAntiqueOnMarketEventEffect
+      MinCount: 1
+      MaxCount: 3
+      AntiqueType: Instrument
+      Country: Italy
+      RandomizeShippingZone: false
+      ShippingZone: International
+    - Effect: ChangeDemandEffect
+      Scope: AntiqueType
+      AntiqueType: Instrument
+      tempDemandChange: 1
+      permDemandChange: 0
+    - Effect: ChangeSupplyEffect
+      Scope: AntiqueType
+      AntiqueType: Instrument
+      tempSupplyChange: 0.5
+      permSupplyChange: 0

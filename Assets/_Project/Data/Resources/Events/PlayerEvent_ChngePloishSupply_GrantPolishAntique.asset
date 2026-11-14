@@ -16,14 +16,18 @@ MonoBehaviour:
   DisplayName: Sponsor Archeolgic Digsite in Poland
   EventType: 3
   Description: Invest in archelogic research in Poland in exchange for possible antiques.
-  DurationDays: 1
-  MinLeadDays: 7
-  MaxLeadDays: 9
-  PlayerSelectsLeadTime: 1
+  DurationWeeks: 1
+  MinLeadWeeks: 7
+  MaxLeadWeeks: 9
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: -1
   FailureChance: 0
   CanBeFakeNews: 0
   CreateOfficialNews: 0
-  OfficialAnnouncementDaysBefore: 1
+  OfficialAnnouncementWeeksBefore: 1
   CreateRumour: 0
   RumorCredibility: 0.5
   CreateLeak: 0

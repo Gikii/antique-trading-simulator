@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_PetersburgExportBan
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 02791b6e900e4cf3acdae183dc4090a9
+  DisplayName: St Petersburg Forbids the Export of Antiquities
+  EventType: 1
+  Description: The imperial government {has forbidden|is preparing to forbid} the
+    export of old Russian works of art. The border {is|will be} closed to the dealers'
+    crates, and what is already in the West {becomes|will become} scarce at once.
+  DurationWeeks: 6
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0.1
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: 1
+  RumorCredibility: 0.45
+  CreateLeak: 1
+  LeakCredibility: 0.85
+  Effects:
+  - rid: 1280112227729277199
+  - rid: 1280112227729277200
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277199
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 9
+        Century: 0
+        tempSupplyChange: -1.5
+        permSupplyChange: -0.25
+    - rid: 1280112227729277200
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 9
+        Century: 0
+        tempDemandChange: 0.75
+        permDemandChange: 0

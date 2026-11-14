@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_ModernStyleShop
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 51795ed31c9d4f03be97b3b73dd6dd1a
+  DisplayName: A New Style in the Shop Windows
+  EventType: 1
+  Description: A shop selling furnishings in the new style {has opened|will open}
+    on the boulevard, all whiplash curves and coloured glass. The young {are buying|will
+    buy} modern lamps and ornaments, and the heavy taste of the last century {looks|will
+    look} suddenly old-fashioned.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.85
+  Effects:
+  - rid: 1280112227729277030
+  - rid: 1280112227729277031
+  - rid: 1280112227729277032
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277030
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 2
+        AntiqueType: 0
+        Country: 0
+        Century: 20
+        tempDemandChange: 1.5
+        permDemandChange: 0.25
+    - rid: 1280112227729277031
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 14
+        Country: 0
+        Century: 0
+        tempDemandChange: 0.75
+        permDemandChange: 0
+    - rid: 1280112227729277032
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 2
+        AntiqueType: 0
+        Country: 0
+        Century: 19
+        tempDemandChange: -0.5
+        permDemandChange: 0

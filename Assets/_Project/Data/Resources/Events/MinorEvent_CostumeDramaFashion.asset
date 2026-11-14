@@ -1,0 +1,95 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_CostumeDramaFashion
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 25367ef445544da8b0e9f0f658e5841d
+  DisplayName: A Costume Drama Sets the Fashion
+  EventType: 1
+  Description: A costume drama {has become|is set to become} the success of the season,
+    and its audiences {leave|will leave} the theatre wanting the period in their
+    own homes. Its admirers {are asking|will ask} the trade for furniture, arms and
+    hangings of the kind seen on the stage, and they {want|will want} them quickly.
+  DurationWeeks: 2
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 0
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277100
+  - rid: 1280112227729277101
+  - rid: 1280112227729277102
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277100
+      type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 1
+        Scope: 1
+        AntiqueType: 3
+        Century: 0
+        Country: 0
+        Quantity: 2
+        MinCondition: 0
+        DurationWeeks: 3
+        RewardPerUnit: 0
+        Type: 1
+        Penalty: -1
+        ClassName: Standard
+        RequiredReputation: -1
+    - rid: 1280112227729277101
+      type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 1
+        Scope: 1
+        AntiqueType: 15
+        Century: 0
+        Country: 0
+        Quantity: 2
+        MinCondition: 0
+        DurationWeeks: 3
+        RewardPerUnit: 0
+        Type: 1
+        Penalty: -1
+        ClassName: Standard
+        RequiredReputation: -1
+    - rid: 1280112227729277102
+      type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 1
+        Scope: 1
+        AntiqueType: 17
+        Century: 0
+        Country: 0
+        Quantity: 0
+        MinCondition: 0
+        DurationWeeks: 3
+        RewardPerUnit: 0
+        Type: 1
+        Penalty: -1
+        ClassName: Standard
+        RequiredReputation: -1

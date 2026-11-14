@@ -15,18 +15,22 @@ MonoBehaviour:
   id: 06c8cfd8278945e487fe1391adf2d11b
   DisplayName: New Railway Line to the Provinces
   EventType: 1
-  Description: A branch line {has opened|is about to open} into the old country districts, and
-    carriers {are emptying|will empty} manor houses that were once a hard week's travel away.
-    Furniture and clocks {arrive|will arrive} in quantity, and buyers {grow|may grow} choosy once
-    there is so much of it.
-  DurationDays: 5
-  MinLeadDays: 2
-  MaxLeadDays: 6
+  Description: A branch line {has opened|is about to open} into the old country districts,
+    and carriers {are emptying|will empty} manor houses that were once a hard week's
+    travel away. Furniture and clocks {arrive|will arrive} in quantity, and buyers
+    {grow|may grow} choosy once there is so much of it.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
   PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: -1
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
-  OfficialAnnouncementDaysBefore: 1
+  OfficialAnnouncementWeeksBefore: 1
   CreateRumour: 1
   RumorCredibility: 0.5
   CreateLeak: 1

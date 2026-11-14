@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_RuralHardship
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 4e752d1c15a4443aa2a5353750f1942e
+  DisplayName: A Poor Harvest in the Provinces
+  EventType: 1
+  Description: Rain {has ruined|threatens to ruin} the harvest across the provinces,
+    and the squires and farmers {are short|will be short} of money for the winter.
+    Heirlooms {come|will come} out of the farmhouses, and nobody in the country {has|will
+    have} money to buy them.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 4
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 0
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277172
+  - rid: 1280112227729277173
+  - rid: 1280112227729277174
+  - rid: 1280112227729277175
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277172
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 3
+        Country: 0
+        Century: 0
+        tempSupplyChange: 1
+        permSupplyChange: 0
+    - rid: 1280112227729277173
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 1
+        Country: 0
+        Century: 0
+        tempSupplyChange: 0.5
+        permSupplyChange: 0
+    - rid: 1280112227729277174
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 11
+        Country: 0
+        Century: 0
+        tempSupplyChange: 0.5
+        permSupplyChange: 0
+    - rid: 1280112227729277175
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 3
+        Country: 0
+        Century: 0
+        tempDemandChange: -0.5
+        permDemandChange: 0

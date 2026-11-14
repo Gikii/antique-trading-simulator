@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_ShipwreckSalvage
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 708d39442c3143ffb8f5259167017d9e
+  DisplayName: Cargo of an Old Wreck Is Salvaged
+  EventType: 1
+  Description: Divers {have raised|are raising} the cargo of a merchantman lost on
+    a Dutch voyage from Canton. Chests of porcelain and coin {are coming|will come}
+    to auction still crusted from the sea, and the story of the wreck {is bringing|will
+    bring} new buyers to the rooms.
+  DurationWeeks: 3
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 3
+  FailureChance: 0.1
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.45
+  CreateLeak: 1
+  LeakCredibility: 0.85
+  Effects:
+  - rid: 1280112227729277116
+  - rid: 1280112227729277117
+  - rid: 1280112227729277118
+  - rid: 1280112227729277119
+  - rid: 1280112227729277120
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277116
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 3
+        MaxCount: 5
+        AntiqueType: 12
+        Century: 17
+        Country: 10
+        Condition: 0.45
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 2
+        AddSupplyPressure: 0
+    - rid: 1280112227729277117
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 2
+        MaxCount: 3
+        AntiqueType: 7
+        Century: 0
+        Country: 7
+        Condition: 0.4
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 2
+        AddSupplyPressure: 0
+    - rid: 1280112227729277118
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 12
+        Country: 0
+        Century: 0
+        tempSupplyChange: 0.5
+        permSupplyChange: 0
+    - rid: 1280112227729277119
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 10
+        Century: 0
+        tempDemandChange: 0.5
+        permDemandChange: 0
+    - rid: 1280112227729277120
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 12
+        Country: 0
+        Century: 0
+        tempDemandChange: 0.75
+        permDemandChange: 0

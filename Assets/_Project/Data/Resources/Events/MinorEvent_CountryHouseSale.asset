@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_CountryHouseSale
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: e3348c6366df4132900ded682c9b5ce0
+  DisplayName: A Great Country House Sells Up
+  EventType: 1
+  Description: The heirs of an old county family {are selling|will sell} the house
+    and every stick in it. Marquees {go up|will go up} on the lawn for a sale that
+    lasts the week, and good English furniture and family portraits {go|will go}
+    cheaply for want of bidders.
+  DurationWeeks: 3
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 7
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277125
+  - rid: 1280112227729277126
+  - rid: 1280112227729277127
+  - rid: 1280112227729277128
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277125
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 3
+        MaxCount: 4
+        AntiqueType: 3
+        Century: 0
+        Country: 1
+        Condition: 0
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 1
+        AddSupplyPressure: 0
+    - rid: 1280112227729277126
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 2
+        AntiqueType: 4
+        Century: 0
+        Country: 1
+        Condition: 0
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 1
+        AddSupplyPressure: 0
+    - rid: 1280112227729277127
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 1
+        Century: 0
+        tempSupplyChange: 1
+        permSupplyChange: 0
+    - rid: 1280112227729277128
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 3
+        Country: 0
+        Century: 0
+        tempDemandChange: -0.25
+        permDemandChange: 0

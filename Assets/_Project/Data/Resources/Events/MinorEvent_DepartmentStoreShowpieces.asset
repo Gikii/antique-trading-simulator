@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_DepartmentStoreShowpieces
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: ddf72ad2309f4523bd77cd9f4e712104
+  DisplayName: A Department Store Seeks Showpieces
+  EventType: 1
+  Description: A new department store {is opening|will open} on the high street with
+    a hall given over to antiques. Its buyers {are placing|will place} orders across
+    the trade, and porcelain and silver {are|will be} first on their lists.
+  DurationWeeks: 3
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 5
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277103
+  - rid: 1280112227729277104
+  - rid: 1280112227729277105
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277103
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 12
+        Country: 0
+        Century: 0
+        tempDemandChange: 0.75
+        permDemandChange: 0
+    - rid: 1280112227729277104
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 10
+        Country: 0
+        Century: 0
+        tempDemandChange: 0.5
+        permDemandChange: 0
+    - rid: 1280112227729277105
+      type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 2
+        MaxCount: 3
+        Scope: 0
+        AntiqueType: 0
+        Century: 0
+        Country: 0
+        Quantity: 0
+        MinCondition: 0
+        DurationWeeks: 4
+        RewardPerUnit: 0
+        Type: 1
+        Penalty: -1
+        ClassName: Standard
+        RequiredReputation: -1

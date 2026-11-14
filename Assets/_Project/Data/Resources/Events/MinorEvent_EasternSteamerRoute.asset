@@ -15,15 +15,24 @@ MonoBehaviour:
   id: 7d5cd0cc60264b5b8f5ee8868c7a2f21
   DisplayName: New Steamer Service to the Eastern Ports
   EventType: 1
-  Description: A shipping house {has opened|is opening} a faster route to the eastern ports, and freight rates {have fallen|are expected to fall} with it. Crates from the far east {are arriving|will arrive} in numbers no warehouse was built for, and what comes ashore by the crate {is losing|may lose} something of its rarity in the eyes of collectors. Porcelain in particular {is no longer|will no longer be} the novelty it was.
-  DurationDays: 8
-  MinLeadDays: 3
-  MaxLeadDays: 7
+  Description: A shipping house {has opened|is opening} a faster route to the eastern
+    ports, and freight rates {have fallen|are expected to fall} with it. Crates from
+    the far east {are arriving|will arrive} in numbers no warehouse was built for,
+    and what comes ashore by the crate {is losing|may lose} something of its rarity
+    in the eyes of collectors. Porcelain in particular {is no longer|will no longer
+    be} the novelty it was.
+  DurationWeeks: 8
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 7
   PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: -1
   FailureChance: 0.05
   CanBeFakeNews: 1
   CreateOfficialNews: 1
-  OfficialAnnouncementDaysBefore: 2
+  OfficialAnnouncementWeeksBefore: 2
   CreateRumour: 1
   RumorCredibility: 0.5
   CreateLeak: 1
