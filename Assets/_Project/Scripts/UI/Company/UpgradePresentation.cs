@@ -55,7 +55,12 @@ namespace AntiqueTradingSimulator.UI
             switch (effect.Stat)
             {
                 case UpgradeStat.InfoAccessLevel:
-                    return ("Information source", NewsPresentation.AccessLevelLabel((InfoAccessLevel)whole));
+                    {
+                        var level = (InfoAccessLevel)whole;
+                        string chances = NewsPresentation.AccessChanceLabel(level);
+                        string value = NewsPresentation.AccessLevelName(level);
+                        return ("Information source", string.IsNullOrEmpty(chances) ? value : $"{value} · {chances}");
+                    }
                 case UpgradeStat.TransportCostReduction:
                     return ("Transport cost", v > 0f ? "-" + UIFormat.PercentCompact(v) : "Base");
                 case UpgradeStat.TransportWeeksReduction:

@@ -43,8 +43,8 @@ namespace AntiqueTradingSimulator.UI
     public static class WeekEntries
     {
         /// <summary>
-        /// Events running in that week (active or already ended), then news published in that week
-        /// which the player can see with their access level. News stay listed even after their event
+        /// Events running in that week (active or already ended), then news that reached the player
+        /// in that week (with the information network's delays, that can be after it was published). News stay listed even after their event
         /// started – this is the history of the week, not the list of upcoming events.
         /// Scheduled (future) events are intentionally left out – the player learns about them only through news.
         /// </summary>
@@ -67,7 +67,8 @@ namespace AntiqueTradingSimulator.UI
             {
                 foreach (NewsItem news in newsManager.PublishedNews)
                 {
-                    if (news == null || news.WeekPublished != week || !NewsPresentation.CanSee(news, currentWeek))
+                    // Listed in the week the player learned it (news can reach them weeks after it broke).
+                    if (news == null || NewsPresentation.PlayerWeek(news) != week || !NewsPresentation.CanSee(news, currentWeek))
                         continue;
 
                     result.Add(WeekEntry.ForNews(news));
