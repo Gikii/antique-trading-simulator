@@ -115,6 +115,7 @@ namespace AntiqueTradingSimulator.Company
         public int ReputationLossFor(Contracts.Contract contract)
         {
             if (contract == null) return ContractFailedReputation;
+            if (contract.Type == Contracts.ContractType.Open) return 0;
 
             return ContractFailedReputation - Mathf.RoundToInt(contract.TotalReward * ReputationLostPerContractReward);
         }
