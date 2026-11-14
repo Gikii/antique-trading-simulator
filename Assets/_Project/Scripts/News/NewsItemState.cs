@@ -13,10 +13,8 @@ namespace AntiqueTradingSimulator.News
         public NewsType Type;
         public float Credibility;
         public int WeekPublished;
+        public InfoAccessLevel RequiredAccessLevel;
         public int EventTriggerWeek;
-
-        public bool GuaranteedDelivery;
-        public int PlayerDeliveryWeek = NewsItem.NotDelivered;
 
         public static NewsItemState Capture(NewsItem news)
         {
@@ -30,9 +28,8 @@ namespace AntiqueTradingSimulator.News
                 Type = news.Type,
                 Credibility = news.Credibility,
                 WeekPublished = news.WeekPublished,
-                EventTriggerWeek = news.EventTriggerWeek,
-                GuaranteedDelivery = news.GuaranteedDelivery,
-                PlayerDeliveryWeek = news.PlayerDeliveryWeek
+                RequiredAccessLevel = news.RequiredAccessLevel,
+                EventTriggerWeek = news.EventTriggerWeek
             };
         }
 
@@ -43,8 +40,7 @@ namespace AntiqueTradingSimulator.News
             Type,
             Credibility,
             WeekPublished,
-            EventTriggerWeek,
-            GuaranteedDelivery,
-            PlayerDeliveryWeek);
+            RequiredAccessLevel,
+            EventTriggerWeek);
     }
 }

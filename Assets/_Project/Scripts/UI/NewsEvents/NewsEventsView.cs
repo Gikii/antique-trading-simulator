@@ -508,6 +508,7 @@ namespace AntiqueTradingSimulator.UI
 
             // Newest first (PublishedNews is stored in publishing order).
             var publishedNews = newsManager.PublishedNews;
+            InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
             int currentWeek = CurrentWeekOrNone;
 
             for (int i = publishedNews.Count - 1; i >= 0; i--)
@@ -517,7 +518,7 @@ namespace AntiqueTradingSimulator.UI
                 if (news.EventStarted(currentWeek))
                     continue;
 
-                if (!NewsPresentation.CanSee(news, currentWeek) || !MatchesCurrentFilter(news))
+                if (!NewsPresentation.CanSee(news, accessLevel) || !MatchesCurrentFilter(news))
                     continue;
 
                 NewsListItemUI item = Instantiate(
@@ -1025,12 +1026,13 @@ namespace AntiqueTradingSimulator.UI
 
             if (newsManager != null)
             {
+                InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
                 int currentWeek = CurrentWeekOrNone;
 
                 foreach (NewsItem news in newsManager.PublishedNews)
                 {
                     // Same rule as RefreshNewsList, so the counts match the rows on screen.
-                    if (news.EventStarted(currentWeek) || !NewsPresentation.CanSee(news, currentWeek))
+                    if (news.EventStarted(currentWeek) || !NewsPresentation.CanSee(news, accessLevel))
                         continue;
 
                     all++;
@@ -1089,7 +1091,7 @@ namespace AntiqueTradingSimulator.UI
             if (accessLevelText == null)
                 return;
 
-            accessLevelText.text = NewsPresentation.AccessLevelSummary(
+            accessLevelText.text = NewsPresentation.AccessLevelLabel(
                 NewsPresentation.GetAccessLevel(player)
             );
         }

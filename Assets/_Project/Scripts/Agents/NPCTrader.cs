@@ -40,7 +40,6 @@ namespace AntiqueTradingSimulator.Agents
         public NpcBehaviorProfile Profile => _profileCache ??= NpcProfileDatabase.GetById(ProfileId);
 
         public InfoAccessLevel AccessLevel => Profile != null ? Profile.AccessLevel : InfoAccessLevel.LocalPress;
-        public string ReceiverId => Id;
 
         private const int NewsActionWindowWeeks = 2;
 
@@ -1134,7 +1133,7 @@ namespace AntiqueTradingSimulator.Agents
 
         // ---------------------------------------------------------------- receiving nes
 
-        public void ReceiveNews(NewsItem news, int deliveryWeek)
+        public void ReceiveNews(NewsItem news)
         {
             var profile = Profile;
             if (profile == null || _economyManager == null || _economyManager.TimeManager == null) return;
@@ -1160,7 +1159,7 @@ namespace AntiqueTradingSimulator.Agents
             }
 
             int delay = UnityEngine.Random.Range(profile.MinReactionDelayWeeks, profile.MaxReactionDelayWeeks + 1);
-            int reactionWeek = Mathf.Max(deliveryWeek, _economyManager.TimeManager.CurrentWeek) + delay;
+            int reactionWeek = _economyManager.TimeManager.CurrentWeek + delay;
 
             if (news.EventTriggerWeek <= reactionWeek)
             {
