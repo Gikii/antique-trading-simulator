@@ -21,8 +21,14 @@ namespace AntiqueTradingSimulator.News
         [SerializeField] private EventManager eventManager;
         [SerializeField] private Core.TimeManager timeManager;
 
+        [SerializeField] private InformationSettings informationSettings;
+
         private readonly List<NewsItem> _publishedNews = new();
         public IReadOnlyList<NewsItem> PublishedNews => _publishedNews;
+
+        public InformationSettings Information =>
+            informationSettings != null ? informationSettings : InformationSettings.Active;
+
 
         /// <summary>Raised after a news item has been published (e.g. so the UI can refresh).</summary>
         public event System.Action<NewsItem> OnNewsPublished;
@@ -30,6 +36,8 @@ namespace AntiqueTradingSimulator.News
         public event System.Action OnNewsRestored;
 
         private readonly List<PendingNews> _pendingNews = new();
+
+        private readonly Dictionary<string, Dictionary<NewsType, int>> _missStreaks = new();
 
         private struct PendingNews
         {
@@ -46,6 +54,7 @@ namespace AntiqueTradingSimulator.News
         {
             if (eventManager == null) eventManager = FindFirstObjectByType<EventManager>();
             if (timeManager == null) timeManager = FindFirstObjectByType<Core.TimeManager>();
+            InformationSettings.SetActive(informationSettings);
 
             if (eventManager != null)
             {
@@ -168,15 +177,7 @@ namespace AntiqueTradingSimulator.News
                 _ => 1f
             };
 
-            InfoAccessLevel accessLevel = type switch
-            {
-                NewsType.Official => InfoAccessLevel.LocalPress,
-                NewsType.Leak => InfoAccessLevel.InformantNetwork,
-                NewsType.Rumor => InfoAccessLevel.IndustrySources,
-                _ => InfoAccessLevel.LocalPress
-            };
-
-            Publish(new NewsItem(newsData, definition.DisplayName, definition.Description, type, credibility, week, accessLevel, eventTriggerWeek));
+            Publish(new NewsItem(newsData, definition.DisplayName, definition.Description, type, credibility, week, eventTriggerWeek));
         }
 
 
@@ -226,14 +227,76 @@ namespace AntiqueTradingSimulator.News
             _publishedNews.Add(item);
 
             foreach (var behaviour in inspectorReceivers)
-                if (behaviour is IInformationReceiver r && r.AccessLevel >= item.RequiredAccessLevel)
-                    r.ReceiveNews(item);
+                if (behaviour is IInformationReceiver r)
+                    TryDeliver(r, item);
 
             foreach (var receiver in _codeReceivers)
-                if (receiver.AccessLevel >= item.RequiredAccessLevel)
-                    receiver.ReceiveNews(item);
+                TryDeliver(receiver, item);
 
             OnNewsPublished?.Invoke(item);
+        }
+
+        private void TryDeliver(IInformationReceiver receiver, NewsItem item)
+        {
+            if (receiver == null || item == null) return;
+
+            InfoAccessLevel level = receiver.AccessLevel;
+            int publishWeek = item.WeekPublished;
+            var settings = Information;
+            Vector2Int delayRange = settings.DelayFor(item.Type, level);
+
+            int weeksToSpare = item.EventTriggerWeek > publishWeek
+                ? item.EventTriggerWeek - publishWeek - 1
+                : int.MaxValue;
+
+            if (delayRange.x > weeksToSpare)
+            {
+                Debug.Log($"NewsManager: {item.Type} '{item.OfficialName}' never reaches {receiver.ReceiverId} — " +
+                          $"their sources need at least {delayRange.x} week(s) and the event starts in " +
+                          $"{item.EventTriggerWeek - publishWeek}.");
+                return;
+            }
+
+            if (!item.GuaranteedDelivery)
+            {
+                int missStreak = MissStreak(receiver.ReceiverId, item.Type);
+                bool owed = missStreak >= settings.ForcedDeliveryAfterMisses(item.Type, level);
+
+                if (!owed && UnityEngine.Random.value > settings.ChanceFor(item.Type, level))
+                {
+                    SetMissStreak(receiver.ReceiverId, item.Type, missStreak + 1);
+                    return;
+                }
+
+                SetMissStreak(receiver.ReceiverId, item.Type, 0);
+            }
+
+            int delay = UnityEngine.Random.Range(delayRange.x, Mathf.Min(delayRange.y, weeksToSpare) + 1);
+            receiver.ReceiveNews(item, publishWeek + delay);
+        }
+
+        private int MissStreak(string receiverId, NewsType type)
+        {
+            if (string.IsNullOrEmpty(receiverId)) return 0;
+
+            return _missStreaks.TryGetValue(receiverId, out var byType) && byType.TryGetValue(type, out int streak)
+                ? streak
+                : 0;
+        }
+
+        private void SetMissStreak(string receiverId, NewsType type, int streak)
+        {
+            if (string.IsNullOrEmpty(receiverId)) return;
+
+            if (!_missStreaks.TryGetValue(receiverId, out var byType))
+            {
+                if (streak <= 0) return;
+                byType = new Dictionary<NewsType, int>();
+                _missStreaks[receiverId] = byType;
+            }
+
+            if (streak <= 0) byType.Remove(type);
+            else byType[type] = streak;
         }
 
         // ---------------------------------------------------------------- save / load
@@ -265,6 +328,21 @@ namespace AntiqueTradingSimulator.News
                 });
             }
 
+            foreach (var pair in _missStreaks)
+            {
+                foreach (var byType in pair.Value)
+                {
+                    if (byType.Value <= 0) continue;
+
+                    state.Channels.Add(new InformationChannelState
+                    {
+                        ReceiverId = pair.Key,
+                        Type = byType.Key,
+                        MissStreak = byType.Value
+                    });
+                }
+            }
+
             return state;
         }
 
@@ -272,11 +350,21 @@ namespace AntiqueTradingSimulator.News
         {
             _publishedNews.Clear();
             _pendingNews.Clear();
+            _missStreaks.Clear();
 
             if (state == null)
             {
                 OnNewsRestored?.Invoke();
                 return;
+            }
+
+            if (state.Channels != null)
+            {
+                foreach (var channel in state.Channels)
+                {
+                    if (channel == null || string.IsNullOrEmpty(channel.ReceiverId)) continue;
+                    SetMissStreak(channel.ReceiverId, channel.Type, channel.MissStreak);
+                }
             }
 
             if (state.PublishedNews != null)

@@ -24,6 +24,7 @@ namespace AntiqueTradingSimulator.Agents
         [SerializeField] protected InfoAccessLevel accessLevel = InfoAccessLevel.LocalPress;
 
         public string TraderName => traderName;
+        public virtual string ReceiverId => OwnerId;
         public TraderInventory Inventory { get; private set; }
         public virtual InfoAccessLevel AccessLevel => accessLevel;
 
@@ -92,7 +93,7 @@ namespace AntiqueTradingSimulator.Agents
 
         // Default: do nothing. NPCTrader overrides this with actual decision logic;
         // PlayerTrader can override it later to push a UI notification instead.
-        public virtual void ReceiveNews(NewsItem news)
+        public virtual void ReceiveNews(NewsItem news, int deliveryWeek)
         {
         }
     }

@@ -282,9 +282,49 @@ namespace AntiqueTradingSimulator.UI
                 : Events.InfoAccessLevel.LocalPress;
         }
 
+        public static int PlayerWeek(NewsItem news)
+        {
+            if (news == null) return 0;
+            return news.PlayerDeliveryWeek != NewsItem.NotDelivered ? news.PlayerDeliveryWeek : news.WeekPublished;
+        }
+
+        /// <summary>Weeks after publication this reached the player, 0 if it arrived as it broke.</summary>
+        public static int WeeksLate(NewsItem news) =>
+            news == null || news.PlayerDeliveryWeek == NewsItem.NotDelivered
+                ? 0
+                : Mathf.Max(0, news.PlayerDeliveryWeek - news.WeekPublished);
+
+        /// <summary>"rumours 58% · leaks 37%", the share of each kind this tier receives.</summary>
+        public static string AccessChanceLabel(Events.InfoAccessLevel level)
+        {
+            var settings = InformationSettings.Active;
+            if (settings == null) return "";
+
+            return $"rumours {settings.ChanceFor(NewsType.Rumor, level):P0} · " +
+                   $"leaks {settings.ChanceFor(NewsType.Leak, level):P0}";
+        }
+
+        /// <summary>"Informant Network  (Lv. 3) · rumours 58% · leaks 37% · reaches you in 0–2 weeks"</summary>
+        public static string AccessLevelSummary(Events.InfoAccessLevel level)
+        {
+            string chances = AccessChanceLabel(level);
+            string label = AccessLevelLabel(level);
+            if (string.IsNullOrEmpty(chances)) return label;
+
+            var settings = InformationSettings.Active;
+            var delay = settings.DelayFor(NewsType.Leak, level);
+
+            string timing = delay.y <= 0
+                ? "as it breaks"
+                : delay.x == delay.y
+                    ? $"after {WeeksLabel(delay.x)}"
+                    : $"in {delay.x}–{delay.y} weeks";
+
+            return $"{label} · {chances} · reaches you {timing}";
+        }
         /// <summary>Same rule NewsManager uses when delivering news to receivers.</summary>
-        public static bool CanSee(NewsItem news, Events.InfoAccessLevel accessLevel) =>
-            news != null && accessLevel >= news.RequiredAccessLevel;
+        public static bool CanSee(NewsItem news, int currentWeek) =>
+            news != null && news.PlayerKnows(currentWeek);
 
         /// <summary>"Industry Sources"</summary>
         public static string AccessLevelName(Events.InfoAccessLevel level) => level switch

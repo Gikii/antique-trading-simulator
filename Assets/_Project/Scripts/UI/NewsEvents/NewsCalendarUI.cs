@@ -408,10 +408,12 @@ namespace AntiqueTradingSimulator.UI
             {
                 InfoAccessLevel accessLevel = NewsPresentation.GetAccessLevel(player);
 
+                int currentWeek = timeManager != null ? timeManager.CurrentWeek : week;
+
                 foreach (NewsItem news in newsManager.PublishedNews)
                 {
                     // Only news the player has access to, and only on the day it was published.
-                    if (!NewsPresentation.CanSee(news, accessLevel) || news.WeekPublished != week) continue;
+                    if (news.PlayerDeliveryWeek != week || !NewsPresentation.CanSee(news, currentWeek)) continue;
                     result.Add(new DayEntry(KindOf(news.Type), NewsPresentation.GetTitle(news)));
                 }
             }

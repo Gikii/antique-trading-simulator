@@ -8,6 +8,8 @@ namespace AntiqueTradingSimulator.News
         public List<NewsItemState> PublishedNews = new List<NewsItemState>();
 
         public List<PendingNewsState> PendingNews = new List<PendingNewsState>();
+
+        public List<InformationChannelState> Channels = new List<InformationChannelState>();
     }
 
 
@@ -17,5 +19,12 @@ namespace AntiqueTradingSimulator.News
         public string EventDefinitionId;
         public int EventTriggerWeek;
         public NewsType Type;
+    }
+
+    public class InformationChannelState
+    {
+        public string ReceiverId;
+        public NewsType Type;
+        public int MissStreak;
     }
 }
