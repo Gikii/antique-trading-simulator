@@ -11,8 +11,7 @@ namespace AntiqueTradingSimulator.News
     /// NewsItems and delivers them to every qualifying IInformationReceiver — both
     /// scene-based receivers (e.g. PlayerTrader, via inspector) and code-registered
     /// receivers (e.g. NPCTrader, via NPCManager). This is the only place where
-    /// "who finds out, and how truthfully" is decided. Access is probabilistic rather
-    /// than a gate: see InformationSettings for the numbers and TryDeliver for the rule.
+    /// "who finds out, and how truthfully" is decided.
     /// </summary>
     public class NewsManager : MonoBehaviour
     {
@@ -22,23 +21,8 @@ namespace AntiqueTradingSimulator.News
         [SerializeField] private EventManager eventManager;
         [SerializeField] private Core.TimeManager timeManager;
 
-        [Tooltip("Chance and delay of each kind of news reaching a trader, per tier. " +
-                 "Left empty: the asset in Data/Resources, or built-in defaults.")]
-        [SerializeField] private InformationSettings informationSettings;
-
         private readonly List<NewsItem> _publishedNews = new();
         public IReadOnlyList<NewsItem> PublishedNews => _publishedNews;
-
-        /// <summary>The chance and delay tables in use.</summary>
-        public InformationSettings Information =>
-            informationSettings != null ? informationSettings : InformationSettings.Active;
-
-        /// <summary>Consecutive misses per receiver and news type, keyed by ReceiverId.</summary>
-        private readonly Dictionary<string, Dictionary<NewsType, int>> _missStreaks = new();
-
-        private readonly List<IInformationReceiver> _receiverBuffer = new();
-
-        private PlayerTrader _player;
 
         /// <summary>Raised after a news item has been published (e.g. so the UI can refresh).</summary>
         public event System.Action<NewsItem> OnNewsPublished;
@@ -62,9 +46,6 @@ namespace AntiqueTradingSimulator.News
         {
             if (eventManager == null) eventManager = FindFirstObjectByType<EventManager>();
             if (timeManager == null) timeManager = FindFirstObjectByType<Core.TimeManager>();
-
-            // So UI with no NewsManager reference shows the same numbers.
-            InformationSettings.SetActive(informationSettings);
 
             if (eventManager != null)
             {
@@ -187,7 +168,15 @@ namespace AntiqueTradingSimulator.News
                 _ => 1f
             };
 
-            Publish(new NewsItem(newsData, definition.DisplayName, definition.Description, type, credibility, week, eventTriggerWeek));
+            InfoAccessLevel accessLevel = type switch
+            {
+                NewsType.Official => InfoAccessLevel.LocalPress,
+                NewsType.Leak => InfoAccessLevel.InformantNetwork,
+                NewsType.Rumor => InfoAccessLevel.IndustrySources,
+                _ => InfoAccessLevel.LocalPress
+            };
+
+            Publish(new NewsItem(newsData, definition.DisplayName, definition.Description, type, credibility, week, accessLevel, eventTriggerWeek));
         }
 
 
@@ -236,101 +225,15 @@ namespace AntiqueTradingSimulator.News
         {
             _publishedNews.Add(item);
 
-            foreach (var receiver in ResolveReceivers())
-                TryDeliver(receiver, item);
-
-            OnNewsPublished?.Invoke(item);
-        }
-
-        private List<IInformationReceiver> ResolveReceivers()
-        {
-            _receiverBuffer.Clear();
-
             foreach (var behaviour in inspectorReceivers)
-                if (behaviour is IInformationReceiver inspectorReceiver && !_receiverBuffer.Contains(inspectorReceiver))
-                    _receiverBuffer.Add(inspectorReceiver);
+                if (behaviour is IInformationReceiver r && r.AccessLevel >= item.RequiredAccessLevel)
+                    r.ReceiveNews(item);
 
             foreach (var receiver in _codeReceivers)
-                if (!_receiverBuffer.Contains(receiver))
-                    _receiverBuffer.Add(receiver);
+                if (receiver.AccessLevel >= item.RequiredAccessLevel)
+                    receiver.ReceiveNews(item);
 
-            if (_player == null) _player = FindFirstObjectByType<PlayerTrader>();
-
-            if (_player != null && !_receiverBuffer.Contains(_player))
-                _receiverBuffer.Add(_player);
-
-            return _receiverBuffer;
-        }
-
-        /// <summary>
-        /// Decides whether one trader hears about one news item, and when: news that would arrive
-        /// too late to act on is not sent at all, and otherwise a chance roll and a delay roll
-        /// settle it. The too-late check comes before the chance roll so unreachable items don't
-        /// consume dry-spell protection, which keeps the authored chance equal to the share the
-        /// trader actually receives.
-        /// </summary>
-        private void TryDeliver(IInformationReceiver receiver, NewsItem item)
-        {
-            if (receiver == null || item == null) return;
-
-            InfoAccessLevel level = receiver.AccessLevel;
-            int publishWeek = item.WeekPublished;
-            var settings = Information;
-            Vector2Int delayRange = settings.DelayFor(item.Type, level);
-
-            // News with no event behind it, such as a weather forecast, has no deadline.
-            int weeksToSpare = item.EventTriggerWeek > publishWeek
-                ? item.EventTriggerWeek - publishWeek - 1
-                : int.MaxValue;
-
-            if (delayRange.x > weeksToSpare)
-            {
-                Debug.Log($"NewsManager: {item.Type} '{item.OfficialName}' never reaches {receiver.ReceiverId} — " +
-                          $"their sources need at least {delayRange.x} week(s) and the event starts in " +
-                          $"{item.EventTriggerWeek - publishWeek}.");
-                return;
-            }
-
-            if (!item.GuaranteedDelivery)
-            {
-                int missStreak = MissStreak(receiver.ReceiverId, item.Type);
-                bool owed = missStreak >= settings.ForcedDeliveryAfterMisses(item.Type, level);
-
-                if (!owed && UnityEngine.Random.value > settings.ChanceFor(item.Type, level))
-                {
-                    SetMissStreak(receiver.ReceiverId, item.Type, missStreak + 1);
-                    return;
-                }
-
-                SetMissStreak(receiver.ReceiverId, item.Type, 0);
-            }
-
-            int delay = UnityEngine.Random.Range(delayRange.x, Mathf.Min(delayRange.y, weeksToSpare) + 1);
-            receiver.ReceiveNews(item, publishWeek + delay);
-        }
-
-        private int MissStreak(string receiverId, NewsType type)
-        {
-            if (string.IsNullOrEmpty(receiverId)) return 0;
-
-            return _missStreaks.TryGetValue(receiverId, out var byType) && byType.TryGetValue(type, out int streak)
-                ? streak
-                : 0;
-        }
-
-        private void SetMissStreak(string receiverId, NewsType type, int streak)
-        {
-            if (string.IsNullOrEmpty(receiverId)) return;
-
-            if (!_missStreaks.TryGetValue(receiverId, out var byType))
-            {
-                if (streak <= 0) return;
-                byType = new Dictionary<NewsType, int>();
-                _missStreaks[receiverId] = byType;
-            }
-
-            if (streak <= 0) byType.Remove(type);
-            else byType[type] = streak;
+            OnNewsPublished?.Invoke(item);
         }
 
         // ---------------------------------------------------------------- save / load
@@ -362,21 +265,6 @@ namespace AntiqueTradingSimulator.News
                 });
             }
 
-            foreach (var pair in _missStreaks)
-            {
-                foreach (var byType in pair.Value)
-                {
-                    if (byType.Value <= 0) continue;
-
-                    state.Channels.Add(new InformationChannelState
-                    {
-                        ReceiverId = pair.Key,
-                        Type = byType.Key,
-                        MissStreak = byType.Value
-                    });
-                }
-            }
-
             return state;
         }
 
@@ -384,21 +272,11 @@ namespace AntiqueTradingSimulator.News
         {
             _publishedNews.Clear();
             _pendingNews.Clear();
-            _missStreaks.Clear();
 
             if (state == null)
             {
                 OnNewsRestored?.Invoke();
                 return;
-            }
-
-            if (state.Channels != null)
-            {
-                foreach (var channel in state.Channels)
-                {
-                    if (channel == null || string.IsNullOrEmpty(channel.ReceiverId)) continue;
-                    SetMissStreak(channel.ReceiverId, channel.Type, channel.MissStreak);
-                }
             }
 
             if (state.PublishedNews != null)

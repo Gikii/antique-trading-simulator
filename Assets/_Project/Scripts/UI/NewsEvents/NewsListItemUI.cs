@@ -88,7 +88,7 @@ namespace AntiqueTradingSimulator.UI
             titleText.text = NewsPresentation.GetTitle(news);
             previewText.text = NewsPresentation.GetPreview(news);
             typeText.text = NewsPresentation.TypeLabel(news.Type);
-            dateText.text = NewsPresentation.FormatWeek(NewsPresentation.PlayerWeek(news), timeManager);
+            dateText.text = NewsPresentation.FormatWeek(news.WeekPublished, timeManager);
 
             Color typeColor = NewsPresentation.TypeColor(news.Type);
 

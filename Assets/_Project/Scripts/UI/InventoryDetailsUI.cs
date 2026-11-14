@@ -350,10 +350,11 @@ namespace AntiqueTradingSimulator.UI
             if (newsManager == null)
                 return "Related news: —";
 
+            InfoAccessLevel access = playerTrader != null ? playerTrader.AccessLevel : InfoAccessLevel.LocalPress;
             int fromWeek = CurrentWeek - RelatedNewsWindowWeeks;
 
             List<NewsItem> related = newsManager.PublishedNews
-                .Where(n => n.WeekPublished >= fromWeek && NewsPresentation.CanSee(n, CurrentWeek))
+                .Where(n => n.WeekPublished >= fromWeek && n.RequiredAccessLevel <= access)
                 .Where(n => n.NewsData != null && n.NewsData.Any(d => Concerns(d, antique)))
                 .OrderByDescending(n => n.WeekPublished)
                 .Take(MaxRelatedNews)
