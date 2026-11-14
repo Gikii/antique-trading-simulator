@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_GrandDucalWedding
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 7df6eff4af7247c0b88f637aebecd165
+  DisplayName: A Grand-Ducal Wedding in St Petersburg
+  EventType: 1
+  Description: A grand duke {is marrying|will marry} a foreign princess, and the
+    Russian court {is ordering|will order} gifts on a scale not seen in years. Jewellers
+    and silversmiths {are selling|will sell} out their old stock, and the court's
+    agents {have come|are coming} west with open purses.
+  DurationWeeks: 4
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: 1
+  RumorCredibility: 0.55
+  CreateLeak: 1
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277043
+  - rid: 1280112227729277044
+  - rid: 1280112227729277045
+  - rid: 1280112227729277046
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277043
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 6
+        Country: 0
+        Century: 0
+        tempDemandChange: 2
+        permDemandChange: 0
+    - rid: 1280112227729277044
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 9
+        Century: 0
+        tempDemandChange: 1
+        permDemandChange: 0
+    - rid: 1280112227729277045
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 10
+        Country: 0
+        Century: 0
+        tempDemandChange: 0.75
+        permDemandChange: 0
+    - rid: 1280112227729277046
+      type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 1
+        Scope: 1
+        AntiqueType: 6
+        Century: 0
+        Country: 0
+        Quantity: 0
+        MinCondition: 0.8
+        DurationWeeks: 4
+        RewardPerUnit: 0
+        Type: 2
+        Penalty: -1
+        ClassName: Premium
+        RequiredReputation: -1

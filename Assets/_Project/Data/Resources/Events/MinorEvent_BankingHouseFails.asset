@@ -15,17 +15,22 @@ MonoBehaviour:
   id: 509266471eb443fda9fe3f2ff6054580
   DisplayName: A Banking House Fails
   EventType: 1
-  Description: An old banking house {has shut|is about to shut} its counters and the panic {is
-    spreading|will spread} through the trade. Inherited collections {are being|will be} broken up
-    to settle debts, while those who still have money {keep|will keep} it in their pockets.
-  DurationDays: 6
-  MinLeadDays: 3
-  MaxLeadDays: 9
+  Description: An old banking house {has shut|is about to shut} its counters and
+    the panic {is spreading|will spread} through the trade. Inherited collections
+    {are being|will be} broken up to settle debts, while those who still have money
+    {keep|will keep} it in their pockets.
+  DurationWeeks: 6
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 9
   PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: -1
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
-  OfficialAnnouncementDaysBefore: 1
+  OfficialAnnouncementWeeksBefore: 1
   CreateRumour: 1
   RumorCredibility: 0.5
   CreateLeak: 1

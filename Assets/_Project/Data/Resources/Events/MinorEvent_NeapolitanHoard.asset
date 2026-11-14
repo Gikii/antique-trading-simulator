@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_NeapolitanHoard
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 35ab90535af1494a8cd9e36c6d3b40bc
+  DisplayName: A Coin Hoard Unearthed near Naples
+  EventType: 1
+  Description: Labourers digging a railway cutting near Naples {have struck|are said
+    to have struck} a jar of old coins. Part of the find {is being|will be} sold
+    before the authorities can claim it, and collectors {are hurrying|will hurry}
+    to see what surfaces.
+  DurationWeeks: 3
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0.1
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.4
+  CreateLeak: 1
+  LeakCredibility: 0.85
+  Effects:
+  - rid: 1280112227729277133
+  - rid: 1280112227729277134
+  - rid: 1280112227729277135
+  - rid: 1280112227729277136
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277133
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 3
+        MaxCount: 5
+        AntiqueType: 7
+        Century: 0
+        Country: 3
+        Condition: 0
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 2
+        AddSupplyPressure: 0
+    - rid: 1280112227729277134
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 7
+        Country: 0
+        Century: 0
+        tempSupplyChange: 1
+        permSupplyChange: 0
+    - rid: 1280112227729277135
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 3
+        Century: 0
+        tempDemandChange: 0.5
+        permDemandChange: 0
+    - rid: 1280112227729277136
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 7
+        Country: 0
+        Century: 0
+        tempDemandChange: 0.75
+        permDemandChange: 0

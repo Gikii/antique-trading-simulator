@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_CustomsSeizureAuction
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: ec9bea0cc3034f05b94351ec84a4a514
+  DisplayName: Customs Auctions Seized Goods
+  EventType: 1
+  Description: The customs house {is auctioning|will auction} a year of seized contraband
+    from the Levant trade. Daggers, jewellery and bales of carpet {are going|will
+    go} for whatever the room will bid, and few dealers {know|will know} quite what
+    they are buying.
+  DurationWeeks: 1
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 4
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 0
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277140
+  - rid: 1280112227729277141
+  - rid: 1280112227729277142
+  - rid: 1280112227729277143
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277140
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 2
+        AntiqueType: 15
+        Century: 0
+        Country: 13
+        Condition: 0
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 0
+        AddSupplyPressure: 0
+    - rid: 1280112227729277141
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 2
+        AntiqueType: 6
+        Century: 0
+        Country: 13
+        Condition: 0
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 0
+        AddSupplyPressure: 0
+    - rid: 1280112227729277142
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 2
+        AntiqueType: 9
+        Century: 0
+        Country: 13
+        Condition: 0
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 0
+        AddSupplyPressure: 0
+    - rid: 1280112227729277143
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 13
+        Century: 0
+        tempSupplyChange: 0.75
+        permSupplyChange: 0

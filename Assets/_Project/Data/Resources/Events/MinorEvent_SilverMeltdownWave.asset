@@ -15,15 +15,21 @@ MonoBehaviour:
   id: 62c024a18c4840a1be3879d256b646d8
   DisplayName: Silver Melt Wave Thins the Coin Market
   EventType: 1
-  Description: With bullion prices high, lesser coins {are being|will be} melted for their metal rather than sold to collectors. Fewer specimens {survive|will survive} each week.
-  DurationDays: 6
-  MinLeadDays: 2
-  MaxLeadDays: 7
+  Description: With bullion prices high, lesser coins {are being|will be} melted
+    for their metal rather than sold to collectors. Fewer specimens {survive|will
+    survive} each week.
+  DurationWeeks: 4
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
   PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: -1
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
-  OfficialAnnouncementDaysBefore: 1
+  OfficialAnnouncementWeeksBefore: 1
   CreateRumour: 1
   RumorCredibility: 0.5
   CreateLeak: 0

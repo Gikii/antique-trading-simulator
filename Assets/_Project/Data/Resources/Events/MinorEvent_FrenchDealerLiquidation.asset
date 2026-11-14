@@ -15,15 +15,21 @@ MonoBehaviour:
   id: 8aa22dec65dc4f508d9afa322c257d77
   DisplayName: Paris Dealer Liquidates Stock
   EventType: 1
-  Description: A long-established Paris dealer {is closing|will close} and {is selling|will sell} the entire shop at trade prices. French pieces {are everywhere|will be everywhere} for a few weeks.
-  DurationDays: 5
-  MinLeadDays: 2
-  MaxLeadDays: 6
+  Description: A long-established Paris dealer {is closing|will close} and {is selling|will
+    sell} the entire shop at trade prices. French pieces {are everywhere|will be
+    everywhere} for a few weeks.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
   PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: -1
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
-  OfficialAnnouncementDaysBefore: 1
+  OfficialAnnouncementWeeksBefore: 1
   CreateRumour: 1
   RumorCredibility: 0.5
   CreateLeak: 1

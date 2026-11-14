@@ -1,0 +1,95 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_LisbonDiscoveriesExhibition
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 432e2473cd534f7497499efdf87ed2ca
+  DisplayName: Lisbon Remembers the Age of Discovery
+  EventType: 1
+  Description: Lisbon {is holding|will hold} an exhibition in honour of its navigators,
+    with charts, tiles and treasures brought out of the old houses. The age of the
+    caravels {has caught|will catch} the fancy of collectors, and a few families
+    {are offering|will offer} pieces quietly to the trade.
+  DurationWeeks: 4
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 7
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 7
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277065
+  - rid: 1280112227729277066
+  - rid: 1280112227729277067
+  - rid: 1280112227729277068
+  - rid: 1280112227729277069
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277065
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 6
+        Century: 0
+        tempDemandChange: 1.5
+        permDemandChange: 0
+    - rid: 1280112227729277066
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 2
+        AntiqueType: 0
+        Country: 0
+        Century: 16
+        tempDemandChange: 0.75
+        permDemandChange: 0
+    - rid: 1280112227729277067
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 11
+        Country: 0
+        Century: 0
+        tempDemandChange: 0.5
+        permDemandChange: 0
+    - rid: 1280112227729277068
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 2
+        AntiqueType: 0
+        Century: 16
+        Country: 6
+        Condition: 0
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 2
+        AddSupplyPressure: 0
+    - rid: 1280112227729277069
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 6
+        Century: 0
+        tempSupplyChange: 0.5
+        permSupplyChange: 0

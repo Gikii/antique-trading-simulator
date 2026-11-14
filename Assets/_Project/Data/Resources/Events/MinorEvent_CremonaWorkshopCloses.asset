@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_CremonaWorkshopCloses
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: f83bd07e4a3b465e894cdae5cd13df7e
+  DisplayName: A Cremona Workshop Sells Its Patterns
+  EventType: 1
+  Description: The last of the old violin workshops in Cremona {has closed|is closing},
+    and its moulds, tools and unfinished instruments {are being|will be} sold. Collectors
+    and dealers {are arriving|will arrive} from every capital, and Italian instruments
+    {are|will be} the talk of the trade.
+  DurationWeeks: 3
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277201
+  - rid: 1280112227729277202
+  - rid: 1280112227729277203
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277201
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 3
+        AntiqueType: 16
+        Century: 0
+        Country: 3
+        Condition: 0
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 2
+        AddSupplyPressure: 0
+    - rid: 1280112227729277202
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 16
+        Country: 0
+        Century: 0
+        tempDemandChange: 1
+        permDemandChange: 0
+    - rid: 1280112227729277203
+      type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 16
+        Country: 0
+        Century: 0
+        tempSupplyChange: 0.5
+        permSupplyChange: 0

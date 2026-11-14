@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_BibliophileSocietyFounded
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: c6140f8c440e4ec5a44ff92b98238c1b
+  DisplayName: A Bibliophile Club Is Founded
+  EventType: 1
+  Description: A club of wealthy book collectors {has been|will be} founded in the
+    capital, with a library to fill and a rule against anything printed after 1600.
+    Its members {are bidding|will bid} hard for early printing, and booksellers {are
+    raising|will raise} their catalogue prices to match.
+  DurationWeeks: 5
+  MinLeadWeeks: 2
+  MaxLeadWeeks: 6
+  PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 15
+  FailureChance: 0
+  CanBeFakeNews: 1
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 1
+  CreateRumour: 1
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.9
+  Effects:
+  - rid: 1280112227729277074
+  - rid: 1280112227729277075
+  - rid: 1280112227729277076
+  - rid: 1280112227729277077
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277074
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 0
+        AntiqueType: 8
+        Country: 0
+        Century: 0
+        tempDemandChange: 1.5
+        permDemandChange: 0
+    - rid: 1280112227729277075
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 2
+        AntiqueType: 0
+        Country: 0
+        Century: 15
+        tempDemandChange: 1
+        permDemandChange: 0
+    - rid: 1280112227729277076
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 2
+        AntiqueType: 0
+        Country: 0
+        Century: 16
+        tempDemandChange: 0.5
+        permDemandChange: 0
+    - rid: 1280112227729277077
+      type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 1
+        Scope: 1
+        AntiqueType: 8
+        Century: 0
+        Country: 0
+        Quantity: 0
+        MinCondition: 0.7
+        DurationWeeks: 6
+        RewardPerUnit: 0
+        Type: 2
+        Penalty: -1
+        ClassName: Premium
+        RequiredReputation: -1

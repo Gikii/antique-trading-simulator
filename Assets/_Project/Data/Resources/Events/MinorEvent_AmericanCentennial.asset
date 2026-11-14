@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23c17f38b81dc743a45ab1859a6b707, type: 3}
+  m_Name: MinorEvent_AmericanCentennial
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Events.EventDefinition
+  id: 9339590e35db4249b69ebf9fb262cd95
+  DisplayName: Centennial Fever Across the Atlantic
+  EventType: 1
+  Description: The Americans {are celebrating|will celebrate} a hundred years of
+    their republic with an exhibition in Philadelphia. Families {are looking|will
+    look} for chairs and silver from the founding years, and their agents {are cabling|will
+    cable} offers to dealers on this side of the ocean.
+  DurationWeeks: 6
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: 1
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
+  AllowedSeasons: 3
+  FailureChance: 0
+  CanBeFakeNews: 0
+  CreateOfficialNews: 1
+  OfficialAnnouncementWeeksBefore: 2
+  CreateRumour: 0
+  RumorCredibility: 0.5
+  CreateLeak: 1
+  LeakCredibility: 0.95
+  Effects:
+  - rid: 1280112227729277036
+  - rid: 1280112227729277037
+  - rid: 1280112227729277038
+  references:
+    version: 2
+    RefIds:
+    - rid: 1280112227729277036
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 1
+        AntiqueType: 0
+        Country: 14
+        Century: 0
+        tempDemandChange: 2
+        permDemandChange: 0.5
+    - rid: 1280112227729277037
+      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        Scope: 2
+        AntiqueType: 0
+        Country: 0
+        Century: 18
+        tempDemandChange: 0.75
+        permDemandChange: 0
+    - rid: 1280112227729277038
+      type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 2
+        Scope: 2
+        AntiqueType: 0
+        Century: 0
+        Country: 14
+        Quantity: 0
+        MinCondition: 0
+        DurationWeeks: 6
+        RewardPerUnit: 0
+        Type: 0
+        Penalty: -1
+        ClassName: 
+        RequiredReputation: -1
