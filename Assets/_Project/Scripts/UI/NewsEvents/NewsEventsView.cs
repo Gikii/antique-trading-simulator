@@ -929,15 +929,15 @@ namespace AntiqueTradingSimulator.UI
 
             ClearNewsList();
 
+            int currentWeek = timeManager.CurrentWeek;
+
             WeekEntries.Collect(
                 weekViewWeek,
                 eventManager,
                 newsManager,
-                NewsPresentation.GetAccessLevel(player),
+                currentWeek,
                 weekEntries
             );
-
-            int currentWeek = timeManager.CurrentWeek;
 
             // Same order as the list under the calendar: events first, then news in publishing order.
             foreach (WeekEntry entry in weekEntries)
