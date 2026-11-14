@@ -175,8 +175,8 @@ namespace AntiqueTradingSimulator.Seasons
                 isInsider ? NewsType.Leak : NewsType.Rumor,
                 accuracy,
                 week,
-                State.ForecastSeasonStart,
-                guaranteedDelivery: !isInsider);
+                isInsider ? InfoAccessLevel.InformantNetwork : InfoAccessLevel.LocalPress,
+                State.ForecastSeasonStart);
 
             Debug.Log($"SeasonWeather: forecast published — {title} (accuracy {accuracy:P0}, real: {State.Upcoming}).");
             _publish(item);

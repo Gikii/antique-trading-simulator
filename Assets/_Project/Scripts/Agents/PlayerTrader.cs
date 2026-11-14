@@ -45,12 +45,6 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>The player's company (reputation, upgrades, statistics). Added automatically if missing.</summary>
         public CompanyManager Company { get; private set; }
 
-        public override void ReceiveNews(News.NewsItem news, int deliveryWeek)
-        {
-            if (news == null) return;
-            news.PlayerDeliveryWeek = deliveryWeek;
-        }
-
         // Contract lifecycle from the player's point of view — CompanyManager turns these
         // into statistics, reputation and credibility.
         public event Action<Contract> OnContractAccepted;
