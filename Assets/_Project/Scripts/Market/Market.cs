@@ -292,6 +292,29 @@ namespace AntiqueTradingSimulator.Market
             return true;
         }
 
+        /// <summary>
+        /// An antique handed over to a contract's client leaves the game with them — a sale outside the
+        /// market. It was in a warehouse, not on offer, so supply is untouched; the sale is a signal of
+        /// interest like any purchase (the same demand nudge as buying pressure), and it goes into the
+        /// market history. The client's own waiting demand is removed separately by ContractManager.
+        /// </summary>
+        /// <param name="pricePaid">What the client paid for this antique (the contract's reward per unit).</param>
+        public void RecordContractDelivery(Antique antique, string supplierId, float pricePaid)
+        {
+            if (antique == null) return;
+
+            var typeState = GetTypeState(antique.DefinitionId);
+            if (typeState != null)
+            {
+                float demandBefore = typeState.Demand;
+                typeState.Demand += 0.1f;
+                ReportPressure(antique.DefinitionId, typeState.Demand - demandBefore, 0f);
+                RecalculatePricesForDefinition(antique.DefinitionId);
+            }
+
+            Feed.AddContractDelivery(antique.Name, supplierId, pricePaid);
+        }
+
         private void SettleOwnerListing(Antique listing)
         {
             float price = listing.AskingPrice;

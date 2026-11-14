@@ -174,6 +174,7 @@ namespace AntiqueTradingSimulator.UI
                 "Pick exactly as many antiques as the contract asks for — they are handed over the moment you confirm.",
                 "Antiques currently listed on the market can't be handed in; cancel the listing first.",
                 "Antiques still in transit are shown greyed out — they can be handed in once they arrive.",
+                "Only antiques whose current market value reaches the contract's minimum are listed — a market drop can push one out.",
                 "The payout is the same whichever matching antiques you choose, so handing in your cheapest ones is usually best.",
             };
 
@@ -188,19 +189,19 @@ namespace AntiqueTradingSimulator.UI
         {
             var req = contract.Requirement;
 
-            string attribute = req.Scope switch
-            {
-                ContractAttributeScope.AntiqueType => req.AntiqueType.ToDisplayString(),
-                ContractAttributeScope.Country => req.Country.ToDisplayString(),
-                ContractAttributeScope.Century => req.Century.ToDisplayString(),
-                _ => "Any"
-            };
+            string attribute = req.AttributesLabel();
 
             SetText(subtitleText, $"{req.Quantity}x {attribute}");
-            SetText(requirementText, req.HasMinCondition
-                ? $"Required: {req.Quantity}x {attribute}, condition ≥ {UIFormat.Percent(req.MinCondition)}"
-                : $"Required: {req.Quantity}x {attribute}");
-            SetText(payoutText, $"Payout: {UIFormat.Colorize(UIFormat.Money(contract.TotalReward), UIFormat.PositiveColor)}");
+
+            string required = $"Required: {req.Quantity}x {attribute}";
+            if (req.HasMinCondition) required += $", condition ≥ {UIFormat.Percent(req.MinCondition)}";
+            // The tolerance is applied here, so the number matches what the list below accepts.
+            if (req.HasMinValue) required += $", value ≥ {UIFormat.Money(req.MinAcceptedValue)}";
+            SetText(requirementText, required);
+
+            string premium = ContractDisplay.PremiumText(contract);
+            SetText(payoutText, $"Payout: {UIFormat.Colorize(UIFormat.Money(contract.TotalReward), UIFormat.PositiveColor)}" +
+                                (string.IsNullOrEmpty(premium) ? "" : $"  {UIFormat.Colorize($"({premium})", UIFormat.MutedColor)}"));
         }
 
         private void RebuildList()

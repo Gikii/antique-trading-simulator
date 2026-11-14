@@ -89,8 +89,35 @@ namespace AntiqueTradingSimulator.Company
         public int ExclusiveContractBonusReputation = 10;
         public float ContractFulfilledCredibility = 0.03f;
         public float ExclusiveContractBonusCredibility = 0.02f;
-        public int ContractFailedReputation = -25;
+        [Tooltip("Reputation lost for a contract that runs out unfulfilled, before the part scaled by its reward.")]
+        public int ContractFailedReputation = -15;
+        [Tooltip("Extra reputation lost per £ of a failed contract's reward (0.01 = −1 per 100 £): failing a big " +
+                 "contract hurts more, just as fulfilling it helps more.")]
+        [Min(0f)] public float ReputationLostPerContractReward = 0.01f;
         public float ContractFailedCredibility = -0.08f;
+
+        /// <summary>Reputation a trader gains for fulfilling this contract (TraderRecord applies it; the UI shows it).</summary>
+        public int ReputationGainFor(Contracts.Contract contract)
+        {
+            if (contract == null) return ContractFulfilledReputation;
+
+            return ContractFulfilledReputation
+                   + Mathf.RoundToInt(contract.TotalReward * ReputationPerContractReward)
+                   + (contract.Type == Contracts.ContractType.Exclusive ? ExclusiveContractBonusReputation : 0);
+        }
+
+        /// <summary>Credibility a trader gains for fulfilling this contract (exclusive ones count for more).</summary>
+        public float CredibilityGainFor(Contracts.Contract contract) =>
+            ContractFulfilledCredibility +
+            (contract != null && contract.Type == Contracts.ContractType.Exclusive ? ExclusiveContractBonusCredibility : 0f);
+
+        /// <summary>Reputation change (negative) for failing this contract — scaled by its reward like the gain.</summary>
+        public int ReputationLossFor(Contracts.Contract contract)
+        {
+            if (contract == null) return ContractFailedReputation;
+
+            return ContractFailedReputation - Mathf.RoundToInt(contract.TotalReward * ReputationLostPerContractReward);
+        }
 
         [Header("Market sales")]
         [Tooltip("Reputation per € of market sales, summed per week (0.02 = +1 per 50 £).")]

@@ -34,16 +34,18 @@ namespace AntiqueTradingSimulator.Events
         [Tooltip("Maximum number of contracts created.")]
         public int MaxCount = 1;
 
-        [Tooltip("Scope of the contract. Leave at Random to roll a scope.")]
+        [Tooltip("Primary attribute of the contract (its picture and news). Leave at Random to roll one — " +
+                 "or to use the first attribute given a value below.")]
         public RequirementScope Scope = RequirementScope.Random;
 
-        [Tooltip("Used when the resolved scope is AntiqueType. Leave at Other to roll a type.")]
+        [Tooltip("Required type. Leave at Other to leave it out (or roll it, when it's the Scope). " +
+                 "Setting two of type / century / country makes a pair, e.g. Porcelain · 18th century.")]
         public AntiqueType AntiqueType = AntiqueType.Other;
 
-        [Tooltip("Used when the resolved scope is Century. Leave at Unknown to roll a century.")]
+        [Tooltip("Required century. Leave at Unknown to leave it out (or roll it, when it's the Scope).")]
         public Century Century = Century.Unknown;
 
-        [Tooltip("Used when the resolved scope is Country. Leave at Other to roll a country.")]
+        [Tooltip("Required country. Leave at Other to leave it out (or roll it, when it's the Scope).")]
         public Country Country = Country.Other;
 
         [Tooltip("How many antiques the client wants. 0 = rolled from the contract class's range.")]
@@ -52,6 +54,9 @@ namespace AntiqueTradingSimulator.Events
         [Tooltip("0 = rolled from the contract class's range.")]
         [Range(0f, Antique.MaxCondition)]
         public float MinCondition = 0f;
+
+        [Tooltip("Lowest market value (£) each antique must have; the reward is priced from it. 0 = rolled from the contract class's value range.")]
+        [Min(0f)] public float MinValue = 0f;
 
         [Tooltip("Weeks the player gets. 0 = rolled. A value above the ContractManager's Max Duration Days is honoured.")]
         [FormerlySerializedAs("DurationDays")]
@@ -121,6 +126,7 @@ namespace AntiqueTradingSimulator.Events
                 Country = Country,
                 Quantity = Quantity,
                 MinCondition = MinCondition,
+                MinValue = MinValue,
                 DurationWeeks = DurationWeeks,
                 RewardPerUnit = RewardPerUnit,
                 Type = Type,
@@ -140,15 +146,35 @@ namespace AntiqueTradingSimulator.Events
                 ClassName = ResolveClassName()
             };
 
-            if (scope == ContractAttributeScope.AntiqueType && AntiqueType != AntiqueType.Other)
+            // Every attribute given a value is required — the Scope's one first, any others with it
+            // (AntiqueType = Porcelain + Century = 18th → "Porcelain · 18th century").
+            var attributes = ContractAttributes.None;
+            if (AntiqueType != AntiqueType.Other)
+            {
                 overrides.AntiqueType = AntiqueType;
-            if (scope == ContractAttributeScope.Country && Country != Country.Other)
+                attributes |= ContractAttributes.AntiqueType;
+            }
+            if (Country != Country.Other)
+            {
                 overrides.Country = Country;
-            if (scope == ContractAttributeScope.Century && Century != Century.Unknown)
+                attributes |= ContractAttributes.Country;
+            }
+            if (Century != Century.Unknown)
+            {
                 overrides.Century = Century;
+                attributes |= ContractAttributes.Century;
+            }
+
+            if (scope.HasValue)
+            {
+                attributes |= scope.Value.ToFlag();
+                // Exactly the attributes given — no random second one on top of a designed contract.
+                overrides.Attributes = attributes;
+            }
 
             if (Quantity > 0) overrides.Quantity = Quantity;
             if (MinCondition > 0f) overrides.MinCondition = MinCondition;
+            if (MinValue > 0f) overrides.MinValue = MinValue;
             if (DurationWeeks > 0) overrides.DurationWeeks = DurationWeeks;
             if (RewardPerUnit > 0f) overrides.RewardPerUnit = RewardPerUnit;
             if (Penalty >= 0f) overrides.Penalty = Penalty;

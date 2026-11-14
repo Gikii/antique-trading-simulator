@@ -15,7 +15,7 @@ namespace AntiqueTradingSimulator.Contracts
 
 
         public int CreatedWeek { get; }
-        public int DurationWeeks { get; set; }
+        public int DurationWeeks { get; }
         public int DeadlineWeek => CreatedWeek + DurationWeeks;
 
         public float RewardPerUnit { get; }
@@ -24,9 +24,9 @@ namespace AntiqueTradingSimulator.Contracts
         public float Penalty { get; }
 
         /// <summary>
-        /// Reputation the player needs to accept this contract (0 = anyone). Reputation only gives
-        /// access to better clients — it never changes a contract's reward. NPCs, who have no
-        /// reputation, don't take contracts that require any.
+        /// Reputation a trader needs to accept this contract (0 = anyone). Applies to the player and
+        /// to NPCs alike (each has its own TraderRecord). Reputation only gives access to better
+        /// clients — it never changes a contract's reward.
         /// </summary>
         public int RequiredReputation { get; }
 
@@ -36,15 +36,16 @@ namespace AntiqueTradingSimulator.Contracts
         public bool RequiresReputation => RequiredReputation > 0;
 
         public ContractStatus Status { get; private set; } = ContractStatus.Active;
-        public int DeliveredQuantity { get; private set; }
-        public int RemainingQuantity => Mathf.Max(0, Requirement.Quantity - DeliveredQuantity);
-        public bool IsFulfilled => DeliveredQuantity >= Requirement.Quantity;
 
         public string ClaimedByTraderId { get; private set; }
         public bool IsClaimed => ClaimedByTraderId != null;
         public bool CanBeClaimed => Type == ContractType.Exclusive && Status == ContractStatus.Active && !IsClaimed;
 
-        public event Action<Contract> OnContractExpired;
+        /// <summary>
+        /// Who delivered the contract (Antique.PlayerOwnerId or an NPC id); null while it is active
+        /// or when it expired. Lets everyone else who was working on an open contract tell that they lost the race.
+        /// </summary>
+        public string FulfilledByTraderId { get; private set; }
 
         public Contract(ContractType type, ContractRequirement requirement, int createdWeek, int durationWeeks, int maxDurationWeeks, float rewardPerUnit, float penalty,
             int requiredReputation = 0, string className = "")
@@ -80,12 +81,20 @@ namespace AntiqueTradingSimulator.Contracts
             RequiredReputation = Mathf.Max(0, state.RequiredReputation);
             ClassName = state.ClassName ?? "";
             Status = state.Status;
-            DeliveredQuantity = state.DeliveredQuantity;
             ClaimedByTraderId = state.ClaimedByTraderId;
+            // Saves from before this field existed: null (the fulfiller is unknown).
+            FulfilledByTraderId = state.FulfilledByTraderId;
         }
 
 
-        public float ReferenceValue(Market.Market market) => Requirement.AverageReferenceUnitPrice(market) * RemainingQuantity;
+        /// <summary>
+        /// How much the payout is above the market value of the cheapest antiques that qualify
+        /// (MinValue × quantity) — what the contract earns over simply selling them. Null for
+        /// contracts without a value floor (older saves).
+        /// </summary>
+        public float? Premium => Requirement.HasMinValue
+            ? TotalReward - Requirement.MinValue * Requirement.Quantity
+            : (float?)null;
 
         public bool CanBeFulfilledBy(string traderId)
         {
@@ -101,9 +110,10 @@ namespace AntiqueTradingSimulator.Contracts
             return true;
         }
 
-        public void SetStatusFulfilled()
+        public void SetStatusFulfilled(string traderId)
         {
             Status = ContractStatus.Fulfilled;
+            FulfilledByTraderId = traderId;
         }
 
         public void SetStatusExpired()

@@ -66,6 +66,13 @@ namespace AntiqueTradingSimulator.Art
             if (requirement == null)
                 return catalog != null ? catalog.GenericContract : null;
 
+            // A pair that includes the type shows the type — the most recognisable picture of the three.
+            if (requirement.Scope != ContractAttributeScope.AntiqueType && requirement.Uses(ContractAttributeScope.AntiqueType))
+            {
+                var typeSprite = ForType(requirement.AntiqueType);
+                if (typeSprite != null) return typeSprite;
+            }
+
             Sprite sprite = null;
             switch (requirement.Scope)
             {

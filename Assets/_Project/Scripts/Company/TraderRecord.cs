@@ -91,10 +91,8 @@ namespace AntiqueTradingSimulator.Company
             var s = Settings;
             bool exclusive = contract.Type == ContractType.Exclusive;
 
-            int reputation = s.ContractFulfilledReputation
-                             + Mathf.RoundToInt(contract.TotalReward * s.ReputationPerContractReward)
-                             + (exclusive ? s.ExclusiveContractBonusReputation : 0);
-            float credibility = s.ContractFulfilledCredibility + (exclusive ? s.ExclusiveContractBonusCredibility : 0f);
+            int reputation = s.ReputationGainFor(contract);
+            float credibility = s.CredibilityGainFor(contract);
 
             Reputation.AddReputation(reputation, exclusive ? $"Exclusive contract fulfilled ({contract.Requirement})" : $"Contract fulfilled ({contract.Requirement})", week);
             Reputation.AddCredibility(credibility, $"Contract delivered on time ({contract.Requirement})", week);
@@ -106,7 +104,7 @@ namespace AntiqueTradingSimulator.Company
 
             var s = Settings;
             string what = contract != null ? $" ({contract.Requirement})" : "";
-            Reputation.AddReputation(s.ContractFailedReputation, "Failed to deliver contract" + what, week);
+            Reputation.AddReputation(s.ReputationLossFor(contract), "Failed to deliver contract" + what, week);
             Reputation.AddCredibility(s.ContractFailedCredibility, "Contract deadline missed" + what, week);
         }
 

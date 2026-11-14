@@ -66,12 +66,15 @@ namespace AntiqueTradingSimulator.UI
         private string _selectedContractId;
         private Action<Contract> _onSelect;
         private Func<Contract, string> _lockReason;
+        private Func<Contract, bool> _isAccepted;
 
         /// <param name="lockReason">Optional: why a contract is locked for the player, null/empty if it isn't.</param>
-        public void Initialize(Action<Contract> onSelect, Func<Contract, string> lockReason = null)
+        /// <param name="isAccepted">Optional: true for rows to show dimmed and marked "Accepted".</param>
+        public void Initialize(Action<Contract> onSelect, Func<Contract, string> lockReason = null, Func<Contract, bool> isAccepted = null)
         {
             _onSelect = onSelect;
             _lockReason = lockReason;
+            _isAccepted = isAccepted;
 
             if (typeFilterDropdown != null)
                 typeFilterDropdown.onValueChanged.AddListener(SetTypeFilter);
@@ -178,7 +181,8 @@ namespace AntiqueTradingSimulator.UI
                         if (rowRT != null) rowRT.sizeDelta = new Vector2(rowRT.sizeDelta.x, rowHeight);
                     }
 
-                    rowUI.Setup(contract, _currentWeek, HandleRowClicked, _lockReason?.Invoke(contract));
+                    rowUI.Setup(contract, _currentWeek, HandleRowClicked, _lockReason?.Invoke(contract),
+                        _isAccepted != null && _isAccepted(contract));
                     rowUI.SetSelected(contract.ContractId == _selectedContractId);
                     _spawnedRows.Add(rowUI);
                 }
@@ -230,7 +234,8 @@ namespace AntiqueTradingSimulator.UI
             if (_attributeFilter != ContractAttributeFilter.All)
             {
                 var scope = (ContractAttributeScope)((int)_attributeFilter - 1);
-                result = result.Where(c => c.Requirement.Scope == scope);
+                // A pair (e.g. Porcelain · 18th century) shows under both of its attributes.
+                result = result.Where(c => c.Requirement.Uses(scope));
             }
 
             result = _sortMode switch

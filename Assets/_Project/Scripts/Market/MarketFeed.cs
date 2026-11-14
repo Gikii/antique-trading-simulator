@@ -19,7 +19,10 @@ namespace AntiqueTradingSimulator.Market
         SoldToMarket,
 
         AuctionSold,
-        AuctionUnsold
+        AuctionUnsold,
+
+        /// <summary>A trader (or the player) handed an antique over to a contract's client. Last, so saved values keep their meaning.</summary>
+        ContractDelivery
     }
 
     /// <summary>One line of the market history. Plain data, saved as is.</summary>
@@ -47,7 +50,7 @@ namespace AntiqueTradingSimulator.Market
 
         /// <summary>A real sale to a buyer (counts toward the week's turnover).</summary>
         public bool IsSale => Kind == MarketFeedKind.Purchase || Kind == MarketFeedKind.CollectorPurchase ||
-                              Kind == MarketFeedKind.AuctionSold;
+                              Kind == MarketFeedKind.AuctionSold || Kind == MarketFeedKind.ContractDelivery;
     }
 
     /// <summary>The player's trading over the whole campaign, kept even after old entries drop out.</summary>
@@ -154,6 +157,14 @@ namespace AntiqueTradingSimulator.Market
             {
                 Kind = MarketFeedKind.AuctionSold, AntiqueName = antiqueName ?? "",
                 BuyerId = buyerId ?? "", Price = hammerPrice
+            });
+
+        /// <param name="price">What the client paid for this one antique (the contract's reward per unit).</param>
+        public void AddContractDelivery(string antiqueName, string supplierId, float price) =>
+            Add(new MarketFeedEntry
+            {
+                Kind = MarketFeedKind.ContractDelivery, AntiqueName = antiqueName ?? "",
+                SellerId = supplierId ?? "", Price = price
             });
 
         public void AddAuctionUnsold(string antiqueName, float startPrice) =>

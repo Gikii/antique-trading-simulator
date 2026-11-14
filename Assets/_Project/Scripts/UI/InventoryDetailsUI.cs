@@ -298,7 +298,7 @@ namespace AntiqueTradingSimulator.UI
 
                 // For an owner, high demand is good news and high supply is bad news.
                 SetText(demandText, $"Demand: {LevelLabel(demand, typeState.BaselineDemand, higherIsGood: true)}" +
-                                    SeasonalDemandNote(typeState));
+                                    SeasonalDemandNote(typeState) + ContractDemandNote(typeState));
                 SetText(supplyText, $"Supply: {LevelLabel(supply, typeState.BaselineSupply, higherIsGood: false)}");
 
                 float referencePrice = PriceEngine.CalculateReferencePrice(antique.BasePrice, typeState);
@@ -325,6 +325,17 @@ namespace AntiqueTradingSimulator.UI
 
             string text = percent > 0 ? $"season +{percent}%" : $"season {percent}%";
             return " " + UIFormat.Colorize($"· {text}", UIFormat.MutedColor);
+        }
+
+        /// <summary>" · contracts +6%" when open contracts' clients raise this type's demand by at least 1%, otherwise "".</summary>
+        private static string ContractDemandNote(AntiqueTradingSimulator.Market.AntiqueMarketState typeState)
+        {
+            if (typeState.BaselineDemand <= 0f) return "";
+
+            int percent = Mathf.RoundToInt(typeState.ContractDemandMod / typeState.BaselineDemand * 100f);
+            if (percent <= 0) return "";
+
+            return " " + UIFormat.Colorize($"· contracts +{percent}%", UIFormat.MutedColor);
         }
 
         private static string LevelLabel(float value, float baseline, bool higherIsGood)

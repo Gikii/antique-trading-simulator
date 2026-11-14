@@ -27,11 +27,15 @@ namespace AntiqueTradingSimulator.UI
         private Contract _contract;
         private Action<Contract> _onClick;
 
+        /// <summary>Opacity of a row the player has already accepted — still readable and clickable, but set back.</summary>
+        private const float AcceptedRowAlpha = 0.5f;
+
         /// <param name="lockReason">
         /// Why the player can't take this contract because of reputation (shown as a tooltip and
         /// a "Locked" badge), or null/empty when it isn't locked.
         /// </param>
-        public void Setup(Contract contract, int currentWeek, Action<Contract> onClick, string lockReason = null)
+        /// <param name="accepted">The player has already accepted it: the row is dimmed and marked "Accepted".</param>
+        public void Setup(Contract contract, int currentWeek, Action<Contract> onClick, string lockReason = null, bool accepted = false)
         {
             _contract = contract;
             _onClick = onClick;
@@ -57,17 +61,28 @@ namespace AntiqueTradingSimulator.UI
                 deadlineText.text = UIFormat.Weeks(weeksLeft); // was "{n}d" from before the switch to weeks
             }
 
-            bool locked = !string.IsNullOrEmpty(lockReason);
+            bool locked = !accepted && !string.IsNullOrEmpty(lockReason);
 
             if (typeBadgeText != null)
-                typeBadgeText.text = locked
-                    ? UIFormat.Colorize($"{ContractDisplay.TypeLabel(contract)} · Locked", UIFormat.NegativeColor)
-                    : ContractDisplay.TypeLabel(contract);
+                typeBadgeText.text = accepted
+                    ? $"{ContractDisplay.TypeLabel(contract)} · {UIFormat.Colorize("Accepted", UIFormat.PositiveColor)}"
+                    : locked
+                        ? UIFormat.Colorize($"{ContractDisplay.TypeLabel(contract)} · Locked", UIFormat.NegativeColor)
+                        : ContractDisplay.TypeLabel(contract);
 
-            // Row-wide tooltip, only while locked (empty text = no tooltip).
+            // Dimmed, not hidden: an accepted open contract stays on the board until someone delivers it.
+            var group = GetComponent<CanvasGroup>();
+            if (group == null && accepted) group = gameObject.AddComponent<CanvasGroup>();
+            if (group != null) group.alpha = accepted ? AcceptedRowAlpha : 1f;
+
+            // Row-wide tooltip, only while locked or accepted (empty text = no tooltip).
+            string tooltipText = accepted
+                ? "You've accepted this contract — deliver it from My Contracts."
+                : locked ? lockReason : "";
+
             var tooltipTarget = selectButton != null ? (Component)selectButton : this;
-            var tooltip = locked ? TooltipTrigger.On(tooltipTarget) : tooltipTarget.GetComponent<TooltipTrigger>();
-            if (tooltip != null) tooltip.Text = locked ? lockReason : "";
+            var tooltip = !string.IsNullOrEmpty(tooltipText) ? TooltipTrigger.On(tooltipTarget) : tooltipTarget.GetComponent<TooltipTrigger>();
+            if (tooltip != null) tooltip.Text = tooltipText;
 
             if (selectButton != null)
             {

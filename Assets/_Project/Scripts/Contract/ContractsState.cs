@@ -31,9 +31,10 @@ namespace AntiqueTradingSimulator.Contracts
         public string ClassName;
 
         public ContractStatus Status;
-        public int DeliveredQuantity;
+        // Saves from when partial deliveries were planned also carry a DeliveredQuantity — always 0, ignored on load.
 
         public string ClaimedByTraderId;
+        public string FulfilledByTraderId;
 
         public static ContractState Capture(Contract contract)
         {
@@ -51,8 +52,8 @@ namespace AntiqueTradingSimulator.Contracts
                 RequiredReputation = contract.RequiredReputation,
                 ClassName = contract.ClassName,
                 Status = contract.Status,
-                DeliveredQuantity = contract.DeliveredQuantity,
-                ClaimedByTraderId = contract.ClaimedByTraderId
+                ClaimedByTraderId = contract.ClaimedByTraderId,
+                FulfilledByTraderId = contract.FulfilledByTraderId
             };
         }
 

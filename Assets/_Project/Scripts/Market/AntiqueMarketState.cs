@@ -39,8 +39,16 @@ namespace AntiqueTradingSimulator.Market
         /// </summary>
         public float SeasonalDemandMod;
 
-        /// <summary>The demand prices, collectors and the UI work with: own + temporary (events, dependencies) + seasonal.</summary>
-        public float EffectiveDemand => Demand + TempDemandMod + SeasonalDemandMod;
+        /// <summary>
+        /// Demand from the clients of open contracts that this type can satisfy — buyers waiting outside
+        /// the market. Set (not added to) by ContractManager whenever the board changes, and rebuilt from
+        /// the contracts after loading, so it isn't saved. Kept apart from TempDemandMod for the same
+        /// reason as the seasonal part: nothing else may overwrite it, and the UI can show it on its own.
+        /// </summary>
+        public float ContractDemandMod;
+
+        /// <summary>The demand prices, collectors and the UI work with: own + temporary (events, dependencies) + seasonal + open contracts.</summary>
+        public float EffectiveDemand => Demand + TempDemandMod + SeasonalDemandMod + ContractDemandMod;
 
         public List<PricePoint> PriceHistory = new List<PricePoint>();
         private const int MaxHistoryWeeks = 90;
