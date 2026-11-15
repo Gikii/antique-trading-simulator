@@ -52,6 +52,11 @@ namespace AntiqueTradingSimulator.UI
         private bool _subscribed;
         private FeedList _list;
 
+        private bool _rebuildPending;
+        private bool _wasAtTop;
+
+        private const int MaxRenderedEntries = 40;
+
         // ------------------------------------------------------------------ lifecycle
 
         private void Awake()
@@ -103,6 +108,7 @@ namespace AntiqueTradingSimulator.UI
         private void OnDisable()
         {
             Unsubscribe();
+            _rebuildPending = false;
         }
 
         private void Subscribe()
@@ -144,14 +150,27 @@ namespace AntiqueTradingSimulator.UI
 
         private void HandleChanged()
         {
-            bool wasAtTop = scrollRect == null || scrollRect.verticalNormalizedPosition >= 0.999f;
-            Rebuild();
-            if (wasAtTop)
-                ScrollToTop();
+            if (!_rebuildPending)
+                _wasAtTop = scrollRect == null || scrollRect.verticalNormalizedPosition >= 0.999f;
+
+            _rebuildPending = true;
         }
 
         // "This week" / "Last week" headings move on with the calendar.
         private void HandleWeekChanged(int week) => HandleChanged();
+
+        private void LateUpdate()
+        {
+            if (!_rebuildPending)
+                return;
+
+            _rebuildPending = false;
+
+            Rebuild();
+
+            if (_wasAtTop)
+                ScrollToTop();
+        }
 
         // ------------------------------------------------------------------ building
 
@@ -182,6 +201,7 @@ namespace AntiqueTradingSimulator.UI
 
             int currentWeek = timeManager != null ? timeManager.CurrentWeek : int.MinValue;
             int shownWeek = int.MinValue;
+            int rendered = 0;
 
             foreach (var entry in entries)
             {
@@ -197,12 +217,14 @@ namespace AntiqueTradingSimulator.UI
                 if (entry.Kind == ContractFeedKind.Listed)
                 {
                     _list.AddNote(entry.Count == 1 ? "+ 1 new contract listed" : $"+ {entry.Count} new contracts listed");
+                    rendered++;
                     continue;
                 }
 
                 string amount = AmountText(entry, out Color amountColor);
                 Color textColor = entry.Kind == ContractFeedKind.Expired ? _list.Muted : _list.Primary;
                 _list.AddEntry(MarkerColor(entry), Describe(entry), textColor, amount, amountColor);
+                rendered++;
             }
         }
 
@@ -271,7 +293,6 @@ namespace AntiqueTradingSimulator.UI
             if (scrollRect == null || content == null)
                 return;
 
-            Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(content);
             scrollRect.verticalNormalizedPosition = 1f;
         }
