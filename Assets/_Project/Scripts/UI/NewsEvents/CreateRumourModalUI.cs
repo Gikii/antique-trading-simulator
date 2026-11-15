@@ -497,7 +497,7 @@ namespace AntiqueTradingSimulator.Rumours
             // The headline traders will actually read, from the same wording a genuine rumour uses.
             SetText(claimSummaryText, claim.IsEmpty
                 ? "Name what the rumour covers"
-                : NewsWording.Headline(quote.Effects));
+                : NewsWording.Headline(quote.Effects, TextBudget.Normal));
 
             SetStepper(spreadStepper, NewsPresentation.WeeksLabel(spreadDelay),
                 TimeManager.FormatLong(timeManager.WeekToDate(quote.SpreadWeek)),

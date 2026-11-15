@@ -141,36 +141,15 @@ namespace AntiqueTradingSimulator.Rumours
         {
             var parts = new List<string>();
 
-            if (Types.Count > 0) parts.Add(Join(Types.Select(t => Plural(t))));
-            if (Countries.Count > 0) parts.Add(Join(Countries.Select(c => $"{c.ToDisplayString()} pieces")));
-            if (Centuries.Count > 0) parts.Add(Join(Centuries.Select(c => $"{c} century pieces")));
+            if (Types.Count > 0) parts.Add(Join(Types.Select(t => NewsVocabulary.Prose(t))));
+            if (Countries.Count > 0) parts.Add(Join(Countries.Select(c => NewsVocabulary.Prose(c))));
+            if (Centuries.Count > 0) parts.Add(Join(Centuries.Select(c => NewsVocabulary.Prose(c))));
 
             return parts.Count > 0 ? string.Join(", ", parts) : "nothing";
         }
 
-        // No headline or body here. A planted rumour is worded by NewsWording, the same way a
-        // genuine one is, so it cannot be spotted by its phrasing. Summary() above is for the
-        // composer, the ledger entry and the logs only, and is never shown as news.
-
-        private static string Plural(AntiqueType type) => type switch
-        {
-            AntiqueType.Silverware => "silverware",
-            AntiqueType.Textile => "textiles",
-            AntiqueType.Jewelry => "jewellery",
-            AntiqueType.Furniture => "furniture",
-            _ => type.ToDisplayString().ToLowerInvariant() + "s"
-        };
-
-        private static string Join(IEnumerable<string> values)
-        {
-            var list = values.ToList();
-            if (list.Count == 0) return "";
-            if (list.Count == 1) return list[0];
-
-            var text = new StringBuilder(string.Join(", ", list.Take(list.Count - 1)));
-            text.Append(" and ").Append(list[list.Count - 1]);
-            return text.ToString();
-        }
+        private static string Join(IEnumerable<string> values) =>
+            NewsWording.JoinNice(values.ToList());
 
         // ---------------------------------------------------------------- save / load
 

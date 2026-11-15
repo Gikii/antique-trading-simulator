@@ -84,9 +84,8 @@ namespace AntiqueTradingSimulator.UI
             if (button == null)
                 CacheReferences();
 
-            // All wording comes from NewsPresentation, so the calendar and details panel show the same texts.
-            titleText.text = NewsPresentation.GetTitle(news);
-            previewText.text = NewsPresentation.GetPreview(news);
+            titleText.text = NewsPresentation.GetTitle(news, TextBudget.Normal);
+            previewText.text = NewsPresentation.GetPreview(news, TextBudget.Normal);
             typeText.text = NewsPresentation.TypeLabel(news);
             dateText.text = NewsPresentation.FormatWeek(NewsPresentation.PlayerWeek(news), timeManager);
 

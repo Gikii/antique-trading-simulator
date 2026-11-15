@@ -33,7 +33,7 @@ namespace AntiqueTradingSimulator.UI
 
         public string Title => Event != null
             ? (Event.Definition != null ? Event.Definition.DisplayName : "Unknown event")
-            : NewsPresentation.GetTitle(News);
+            : NewsPresentation.GetTitle(News, TextBudget.Tight);
     }
 
     /// <summary>
@@ -67,7 +67,6 @@ namespace AntiqueTradingSimulator.UI
             {
                 foreach (NewsItem news in newsManager.PublishedNews)
                 {
-                    // Listed in the week the player learned it (news can reach them weeks after it broke).
                     if (news == null || NewsPresentation.PlayerWeek(news) != week || !NewsPresentation.CanSee(news, currentWeek))
                         continue;
 
@@ -82,7 +81,6 @@ namespace AntiqueTradingSimulator.UI
 
             foreach (ActiveEvent activeEvent in events)
             {
-                // EndWeek is exclusive (the event expires at the start of EndWeek).
                 if (activeEvent == null || week < activeEvent.StartWeek || week >= activeEvent.EndWeek) continue;
 
                 result.Add(WeekEntry.ForEvent(activeEvent));

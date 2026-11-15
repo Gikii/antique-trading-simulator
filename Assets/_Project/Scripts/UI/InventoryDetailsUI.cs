@@ -377,7 +377,8 @@ namespace AntiqueTradingSimulator.UI
             foreach (var news in related)
             {
                 string tag = UIFormat.Colorize($"[{NewsPresentation.TypeLabel(news)}]", NewsPresentation.TypeColor(news));
-                sb.Append('\n').Append(tag).Append(' ').Append(NewsPresentation.GetTitle(news));
+                sb.Append('\n').Append(tag).Append(' ')
+                  .Append(NewsPresentation.GetTitle(news, TextBudget.Tight));
             }
 
             return sb.ToString();

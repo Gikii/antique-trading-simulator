@@ -70,27 +70,49 @@ namespace AntiqueTradingSimulator.UI
         }
 
         /// <summary>e.g. "Clock gaining market interest". Rumour wording lives in NewsWording.</summary>
-        public static string GetTitle(NewsItem item)
+        public static string GetTitle(NewsItem item, TextBudget budget = TextBudget.Normal)
         {
+            if (item == null) return "Market information";
+
             if (item.NewsData == null || item.NewsData.Count == 0)
                 return string.IsNullOrWhiteSpace(item.OfficialName) ? "Market information" : item.OfficialName;
 
             if (item.Type == NewsType.Official)
-                return $"{item.OfficialName} official announcement";
+                return budget == TextBudget.Tight
+                    ? item.OfficialName
+                    : $"{item.OfficialName} official announcement";
 
-            return NewsWording.Headline(item.NewsData);
+            return NewsWording.Headline(item.NewsData, budget);
         }
 
         /// <summary>e.g. "Clock ↑ • France ↓"</summary>
-        public static string GetPreview(NewsItem item)
+        public static string GetPreview(NewsItem item, TextBudget budget = TextBudget.Normal)
         {
+            if (item == null) return "";
+
             if (item.NewsData == null || item.NewsData.Count == 0)
                 return string.IsNullOrWhiteSpace(item.EventDescription)
                     ? "No additional information available."
                     : item.EventDescription;
 
-            return NewsWording.Preview(item.NewsData);
+            return ColorizeArrows(NewsWording.Chips(item.NewsData, budget));
         }
+
+        /// <summary>The details panel's rows as text, for surfaces without row widgets.</summary>
+        public static string GetLines(NewsItem item) =>
+            item == null || item.NewsData == null || item.NewsData.Count == 0
+                ? ""
+                : ColorizeArrows(NewsWording.Lines(item.NewsData));
+
+        public static string ColorizeArrows(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+
+            return text
+                .Replace("↑", UIFormat.Colorize("↑", UIFormat.PositiveColor))
+                .Replace("↓", UIFormat.Colorize("↓", UIFormat.NegativeColor));
+        }
+
 
         /// <summary>What the news is about: antique type, country, century or the market in general.</summary>
         public static string GetSubject(NewsEventData data) => NewsWording.Subject(data);
