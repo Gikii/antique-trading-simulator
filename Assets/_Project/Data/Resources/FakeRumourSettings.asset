@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b081ac1f2244283ab01bd3ed206f0d2, type: 3}
+  m_Script: {fileID: 11500000, guid: dd38f2e7d7af57d488c17831f640c1c7, type: 3}
   m_Name: FakeRumourSettings
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Rumours.FakeRumourSettings
   SpreadDelayWeeks: {x: 1, y: 5}
@@ -26,8 +26,8 @@ MonoBehaviour:
   - 1
   - 1
   - 0.96
-  - 0.93
-  - 0.92
+  - 0.9357952
+  - 0.9220782
   TraceMultiplierPerLevel:
   - 1
   - 1
