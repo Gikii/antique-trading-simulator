@@ -122,7 +122,7 @@ namespace AntiqueTradingSimulator.Agents
 
             float upkeep = Inventory.ChargeWarehouseUpkeep();
             if (upkeep > 0f)
-                Debug.Log($"PlayerTrader: warehouse upkeep {upkeep:F2} £ charged on week {newWeek}. Cash: {Inventory.Cash:F2}");
+                Debug.Log($"PlayerTrader: warehouse upkeep {Core.Money.Format(upkeep)} charged on week {newWeek}. Cash: {Core.Money.Format(Inventory.Cash)}");
         }
 
         public bool UpgradeWarehouseCapacity() => Inventory.TryUpgradeWarehouseCapacity();

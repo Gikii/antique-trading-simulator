@@ -324,7 +324,7 @@ namespace AntiqueTradingSimulator.UI
                 return;
             }
 
-            Debug.Log($"ContractFulfillModalUI: fulfilled contract {contract.ContractId} for {contract.TotalReward:F0} £.");
+            Debug.Log($"ContractFulfillModalUI: fulfilled contract {contract.ContractId} for {Core.Money.Format(contract.TotalReward)}.");
             Close();
             Fulfilled?.Invoke(contract);
         }

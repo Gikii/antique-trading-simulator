@@ -16,7 +16,7 @@ MonoBehaviour:
   ProfileName: Novice
   TraderNames:
   - Tom's Curiosities
-  StartingCash: 2000
+  StartingCash: 65
   AccessLevel: 1
   PreferredTypes: 0100000007000000
   PreferredCountries: 

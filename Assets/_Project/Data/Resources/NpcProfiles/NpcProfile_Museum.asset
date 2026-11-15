@@ -16,7 +16,7 @@ MonoBehaviour:
   ProfileName: Museum
   TraderNames:
   - Royal Museum of Decorative Arts
-  StartingCash: 8000
+  StartingCash: 270
   AccessLevel: 4
   PreferredTypes: 040000000c000000
   PreferredCountries: 

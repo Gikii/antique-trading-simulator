@@ -136,6 +136,7 @@ namespace AntiqueTradingSimulator.Company
                     EnsureSettings();
                     _upgrades = new CompanyUpgrades(upgradeSettings, Player.Inventory, startingInformationNetworkLevel - 1);
                     _upgrades.OnUpgraded += HandleUpgraded;
+                    _upgrades.OnDowngraded += HandleUpgraded;
                 }
                 return _upgrades;
             }
@@ -165,6 +166,12 @@ namespace AntiqueTradingSimulator.Company
 
         /// <summary>Anything the Company view shows changed (reputation, upgrade, contract, new day).</summary>
         public event Action OnCompanyChanged;
+
+        /// <summary>
+        /// An upgrade lost a level because its weekly upkeep couldn't be paid:
+        /// the upgrade's name, the level it is now at (1-based, as shown), and the unpaid upkeep.
+        /// </summary>
+        public event Action<string, int, float> OnUpkeepUnpaid;
 
         // ---------------------------------------------------------------- lifecycle
 
@@ -210,7 +217,11 @@ namespace AntiqueTradingSimulator.Company
         private void OnDestroy()
         {
             if (_record != null) _record.Changed -= HandleRecordChanged;
-            if (_upgrades != null) _upgrades.OnUpgraded -= HandleUpgraded;
+            if (_upgrades != null)
+            {
+                _upgrades.OnUpgraded -= HandleUpgraded;
+                _upgrades.OnDowngraded -= HandleUpgraded;
+            }
             Unsubscribe();
         }
 
@@ -286,13 +297,30 @@ namespace AntiqueTradingSimulator.Company
             OnCompanyChanged?.Invoke();
         }
 
+        /// <summary>
+        /// Pays every upgrade's weekly upkeep, cheapest first. An upkeep the cash can't cover is not
+        /// paid and that upgrade drops a level instead — the clerk leaves, the agent stops writing —
+        /// so wages can't be run up for free with an empty till.
+        /// </summary>
         private void ChargeUpgradeUpkeep()
         {
             var inventory = Player != null ? Player.Inventory : null;
             if (inventory == null || Upgrades == null) return;
 
-            foreach (var (_, name, upkeep) in Upgrades.NonWarehouseUpkeep())
-                inventory.RemoveCash(upkeep, LedgerCategory.Upkeep, $"{name} upkeep");
+            var bills = new List<(CompanyUpgradeType type, string name, float upkeep)>(Upgrades.NonWarehouseUpkeep());
+            bills.Sort((a, b) => a.upkeep.CompareTo(b.upkeep));
+
+            foreach (var (type, name, upkeep) in bills)
+            {
+                if (Money.Covers(inventory.Cash, upkeep))
+                {
+                    inventory.RemoveCash(Mathf.Min(upkeep, inventory.Cash), LedgerCategory.Upkeep, $"{name} upkeep");
+                    continue;
+                }
+
+                if (Upgrades.TryDowngrade(type))
+                    OnUpkeepUnpaid?.Invoke(name, Upgrades.GetLevel(type) + 1, upkeep);
+            }
         }
 
         private void HandleLedgerEntry(LedgerEntry entry)
@@ -476,11 +504,11 @@ namespace AntiqueTradingSimulator.Company
         // Inspector → CompanyManager → ⋮ menu, in Play mode. For testing upgrades and reputation
         // unlocks without grinding cash and reputation first.
 
-        [ContextMenu("Debug/Add 10 000 cash")]
+        [ContextMenu("Debug/Add £330 cash")]
         private void DebugAddCash()
         {
             if (Player == null || Player.Inventory == null) return;
-            Player.Inventory.AddCash(10000f, LedgerCategory.Other, "Debug cash");
+            Player.Inventory.AddCash(330f, LedgerCategory.Other, "Debug cash");
             OnCompanyChanged?.Invoke();
         }
 

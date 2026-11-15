@@ -165,7 +165,7 @@ namespace AntiqueTradingSimulator.Logistics
             if (modifiers != null)
                 cost *= 1f - modifiers.TransportCostReduction;
 
-            return new TransportQuote(option, zone, cost, CurrentWeek, Mathf.Max(1, duration));
+            return new TransportQuote(option, zone, Core.Money.RoundToShilling(cost), CurrentWeek, Mathf.Max(1, duration));
         }
 
         /// <summary>

@@ -40,7 +40,7 @@ namespace AntiqueTradingSimulator.Auctions
         [Min(1)] public int LotsPerAuction = 4;
 
         [Tooltip("Range of a lot's market value at the start of the campaign (£).")]
-        public Vector2 StartValueRange = new Vector2(300f, 1500f);
+        public Vector2 StartValueRange = new Vector2(10f, 50f);
 
         [Tooltip("Multiplier of the value range over the campaign: x = progress 0..1 (week 1 → last week), y = multiplier.")]
         public AnimationCurve ValueGrowth = AnimationCurve.EaseInOut(0f, 1f, 1f, 6f);
@@ -50,7 +50,7 @@ namespace AntiqueTradingSimulator.Auctions
         [Min(0.1f)] public float BudgetCapFactor = 1f;
 
         [Tooltip("Lots never go below this market value (£).")]
-        [Min(1f)] public float MinLotValue = 100f;
+        [Min(0.05f)] public float MinLotValue = 3f;
 
         [Tooltip("Condition range of lots consigned by the auction house — auctions carry fine pieces.")]
         public Vector2 LotConditionRange = new Vector2(0.8f, 1f);
@@ -90,14 +90,16 @@ namespace AntiqueTradingSimulator.Auctions
         [Tooltip("Each bid raises the price by this share of the current bid (rounded to 1-2-5 steps).")]
         [Range(0.01f, 0.5f)] public float IncrementRate = 0.05f;
 
-        [Min(1f)] public float MinIncrement = 5f;
+        [Tooltip("Smallest bid step (£). 0.25 = 5s, which also keeps every 1-2-5 step a whole number of shillings.")]
+        [Min(0.05f)] public float MinIncrement = 0.25f;
 
         [Header("Fees")]
-        [Tooltip("Paid by the winner on top of the hammer price (0.1 = 10%).")]
-        [Range(0f, 0.5f)] public float BuyersPremiumRate = 0.1f;
+        [Tooltip("Paid by the winner on top of the hammer price (0.1 = 10%). 0 in 1884: London houses only " +
+                 "introduced a buyer's premium in 1975, before that the seller paid the commission.")]
+        [Range(0f, 0.5f)] public float BuyersPremiumRate = 0f;
 
-        [Tooltip("NPCs bid at most budget / (1 + this), keeping the rest for the buyer's premium and transport.")]
-        [Range(0f, 0.5f)] public float NpcCostAllowance = 0.2f;
+        [Tooltip("NPCs bid at most budget / (1 + this), keeping the rest for transport (and the buyer's premium, if any).")]
+        [Range(0f, 0.5f)] public float NpcCostAllowance = 0.1f;
 
         [Header("Live bidding pace (real seconds)")]
         [Tooltip("Time between the auctioneer's calls while nobody bids: '… for the first time', " +

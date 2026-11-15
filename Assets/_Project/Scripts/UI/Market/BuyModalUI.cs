@@ -34,7 +34,7 @@ namespace AntiqueTradingSimulator.UI
         [Header("Item")]
         [SerializeField] private TMP_Text titleText;    // "Buy Chinese Vase?"
         [SerializeField] private TMP_Text itemInfoText; // "Good condition · XVIII century · China"
-        [SerializeField] private TMP_Text priceText;    // "1 250 £"
+        [SerializeField] private TMP_Text priceText;    // "£1,250"
         [SerializeField] private TMP_Text shipsFromText; // "Ships from: International"
 
         [Header("Transport options (one per TransportOption)")]
@@ -43,10 +43,10 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private GameObject noTransportNotice;
 
         [Header("Summary")]
-        [SerializeField] private TMP_Text shippingCostText; // "120 £"
-        [SerializeField] private TMP_Text totalCostText;    // "1 370 £"
+        [SerializeField] private TMP_Text shippingCostText; // "£120"
+        [SerializeField] private TMP_Text totalCostText;    // "£1,370"
         [SerializeField] private TMP_Text arrivalText;      // "7 October (in 5 days)"
-        [SerializeField] private TMP_Text cashAfterText;    // "2 630 £"
+        [SerializeField] private TMP_Text cashAfterText;    // "£2,630"
         [SerializeField] private TMP_Text warehouseText;    // "6 / 8 → 7 / 8"
         [SerializeField] private TMP_Text warningText;      // reason why Buy is disabled
 
@@ -212,7 +212,7 @@ namespace AntiqueTradingSimulator.UI
             SetText(shippingCostText, selectedQuote != null ? UIFormat.Money(shipping) : "—");
             SetText(totalCostText, $"<b>{UIFormat.Money(total)}</b>");
             SetText(arrivalText, ArrivalLabel(selectedQuote));
-            SetText(cashAfterText, UIFormat.ColorBySign(UIFormat.Money(cash - total), cash - total < 0f ? -1f : 0f));
+            SetText(cashAfterText, UIFormat.ColorBySign(UIFormat.Money(cash - total), Money.Covers(cash, total) ? 0f : -1f));
             SetText(warehouseText, WarehouseLabel());
 
             string blockReason = BlockReason(listing, total, cash);
@@ -303,7 +303,7 @@ namespace AntiqueTradingSimulator.UI
             if (Inventory != null && !Inventory.HasFreeSlot)
                 return $"Warehouse full ({Inventory.UsedSlots} / {Inventory.Capacity}). Sell something to make room.";
 
-            if (total > cash)
+            if (!Money.Covers(cash, total))
                 return $"Not enough cash - {UIFormat.Money(total - cash)} short.";
 
             return null;

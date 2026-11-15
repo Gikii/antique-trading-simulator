@@ -38,6 +38,12 @@ namespace AntiqueTradingSimulator.Economy
 
         public float Cash { get; private set; }
 
+        /// <summary>
+        /// Every change to Cash goes through here: cash is kept in whole shillings (amounts are rounded
+        /// where they are worked out — see Core.Money.RoundToShilling), which also wipes out float drift.
+        /// </summary>
+        private void SetCash(float value) => Cash = Mathf.Max(0f, Core.Money.RoundToShilling(value));
+
         /// <summary>Every cash movement of this trader, with what it was for.</summary>
         public Ledger Ledger { get; } = new Ledger();
 
@@ -124,7 +130,7 @@ namespace AntiqueTradingSimulator.Economy
             if (Warehouse == null || !Warehouse.CanUpgradeCapacity) return false;
 
             float cost = Warehouse.NextCapacityUpgradeCost;
-            if (cost > Cash) return false;
+            if (!Core.Money.Covers(Cash, cost)) return false;
 
             RemoveCash(cost, LedgerCategory.Upgrade, $"Upgraded warehouse capacity to level {Warehouse.CapacityLevel + 2}");
             Warehouse.RaiseCapacityLevel();
@@ -137,7 +143,7 @@ namespace AntiqueTradingSimulator.Economy
             if (Warehouse == null || !Warehouse.CanUpgradeSecurity) return false;
 
             float cost = Warehouse.NextSecurityUpgradeCost;
-            if (cost > Cash) return false;
+            if (!Core.Money.Covers(Cash, cost)) return false;
 
             RemoveCash(cost, LedgerCategory.Upgrade, $"Upgraded warehouse security to level {Warehouse.SecurityLevel + 2}");
             Warehouse.RaiseSecurityLevel();
@@ -167,7 +173,7 @@ namespace AntiqueTradingSimulator.Economy
 
         public TraderInventory(float startingCash = 0f)
         {
-            Cash = startingCash;
+            SetCash(startingCash);
         }
 
         public bool Owns(string listingId) => _holdings.ContainsKey(listingId);
@@ -258,7 +264,7 @@ namespace AntiqueTradingSimulator.Economy
             float price = listing.SalePrice;
             float shippingCost = transport != null ? transport.Cost : 0f;
             float cost = price + shippingCost;
-            if (cost > Cash) return false;
+            if (!Core.Money.Covers(Cash, cost)) return false;
 
             // Stamp the antique with THIS trader's Id. Market.Buy defaults the parameter to
             // Antique.PlayerOwnerId, so omitting it recorded every NPC purchase as the player's.
@@ -267,7 +273,7 @@ namespace AntiqueTradingSimulator.Economy
 
             if (!market.Buy(listingId, OwnerId)) return false;
 
-            Cash -= cost;
+            SetCash(Cash - cost);
             RememberWeek(currentWeek);
             Record(LedgerCategory.Purchase, -price, $"Bought \"{listing.Name}\"");
             Record(LedgerCategory.Transport, -shippingCost, $"Transport cost ({listing.Name})");
@@ -308,12 +314,13 @@ namespace AntiqueTradingSimulator.Economy
 
             float shippingCost = transport != null ? transport.Cost : 0f;
             float cost = AuctionCost(hammerPrice, buyersPremium, transport);
-            if (cost > Cash) return false;
+            if (!Core.Money.Covers(Cash, cost)) return false;
 
-            Cash -= cost;
+            SetCash(Cash - cost);
             RememberWeek(currentWeek);
             Record(LedgerCategory.Purchase, -hammerPrice, $"Bought \"{antique.Name}\" at auction");
-            Record(LedgerCategory.Commission, -buyersPremium, $"Buyer's premium ({antique.Name})");
+            if (buyersPremium > 0f)
+                Record(LedgerCategory.Commission, -buyersPremium, $"Buyer's premium ({antique.Name})");
             Record(LedgerCategory.Transport, -shippingCost, $"Transport cost ({antique.Name})");
 
             antique.OwnerId = OwnerId;
@@ -360,7 +367,7 @@ namespace AntiqueTradingSimulator.Economy
             _holdings.Remove(listingId);
             listing.ClearAcquisition();
             market.Sell(listing, currentWeek);
-            Cash += listing.CurrentPrice;
+            SetCash(Cash + listing.CurrentPrice);
             RememberWeek(currentWeek);
             Record(LedgerCategory.Sale, listing.CurrentPrice, $"Sold \"{listing.Name}\" (instant sale)");
 
@@ -434,7 +441,7 @@ namespace AntiqueTradingSimulator.Economy
             if (antique == null || !_holdings.Remove(antique.Id)) return;
 
             antique.ClearAcquisition();
-            Cash += Mathf.Max(0f, proceeds);
+            SetCash(Cash + Mathf.Max(0f, proceeds));
 
             if (grossPrice > 0f)
             {
@@ -484,9 +491,10 @@ namespace AntiqueTradingSimulator.Economy
         /// </summary>
         public void AddCash(float amount, LedgerCategory category = LedgerCategory.Other, string description = null)
         {
+            amount = Core.Money.RoundToShilling(amount);
             if (amount <= 0f) return;
 
-            Cash += amount;
+            SetCash(Cash + amount);
             Record(category, amount, description);
             OnCashChanged?.Invoke(Cash);
         }
@@ -498,13 +506,14 @@ namespace AntiqueTradingSimulator.Economy
         /// </summary>
         public void RemoveCash(float amount, LedgerCategory category = LedgerCategory.Other, string description = null)
         {
+            amount = Core.Money.RoundToShilling(amount);
             if (amount <= 0f) return;
 
             if (amount > Cash)
-                Debug.LogWarning($"TraderInventory: tried to deduct {amount:F2} but only {Cash:F2} cash available — clamping to 0.");
+                Debug.LogWarning($"TraderInventory: tried to deduct {Core.Money.Format(amount)} but only {Core.Money.Format(Cash)} cash available — clamping to 0.");
 
             float taken = Mathf.Min(amount, Cash);
-            Cash = Mathf.Max(0f, Cash - amount);
+            SetCash(Mathf.Max(0f, Cash - amount));
             Record(category, -taken, description);
             OnCashChanged?.Invoke(Cash);
         }
@@ -612,7 +621,7 @@ namespace AntiqueTradingSimulator.Economy
         {
             if (state == null) return;
 
-            Cash = state.Cash;
+            SetCash(state.Cash);
             _lastKnownWeek = state.LastKnownWeek;
 
             _holdings.Clear();

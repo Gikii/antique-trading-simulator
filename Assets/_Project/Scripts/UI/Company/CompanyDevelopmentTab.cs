@@ -11,8 +11,9 @@ namespace AntiqueTradingSimulator.UI
 {
     /// <summary>
     /// Company → Development: a card per company upgrade (cloned from an inactive template)
-    /// and a details panel for the selected one. Buying goes through CompanyManager.TryUpgrade.
-    /// Refreshes on company, cash and warehouse changes.
+    /// and a details panel for the selected one. Buying (from the details panel) asks first —
+    /// cost now, the new weekly upkeep, what the level gives — then goes through
+    /// CompanyManager.TryUpgrade. Refreshes on company, cash and warehouse changes.
     /// </summary>
     public class CompanyDevelopmentTab : MonoBehaviour
     {
@@ -104,7 +105,7 @@ namespace AntiqueTradingSimulator.UI
                 var card = Instantiate(cardTemplate, cardContainer);
                 card.name = $"{type}Card";
                 card.gameObject.SetActive(true);
-                card.Initialize(type, Select, HandleUpgradeClicked);
+                card.Initialize(type, Select);
                 _cards.Add(card);
             }
 
@@ -121,9 +122,53 @@ namespace AntiqueTradingSimulator.UI
                 Refresh();
         }
 
+        private ContractAcceptDialog _confirmDialog;
+
+        /// <summary>
+        /// The gameplay confirmation (pauses the clock, Escape cancels), copied lazily next to the
+        /// other gameplay modals. Null if the scene has no ConfirmDialog — then buying doesn't ask.
+        /// </summary>
+        private ContractAcceptDialog ConfirmDialog
+        {
+            get
+            {
+                if (_confirmDialog == null)
+                {
+                    var modal = FindFirstObjectByType<BuyModalUI>(FindObjectsInactive.Include);
+                    Transform parent = modal != null ? modal.transform.parent : transform.root;
+                    _confirmDialog = ContractAcceptDialog.Create(parent);
+                }
+
+                return _confirmDialog;
+            }
+        }
+
         private void HandleUpgradeClicked(CompanyUpgradeType type)
         {
             _selected = type;
+
+            var info = _company != null ? _company.GetUpgradeInfo(type) : null;
+            if (info == null || !info.CanUpgrade)
+            {
+                Debug.Log($"CompanyDevelopmentTab: upgrade {type} not bought — {info?.BlockReason}");
+                Refresh();
+                return;
+            }
+
+            var dialog = ConfirmDialog;
+            if (dialog == null)
+            {
+                Buy(type);
+                return;
+            }
+
+            dialog.Open($"Upgrade {info.Name}?", UpgradePresentation.ConfirmMessage(info),
+                $"Upgrade for {UIFormat.Money(info.NextCost)}", () => Buy(type));
+        }
+
+        private void Buy(CompanyUpgradeType type)
+        {
+            // Re-checked inside TryUpgrade: the clock was paused while asking, but cash may still have moved.
             if (_company != null && !_company.TryUpgrade(type))
                 Debug.Log($"CompanyDevelopmentTab: upgrade {type} not bought — {_company.GetUpgradeInfo(type)?.BlockReason}");
             Refresh();

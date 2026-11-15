@@ -64,8 +64,9 @@ namespace AntiqueTradingSimulator.Rumours
         [Tooltip("Spend options between the minimum and the maximum.")]
         [Min(1)] public int SpendSteps = 12;
 
-        [Tooltip("Spend options are rounded to this.")]
-        [Min(1f)] public float SpendRounding = 10f;
+        [Tooltip("Spend options are rounded to this (£). 0 = a round step for the amount's size " +
+                 "(1s below £2, 5s below £10, £1 below £50 … — see Core.Money.NiceStep).")]
+        [Min(0f)] public float SpendRounding = 0f;
 
         [Header("Same-scope fatigue")]
         [Tooltip("Credibility multiplier per earlier fake on the same scope within the window.")]

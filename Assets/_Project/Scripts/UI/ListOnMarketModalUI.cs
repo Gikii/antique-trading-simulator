@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using AntiqueTradingSimulator.Agents;
@@ -25,7 +24,7 @@ namespace AntiqueTradingSimulator.UI
         private const int SuggestedRangeWeeks = 30;
         // Used when there's not enough price history yet: current value ± this fraction.
         private const float FallbackRangeSpread = 0.1f;
-        private const int MaxPriceDigits = 9;
+        private const int MaxPriceChars = 12; // "£128,450" / "£4 12s" with room to spare
 
         [Header("Game systems (auto-found if empty)")]
         [SerializeField] private PlayerTrader playerTrader;
@@ -118,7 +117,7 @@ namespace AntiqueTradingSimulator.UI
             // Start from the current market value — the most common choice.
             if (priceInput != null)
             {
-                priceInput.SetTextWithoutNotify(Mathf.RoundToInt(antique.CurrentPrice).ToString(CultureInfo.InvariantCulture));
+                priceInput.SetTextWithoutNotify(Money.Format(antique.CurrentPrice));
                 priceInput.Select();
                 priceInput.ActivateInputField();
             }
@@ -179,8 +178,11 @@ namespace AntiqueTradingSimulator.UI
 
             if (priceInput != null)
             {
-                priceInput.contentType = TMP_InputField.ContentType.IntegerNumber;
-                priceInput.characterLimit = MaxPriceDigits;
+                // Free text: the player types pounds and shillings ("£4 12s", "4 12", "15s") — see Money.TryParse.
+                priceInput.contentType = TMP_InputField.ContentType.Standard;
+                priceInput.characterLimit = MaxPriceChars;
+                if (priceInput.placeholder is TMP_Text placeholder)
+                    placeholder.text = "e.g. £4 12s";
                 priceInput.onValueChanged.AddListener(_ => RefreshOutcome());
                 priceInput.onSubmit.AddListener(_ => Confirm());
             }
@@ -264,7 +266,7 @@ namespace AntiqueTradingSimulator.UI
             }
 
             SetText(suggestedRangeText,
-                $"Suggested price range:\n{UIFormat.Money(_rangeMin)} – {UIFormat.Money(_rangeMax)}");
+                $"Suggested price range:\n{UIFormat.MoneyRange(_rangeMin, _rangeMax, " – ")}");
         }
 
         private void RefreshOutcome()
@@ -276,7 +278,7 @@ namespace AntiqueTradingSimulator.UI
                 SetText(listingPriceValue, "—");
                 SetText(feeValue, "—");
                 SetText(proceedsValue, "—");
-                SetText(priceHintText, UIFormat.Colorize("Enter a price above 0 £.", UIFormat.NegativeColor));
+                SetText(priceHintText, UIFormat.Colorize("Enter a price in pounds and shillings, e.g. £4 12s or 15s.", UIFormat.NegativeColor));
                 SetConfirmInteractable(false);
                 return;
             }
@@ -348,12 +350,12 @@ namespace AntiqueTradingSimulator.UI
             Antique antique = _antique;
             if (!playerTrader.ListOnMarket(antique.Id, price))
             {
-                Debug.LogWarning($"ListOnMarketModalUI: failed to list {antique.Id} for {price:F0} £.");
+                Debug.LogWarning($"ListOnMarketModalUI: failed to list {antique.Id} for {Money.Format(price)}.");
                 SetText(priceHintText, UIFormat.Colorize("This antique can't be listed right now.", UIFormat.NegativeColor));
                 return;
             }
 
-            Debug.Log($"ListOnMarketModalUI: listed {antique.Name} ({antique.Id}) for {price:F0} £.");
+            Debug.Log($"ListOnMarketModalUI: listed {antique.Name} ({antique.Id}) for {Money.Format(price)}.");
             Close();
             Listed?.Invoke(antique, price);
         }
@@ -369,12 +371,12 @@ namespace AntiqueTradingSimulator.UI
             if (priceInput == null)
                 return false;
 
-            string digits = new string(priceInput.text.Where(char.IsDigit).ToArray());
-            if (!long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out long value) || value <= 0)
+            if (!Money.TryParse(priceInput.text, out float typed))
                 return false;
 
-            price = value;
-            return true;
+            // List at exactly what the player sees: whole shillings (whole pounds from £100 up).
+            price = Money.RoundForDisplay(typed);
+            return price > 0f;
         }
 
         private void SetConfirmInteractable(bool interactable)

@@ -76,6 +76,9 @@ namespace AntiqueTradingSimulator.Company
 
         public event Action<CompanyUpgradeType> OnUpgraded;
 
+        /// <summary>An upgrade dropped a level (TryDowngrade) — e.g. staff leaving over unpaid wages.</summary>
+        public event Action<CompanyUpgradeType> OnDowngraded;
+
         [JsonIgnore]
         public CompanyUpgradeSettings Settings => _settings;
 
@@ -210,7 +213,7 @@ namespace AntiqueTradingSimulator.Company
             info.NextUpkeep = maxed ? info.CurrentUpkeep : Upkeep(type, definition, level + 1);
             info.MeetsReputation = reputation >= info.RequiredReputation;
             info.Cash = _inventory != null ? _inventory.Cash : 0f;
-            info.CanAfford = !maxed && _inventory != null && _inventory.Cash >= info.NextCost;
+            info.CanAfford = !maxed && _inventory != null && Core.Money.Covers(_inventory.Cash, info.NextCost);
             return info;
         }
 
@@ -264,7 +267,7 @@ namespace AntiqueTradingSimulator.Company
                 var ws = Warehouse.Settings;
                 return type == CompanyUpgradeType.Warehouse
                     ? ws.BaseWeeklyUpkeep + level * ws.UpkeepPerCapacityLevel + _inventory.UsedSlots * ws.UpkeepPerUsedSlot
-                    : level * ws.UpkeepPerSecurityLevel;
+                    : ws.SecurityUpkeep(level);
             }
 
             return LevelData(definition, level)?.WeeklyUpkeep ?? 0f;
@@ -306,7 +309,25 @@ namespace AntiqueTradingSimulator.Company
         }
 
         /// <summary>
-        /// Daily upkeep of every upgrade except Warehouse and Security, whose upkeep the
+        /// Drops an upgrade one level and re-applies its effects (the level's people or services are
+        /// gone). Only upgrades whose upkeep CompanyManager charges — not Warehouse or Security, whose
+        /// rent the warehouse bills itself and whose levels hold the stock. False at level 0.
+        /// </summary>
+        public bool TryDowngrade(CompanyUpgradeType type)
+        {
+            if (IsWarehouseType(type)) return false;
+
+            int level = GetLevel(type);
+            if (level <= 0) return false;
+
+            _levels[type] = level - 1;
+            ApplyTradeModifiers();
+            OnDowngraded?.Invoke(type);
+            return true;
+        }
+
+        /// <summary>
+        /// Weekly upkeep of every upgrade except Warehouse and Security, whose upkeep the
         /// warehouse already charges (TraderInventory.ChargeWarehouseUpkeep).
         /// </summary>
         public IEnumerable<(CompanyUpgradeType type, string name, float upkeep)> NonWarehouseUpkeep()

@@ -82,7 +82,7 @@ namespace AntiqueTradingSimulator.Rumours
 
             if (best != null)
                 Debug.Log($"NpcRumourPlanner: {npc.TraderName} plants '{best.Claim.Summary()}' " +
-                          $"(spend {best.Spend:F0}, credibility {best.Credibility:P0}, expected net {bestNet:F0}).");
+                          $"(spend {Core.Money.Format(best.Spend)}, credibility {best.Credibility:P0}, expected net {Core.Money.FormatSigned(bestNet)}).");
 
             return best != null;
         }

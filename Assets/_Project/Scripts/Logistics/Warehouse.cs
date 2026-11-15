@@ -64,7 +64,7 @@ namespace AntiqueTradingSimulator.Logistics
         {
             return _settings.BaseWeeklyUpkeep
                    + capacityLevel * _settings.UpkeepPerCapacityLevel
-                   + securityLevel * _settings.UpkeepPerSecurityLevel
+                   + _settings.SecurityUpkeep(securityLevel)
                    + Mathf.Max(0, usedSlots) * _settings.UpkeepPerUsedSlot;
         }
 

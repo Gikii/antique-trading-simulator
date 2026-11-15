@@ -25,6 +25,6 @@ namespace AntiqueTradingSimulator.Logistics
         }
 
         public override string ToString() =>
-            $"{Option.ToDisplayString()} / {Zone.ToDisplayString()} — {Cost:F0} £, {DurationWeeks} week(s), arrives week {ArrivalWeek}";
+            $"{Option.ToDisplayString()} / {Zone.ToDisplayString()} — {Core.Money.Format(Cost)}, {DurationWeeks} week(s), arrives week {ArrivalWeek}";
     }
 }

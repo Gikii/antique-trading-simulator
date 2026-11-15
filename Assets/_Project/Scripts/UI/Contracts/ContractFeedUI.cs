@@ -11,9 +11,9 @@ namespace AntiqueTradingSimulator.UI
     /// Contract History in the Contracts view's side panel, shown whenever no contract is selected:
     ///
     ///   Your record: 3 fulfilled, 1 failed
-    ///   Earned 24 300 £, penalties 6 454 £
+    ///   Earned £24,300, penalties £6,454
     ///   THIS WEEK
-    ///   ■ You fulfilled 4x Italy                     +12 907 £
+    ///   ■ You fulfilled 4x Italy                     +£12,907
     ///   ■ Hargreaves took on 1x XIX century (exclusive)
     ///     + 2 new contracts listed
     ///   LAST WEEK

@@ -230,7 +230,7 @@ namespace AntiqueTradingSimulator.Auctions
             if (!inventory.HasFreeSlot) { reason = "Your warehouse is full."; return false; }
 
             float cost = PlayerCostAt(bidding.AskingBid);
-            if (cost > inventory.Cash) { reason = $"Not enough cash — winning at this bid costs {cost:F0} £."; return false; }
+            if (!Core.Money.Covers(inventory.Cash, cost)) { reason = $"Not enough cash — winning at this bid costs {Core.Money.Format(cost)}."; return false; }
 
             return true;
         }
@@ -328,7 +328,7 @@ namespace AntiqueTradingSimulator.Auctions
 
             if (logAuctions)
                 Debug.Log($"AuctionManager: auction #{auction.Number} finished — {auction.SoldCount}/{auction.Lots.Count} lots sold, " +
-                          $"{auction.TotalHammer:F0} £ in total{(auction.PlayerJoined ? "" : " (without the player)")}.");
+                          $"{Core.Money.Format(auction.TotalHammer)} in total{(auction.PlayerJoined ? "" : " (without the player)")}.");
 
             OnAuctionFinished?.Invoke(auction);
         }
@@ -366,8 +366,8 @@ namespace AntiqueTradingSimulator.Auctions
             {
                 string limits = bidders.Count == 0
                     ? "nobody interested"
-                    : string.Join(", ", bidders.Select(b => $"{b.Name} ≤ {b.Limit:F0} £"));
-                Debug.Log($"AuctionManager: lot {lot.LotNumber} {lot.Name} (value {lot.Antique.CurrentPrice:F0} £, opening {lot.StartPrice:F0} £) — {limits}");
+                    : string.Join(", ", bidders.Select(b => $"{b.Name} ≤ {Core.Money.Format(b.Limit)}"));
+                Debug.Log($"AuctionManager: lot {lot.LotNumber} {lot.Name} (value {Core.Money.Format(lot.Antique.CurrentPrice)}, opening {Core.Money.Format(lot.StartPrice)}) — {limits}");
             }
 
             return bidders;
@@ -392,7 +392,7 @@ namespace AntiqueTradingSimulator.Auctions
                 lot.WinnerName = winnerName;
                 lot.HammerPrice = bidding.CurrentBid;
 
-                float ratio = lot.HammerPrice / Mathf.Max(1f, value);
+                float ratio = lot.HammerPrice / Mathf.Max(Core.Money.OneShilling, value);
                 float signal = Mathf.Clamp((ratio - 1f) * Settings.DemandSignalStrength, -Settings.MaxDemandSignal, Settings.MaxDemandSignal);
 
                 if (market != null)
@@ -442,7 +442,7 @@ namespace AntiqueTradingSimulator.Auctions
 
             if (!inventory.BuyAtAuction(lot.Antique, hammerPrice, premium, week, quote))
             {
-                Debug.LogWarning($"AuctionManager: {winnerName} won {lot.Name} for {hammerPrice:F0} £ but can no longer pay or store it — the lot stays unsold.");
+                Debug.LogWarning($"AuctionManager: {winnerName} won {lot.Name} for {Core.Money.Format(hammerPrice)} but can no longer pay or store it — the lot stays unsold.");
                 return false;
             }
 
@@ -498,8 +498,8 @@ namespace AntiqueTradingSimulator.Auctions
 
             if (logAuctions)
             {
-                string lots = string.Join(", ", auction.Lots.Select(l => $"{l.Name} ({l.EstimateLow:F0}–{l.EstimateHigh:F0} £)"));
-                Debug.Log($"AuctionManager: auction #{auction.Number} on week {auction.Week} announced (lot values {band.x:F0}–{band.y:F0} £): {lots}");
+                string lots = string.Join(", ", auction.Lots.Select(l => $"{l.Name} ({Core.Money.FormatRange(l.EstimateLow, l.EstimateHigh)})"));
+                Debug.Log($"AuctionManager: auction #{auction.Number} on week {auction.Week} announced (lot values {Core.Money.FormatRange(band.x, band.y)}): {lots}");
             }
 
             return auction;
@@ -645,17 +645,17 @@ namespace AntiqueTradingSimulator.Auctions
 
             session.OnLotOpened += bidding =>
             {
-                bidding.OnBid += (bidder, amount) => Debug.Log($"Auction lot {bidding.Lot.LotNumber}: {bidder.Name} bids {amount:F0} £");
+                bidding.OnBid += (bidder, amount) => Debug.Log($"Auction lot {bidding.Lot.LotNumber}: {bidder.Name} bids {Core.Money.Format(amount)}");
                 bidding.OnWithdraw += bidder => Debug.Log($"Auction lot {bidding.Lot.LotNumber}: {bidder.Name} withdraws");
                 bidding.OnCall += call =>
                 {
                     if (call != AuctioneerCall.Closed)
-                        Debug.Log($"Auction lot {bidding.Lot.LotNumber}: {call} at {bidding.CurrentBid:F0} £");
+                        Debug.Log($"Auction lot {bidding.Lot.LotNumber}: {call} at {Core.Money.Format(bidding.CurrentBid)}");
                 };
             };
             session.OnLotClosed += (lot, bidding) =>
                 Debug.Log(lot.IsSold
-                    ? $"Auction lot {lot.LotNumber}: SOLD to {lot.WinnerName} for {lot.HammerPrice:F0} £ ({lot.BidCount} bids)"
+                    ? $"Auction lot {lot.LotNumber}: SOLD to {lot.WinnerName} for {Core.Money.Format(lot.HammerPrice)} ({lot.BidCount} bids)"
                     : $"Auction lot {lot.LotNumber}: unsold");
         }
 

@@ -148,6 +148,7 @@ namespace AntiqueTradingSimulator.Restoration
             float cost = Mathf.Max(option.MinimumFee, perfectValue * gain * option.CostRate);
             if (modifiers != null)
                 cost *= 1f - modifiers.RestorationCostReduction;
+            cost = Core.Money.RoundToShilling(cost);
 
             int weeks = option.DurationWeeks;
             if (modifiers != null)
@@ -162,8 +163,8 @@ namespace AntiqueTradingSimulator.Restoration
                 string tier = TierNameFor(option.RequiredReputation);
                 reason = $"Requires {option.RequiredReputation} reputation" + (string.IsNullOrEmpty(tier) ? "." : $" ({tier}).");
             }
-            if (reason == null && inventory != null && cost > inventory.Cash)
-                reason = $"Not enough cash — {Mathf.CeilToInt(cost - inventory.Cash)} £ short.";
+            if (reason == null && inventory != null && !Core.Money.Covers(inventory.Cash, cost))
+                reason = $"Not enough cash — {Core.Money.Format(cost - inventory.Cash)} short.";
 
             return new RestorationQuote(option, start, target, partial, worst, cost, CurrentWeek, weeks, perfectValue, reason);
         }

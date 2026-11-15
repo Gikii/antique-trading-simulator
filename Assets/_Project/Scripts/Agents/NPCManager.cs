@@ -24,7 +24,7 @@ namespace AntiqueTradingSimulator.Agents
 
         [Header("Initial NPC population. One entry per NPC, referencing an NpcBehaviorProfile.Id")]
         [SerializeField] private List<string> initialProfileIds = new();
-        [SerializeField] private float defaultStartingCash = 2000f;
+        [SerializeField] private float defaultStartingCash = 65f;
 
         [Header("Reputation (taken from the player's CompanyManager if empty)")]
         [Tooltip("Leave empty so NPCs and the player earn and lose reputation by the same rules.")]

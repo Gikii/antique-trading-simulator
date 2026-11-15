@@ -27,7 +27,8 @@ namespace AntiqueTradingSimulator.Market
         // which starts at this value; the player's can be lowered by the Staff upgrade.
         public const float ListingFeeRate = 0.05f;
 
-        public static float ListingFee(float askingPrice) => Mathf.Max(0f, askingPrice) * ListingFeeRate;
+        public static float ListingFee(float askingPrice) =>
+            Core.Money.RoundToShilling(Mathf.Max(0f, askingPrice) * ListingFeeRate);
         public static float ListingProceeds(float askingPrice) => Mathf.Max(0f, askingPrice) - ListingFee(askingPrice);
 
         // Where anonymous sellers of newly generated listings are located, relative to the
@@ -358,7 +359,7 @@ namespace AntiqueTradingSimulator.Market
                 return false;
             }
 
-            antique.AskingPrice = askingPrice;
+            antique.AskingPrice = Core.Money.RoundToShilling(askingPrice); // NPC prices are markups, so not round
             antique.ShippingZone = ShippingZone.Domestic; // ships from the owner's warehouse
             ApplySellPressure(antique.DefinitionId);
             AddListing(antique, currentWeek);

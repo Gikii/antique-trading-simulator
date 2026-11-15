@@ -45361,7 +45361,7 @@ MonoBehaviour:
   - investor
   - investor
   - novice
-  defaultStartingCash: 4000
+  defaultStartingCash: 135
   reputationSettings: {fileID: 0}
 --- !u!114 &398503190
 MonoBehaviour:
@@ -139787,7 +139787,7 @@ MonoBehaviour:
   traderName: Trader
   economyManager: {fileID: 398503183}
   transportManager: {fileID: 0}
-  startingCash: 1000
+  startingCash: 35
   accessLevel: 5
   contractManager: {fileID: 398503187}
   warehouseSettings: {fileID: 0}

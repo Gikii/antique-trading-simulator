@@ -11,12 +11,12 @@ namespace AntiqueTradingSimulator.UI
     /// <summary>
     /// Market History in the Market view's side panel, shown whenever the Antique Details panel is closed:
     ///
-    ///   Your trading: bought 5 for 3 400 £, sold 3 for 4 100 £
-    ///   This week on the market: 12 sales, 31 400 £ turnover
+    ///   Your trading: bought 5 for £3,400, sold 3 for £4,100
+    ///   This week on the market: 12 sales, £31,400 turnover
     ///   THIS WEEK
-    ///   ■ Hargreaves bought your Ormolu clock           +1 240 £
-    ///   ■ You bought Delft vase                           -820 £
-    ///   ■ Whitcombe won Regency bureau at auction        4 900 £
+    ///   ■ Hargreaves bought your Ormolu clock           +£1,240
+    ///   ■ You bought Delft vase                           -£820
+    ///   ■ Whitcombe won Regency bureau at auction        £4,900
     ///       + 14 new listings
     ///
     /// Reads Market.Feed (structured entries) and rebuilds its rows (FeedList, shared with Contract

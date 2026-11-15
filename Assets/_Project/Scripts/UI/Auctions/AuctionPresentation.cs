@@ -32,17 +32,17 @@ namespace AntiqueTradingSimulator.UI
         /// <summary>"Auction #3"</summary>
         public static string Title(Auction auction) => auction != null ? $"Auction #{auction.Number}" : "Auction";
 
-        /// <summary>"850–1 300 £"</summary>
+        /// <summary>"£850–£1,300"</summary>
         public static string Estimate(AuctionLot lot) =>
-            lot == null ? "—" : $"{UIFormat.Number(lot.EstimateLow)}–{UIFormat.Money(lot.EstimateHigh)}";
+            lot == null ? "—" : UIFormat.MoneyRange(lot.EstimateLow, lot.EstimateHigh);
 
-        /// <summary>"850–1 300 £" summed over all lots.</summary>
+        /// <summary>"£850–£1,300" summed over all lots.</summary>
         public static string TotalEstimate(Auction auction)
         {
             if (auction == null || auction.Lots.Count == 0) return "—";
             float low = auction.Lots.Sum(l => l.EstimateLow);
             float high = auction.Lots.Sum(l => l.EstimateHigh);
-            return $"{UIFormat.Number(low)}–{UIFormat.Money(high)}";
+            return UIFormat.MoneyRange(low, high);
         }
 
         /// <summary>"Porcelain · Germany · XVIII century · Very good"</summary>
@@ -104,13 +104,13 @@ namespace AntiqueTradingSimulator.UI
             {
                 float low = manager.PlayerCostFor(lot, lot.EstimateLow);
                 float high = manager.PlayerCostFor(lot, lot.EstimateHigh);
-                facts.Add(("Winning within estimate costs", $"{UIFormat.Number(low)}–{UIFormat.Money(high)}"));
+                facts.Add(("Winning within estimate costs", UIFormat.MoneyRange(low, high)));
             }
 
             return facts;
         }
 
-        /// <summary>"1 020 £  ↑ +4%" — current market value with its change over the last 30 days.</summary>
+        /// <summary>"£1,020  ↑ +4%" — current market value with its change over the last 30 days.</summary>
         public static string MarketValueWithTrend(Antique antique, Market.Market market)
         {
             if (antique == null) return "—";
@@ -126,7 +126,7 @@ namespace AntiqueTradingSimulator.UI
             return $"{value}  <size=85%>{trend}</size>";
         }
 
-        /// <summary>"Last auction price" value for the lot's type: "960 £ · 3 October" or "none yet".</summary>
+        /// <summary>"Last auction price" value for the lot's type: "£960 · 3 October" or "none yet".</summary>
         public static string LastAuctionPrice(Market.Market market, Antique antique)
         {
             var typeState = market != null && antique != null ? market.GetTypeState(antique.DefinitionId) : null;

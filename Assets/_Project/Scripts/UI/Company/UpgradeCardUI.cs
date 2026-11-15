@@ -8,7 +8,8 @@ namespace AntiqueTradingSimulator.UI
 {
     /// <summary>
     /// One upgrade on Company → Development: name and description, level, current and next
-    /// effect, cost and an Upgrade button. Clicking the card selects it for the details panel.
+    /// effect and cost. Clicking the card selects it; buying is done from the details panel
+    /// (UpgradeDetailsUI), so the card's own Upgrade button is hidden.
     /// </summary>
     public class UpgradeCardUI : MonoBehaviour
     {
@@ -26,23 +27,20 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text currentEffectText;
         [SerializeField] private TMP_Text nextEffectText;
         [SerializeField] private TMP_Text costText;
+        [Tooltip("Hidden at runtime — the details panel has the Upgrade button. Can be removed from the prefab.")]
         [SerializeField] private Button upgradeButton;
-        [SerializeField] private TMP_Text upgradeButtonText;
 
         [SerializeField] private Color normalColor = new Color(0.6f, 0.6f, 0.6f, 0.3608f);
         [SerializeField] private Color selectedColor = new Color32(0xC9, 0x9A, 0x3C, 0x8C);
 
         private Action<CompanyUpgradeType> _onSelect;
-        private Action<CompanyUpgradeType> _onUpgrade;
-        private TooltipTrigger _upgradeTooltip;
 
         public CompanyUpgradeType Type { get; private set; }
 
-        public void Initialize(CompanyUpgradeType type, Action<CompanyUpgradeType> onSelect, Action<CompanyUpgradeType> onUpgrade)
+        public void Initialize(CompanyUpgradeType type, Action<CompanyUpgradeType> onSelect)
         {
             Type = type;
             _onSelect = onSelect;
-            _onUpgrade = onUpgrade;
 
             if (selectButton != null)
             {
@@ -50,12 +48,11 @@ namespace AntiqueTradingSimulator.UI
                 selectButton.onClick.AddListener(() => _onSelect?.Invoke(Type));
             }
 
-            if (upgradeButton != null)
-            {
-                upgradeButton.onClick.RemoveAllListeners();
-                upgradeButton.onClick.AddListener(() => _onUpgrade?.Invoke(Type));
-                _upgradeTooltip = TooltipTrigger.On(upgradeButton);
-            }
+            if (upgradeButton != null) upgradeButton.gameObject.SetActive(false);
+
+            // A long level never spills over the next card: the details panel has the full text.
+            if (currentEffectText != null) currentEffectText.overflowMode = TextOverflowModes.Ellipsis;
+            if (nextEffectText != null) nextEffectText.overflowMode = TextOverflowModes.Ellipsis;
         }
 
         public void Set(UpgradeInfo info, bool selected)
@@ -73,20 +70,18 @@ namespace AntiqueTradingSimulator.UI
             SetText(levelText, UpgradePresentation.LevelLabel(info));
             if (levelBar != null) levelBar.Set(info.DisplayLevel, info.LevelCount);
 
-            SetText(currentEffectText, UpgradePresentation.EffectBlock("Current effect:", info.CurrentEffects, info.CurrentUpkeep));
+            SetText(currentEffectText, UpgradePresentation.EffectBlock("Current effect:", info.CurrentEffects, info.CurrentUpkeep,
+                valuesOnly: true));
             SetText(nextEffectText, info.IsMaxed
                 ? UpgradePresentation.MaxedBlock("Next level:")
-                : UpgradePresentation.EffectBlock("Next level:", info.NextEffects, info.NextUpkeep, UIFormat.PositiveColor));
+                : UpgradePresentation.EffectBlock("Next level:", info.NextEffects, info.NextUpkeep, UIFormat.PositiveColor,
+                    valuesOnly: true));
 
             string requirement = UpgradePresentation.RequirementLine(info);
             SetText(costText,
                 $"<size=80%>{UIFormat.Colorize("Cost:", UIFormat.MutedColor)}</size>\n" +
                 UIFormat.Colorize(UpgradePresentation.CostValue(info), info.CanAfford || info.IsMaxed ? Color.white : UIFormat.NegativeColor) +
                 (requirement.Length > 0 ? $"\n<size=80%>{requirement}</size>" : ""));
-
-            if (upgradeButton != null) upgradeButton.interactable = info.CanUpgrade;
-            SetText(upgradeButtonText, info.IsMaxed ? "Max level" : "Upgrade");
-            if (_upgradeTooltip != null) _upgradeTooltip.Text = UpgradePresentation.ButtonTooltip(info);
         }
 
         private static void SetText(TMP_Text text, string value)
