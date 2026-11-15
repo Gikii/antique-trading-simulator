@@ -53,7 +53,8 @@ namespace AntiqueTradingSimulator.Economy
             set => _restorationTimeReduction = Mathf.Clamp01(value);
         }
 
-        public float ListingFee(float askingPrice) => Mathf.Max(0f, askingPrice) * ListingFeeRate;
+        public float ListingFee(float askingPrice) =>
+            Core.Money.RoundToShilling(Mathf.Max(0f, askingPrice) * ListingFeeRate);
 
         public float ListingProceeds(float askingPrice) => Mathf.Max(0f, askingPrice) - ListingFee(askingPrice);
 

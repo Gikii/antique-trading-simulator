@@ -17,7 +17,7 @@ namespace AntiqueTradingSimulator.UI
 
         [SerializeField] private Button button;
         [SerializeField] private TMP_Text nameText;     // "Express (secured)"
-        [SerializeField] private TMP_Text costText;     // "120 £"
+        [SerializeField] private TMP_Text costText;     // "£120"
         [SerializeField] private TMP_Text durationText; // "2 days"
         [SerializeField] private TMP_Text riskText;     // "3% damage · 45% delay" (the full seasonal outlook is in its tooltip)
 

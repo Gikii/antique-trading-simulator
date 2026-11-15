@@ -43,7 +43,7 @@ MonoBehaviour:
   MinFeeShare: 0.05
   MaxSpendInK: 3
   SpendSteps: 12
-  SpendRounding: 10
+  SpendRounding: 0
   FatigueMultiplier: 0.6
   FatigueWindowWeeks: 12
   ExpertDetection: 0.4

@@ -17,7 +17,7 @@ MonoBehaviour:
   Type: 7
   Century: 18
   Country: 4
-  BasePrice: 150
+  BasePrice: 0.75
   EditionSize: 0
   Description: A large silver thaler struck for a German principality. Common, but
     always in demand.

@@ -149,6 +149,12 @@ namespace AntiqueTradingSimulator.Company
     /// Names, descriptions, prices, upkeep, reputation requirements and effect values of every
     /// company upgrade shown on Company → Development. If none is assigned to CompanyManager,
     /// an in-memory default is used.
+    ///
+    /// Costs follow how a dealer's business was paid for in 1884: little up front (a desk, tools,
+    /// an introduction) and most of it every week — wages, retainers, subscriptions. Reference points:
+    /// an office clerk 25s a week, a workshop hand 30s+, a carman 30s, a commissionaire guard ~24s.
+    /// The Note of each level says who or what the upkeep pays for. Weekly upkeep the player can't
+    /// pay costs the upgrade a level (CompanyManager.ChargeUpgradeUpkeep).
     /// </summary>
     [CreateAssetMenu(fileName = "CompanyUpgradeSettings", menuName = "AntiqueTradingSimulator/Company/Company Upgrade Settings")]
     public class CompanyUpgradeSettings : ScriptableObject
@@ -177,54 +183,54 @@ namespace AntiqueTradingSimulator.Company
                 "Improve security to reduce the risk of theft or damage.",
                 false,
                 new CompanyUpgradeLevel(0, 0, 0, "Basic protection\nTheft risk: -0%"),
-                new CompanyUpgradeLevel(0, 0, 0, "Improved protection\nTheft risk: -10%"),
-                new CompanyUpgradeLevel(0, 0, 500, "Guarded storage\nTheft risk: -25%"),
-                new CompanyUpgradeLevel(0, 0, 1000, "Vault with guards\nTheft risk: -40%")),
+                new CompanyUpgradeLevel(0, 0, 0, "Iron safe and fire insurance\nTheft risk: -10%"),
+                new CompanyUpgradeLevel(0, 0, 500, "Strong room\nTheft risk: -25%"),
+                new CompanyUpgradeLevel(0, 0, 1000, "Strong room and a night watchman (24s a week)\nTheft risk: -40%")),
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.InformationNetwork, "Information Network",
                 "Gain access to better news, rumours and market information.",
                 true,
                 new CompanyUpgradeLevel(0, 0, 0, "Basic news, often delayed", Access(1)),
-                new CompanyUpgradeLevel(1200, 3, 0, "Auction houses, statistics, rumours", Access(2)),
-                new CompanyUpgradeLevel(3000, 6, 500, "Leaks before official announcements", Access(3)),
-                new CompanyUpgradeLevel(6000, 10, 1000, "Helps judge credibility and impact", Access(4)),
-                new CompanyUpgradeLevel(10000, 15, 1500, "Foreign markets and regulations", Access(5))),
+                new CompanyUpgradeLevel(2, 0.15f, 0, "Daily papers and auction catalogues (3s a week)\nAuction houses, statistics, rumours", Access(2)),
+                new CompanyUpgradeLevel(5, 0.5f, 500, "+ A paid informant in the trade\nLeaks before official announcements", Access(3)),
+                new CompanyUpgradeLevel(10, 1.75f, 1000, "+ An agent who checks what you hear (25s a week)\nHelps judge credibility and impact", Access(4)),
+                new CompanyUpgradeLevel(20, 3f, 1500, "+ Correspondents abroad and foreign telegrams\nForeign markets and regulations", Access(5))),
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.Logistics, "Logistics",
                 "Improve transport to reduce delivery time and costs.",
                 true,
                 new CompanyUpgradeLevel(0, 0, 0, "", TransportCost(0f), TransportWeeks(0)),
-                new CompanyUpgradeLevel(800, 2, 0, "", TransportCost(0.05f), TransportWeeks(0)),
-                new CompanyUpgradeLevel(2000, 4, 200, "", TransportCost(0.10f), TransportWeeks(1)),
-                new CompanyUpgradeLevel(4000, 7, 500, "", TransportCost(0.15f), TransportWeeks(1)),
-                new CompanyUpgradeLevel(7000, 10, 1000, "", TransportCost(0.20f), TransportWeeks(2))),
+                new CompanyUpgradeLevel(1, 0.05f, 0, "An account with a carrier", TransportCost(0.05f), TransportWeeks(0)),
+                new CompanyUpgradeLevel(5, 0.3f, 200, "+ A forwarding agent on retainer", TransportCost(0.10f), TransportWeeks(1)),
+                new CompanyUpgradeLevel(45, 2.3f, 500, "+ Your own van, horse and carman (30s a week)", TransportCost(0.15f), TransportWeeks(1)),
+                new CompanyUpgradeLevel(10, 2.8f, 1000, "+ An agent on the Continent", TransportCost(0.20f), TransportWeeks(2))),
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.Experts, "Experts",
                 "Hire experts to improve appraisals and news evaluation.",
                 true,
                 new CompanyUpgradeLevel(0, 0, 0, "Standard appraisal", NewsReliability(0f)),
-                new CompanyUpgradeLevel(1000, 3, 0, "Better appraisal", NewsReliability(0.15f)),
-                new CompanyUpgradeLevel(2500, 6, 200, "Hints about authenticity", NewsReliability(0.25f)),
-                new CompanyUpgradeLevel(5000, 10, 500, "Reliable authenticity checks", NewsReliability(0.35f)),
-                new CompanyUpgradeLevel(8000, 15, 1000, "Master appraisal", NewsReliability(0.50f))),
+                new CompanyUpgradeLevel(5, 0.25f, 0, "Reference books and a valuer on call\nBetter appraisal", NewsReliability(0.15f)),
+                new CompanyUpgradeLevel(10, 0.75f, 200, "A valuer on retainer\nHints about authenticity", NewsReliability(0.25f)),
+                new CompanyUpgradeLevel(20, 1.5f, 500, "A specialist consulted every week\nReliable authenticity checks", NewsReliability(0.35f)),
+                new CompanyUpgradeLevel(30, 2.5f, 1000, "A resident connoisseur\nMaster appraisal", NewsReliability(0.50f))),
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.Conservators, "Conservators",
                 "Hire conservators to restore items faster and cheaper.",
                 true,
                 new CompanyUpgradeLevel(0, 0, 0, "", RestorationCost(0f), RestorationTime(0f)),
-                new CompanyUpgradeLevel(900, 3, 0, "", RestorationCost(0.05f), RestorationTime(0.10f)),
-                new CompanyUpgradeLevel(2200, 5, 200, "", RestorationCost(0.10f), RestorationTime(0.20f)),
-                new CompanyUpgradeLevel(4500, 9, 500, "", RestorationCost(0.15f), RestorationTime(0.30f)),
-                new CompanyUpgradeLevel(7500, 13, 1000, "", RestorationCost(0.20f), RestorationTime(0.40f))),
+                new CompanyUpgradeLevel(5, 0.5f, 0, "Tools and an apprentice (10s a week)", RestorationCost(0.05f), RestorationTime(0.10f)),
+                new CompanyUpgradeLevel(10, 1.5f, 200, "A journeyman restorer and an apprentice", RestorationCost(0.10f), RestorationTime(0.20f)),
+                new CompanyUpgradeLevel(15, 3f, 500, "Two restorers (30s a week each)", RestorationCost(0.15f), RestorationTime(0.30f)),
+                new CompanyUpgradeLevel(20, 4f, 1000, "A master restorer's workshop", RestorationCost(0.20f), RestorationTime(0.40f))),
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.Staff, "Staff",
                 "Expand your team to handle more operations.",
                 true,
                 new CompanyUpgradeLevel(0, 0, 0, "", Fee(0.05f), ContractLimit(2)),
-                new CompanyUpgradeLevel(700, 4, 0, "", Fee(0.045f), ContractLimit(3)),
-                new CompanyUpgradeLevel(1800, 8, 200, "", Fee(0.04f), ContractLimit(4)),
-                new CompanyUpgradeLevel(3800, 13, 500, "", Fee(0.035f), ContractLimit(5)),
-                new CompanyUpgradeLevel(6500, 18, 1000, "", Fee(0.03f), ContractLimit(6))),
+                new CompanyUpgradeLevel(2, 0.5f, 0, "An errand boy (10s a week)", Fee(0.045f), ContractLimit(3)),
+                new CompanyUpgradeLevel(3, 1.75f, 200, "+ A clerk (25s a week)", Fee(0.04f), ContractLimit(4)),
+                new CompanyUpgradeLevel(3, 3f, 500, "+ A second clerk (25s a week)", Fee(0.035f), ContractLimit(5)),
+                new CompanyUpgradeLevel(5, 4.75f, 1000, "+ A head clerk (35s a week)", Fee(0.03f), ContractLimit(6))),
         };
 
         public CompanyUpgradeDefinition Get(CompanyUpgradeType type)

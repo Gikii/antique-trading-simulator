@@ -17,7 +17,7 @@ namespace AntiqueTradingSimulator.UI
     /// game clock and follows the live session lot by lot, in three screens:
     ///  - Presentation: the lot in full — picture, description, provenance, estimate, market value and
     ///    what winning would cost. Bidding opens when the player presses Start bidding (or skips the lot).
-    ///  - Bidding: current bid and its leader, the auctioneer's calls ("1 500 £ for the first time…")
+    ///  - Bidding: current bid and its leader, the auctioneer's calls ("£1,500 for the first time…")
     ///    with a countdown to the next one, who is still in, a short log. Bid / Pass lot / Leave.
     ///    Between lots the result stays on screen for a moment.
     ///  - Summary after the last lot: what the player won. Close hides the modal.
@@ -126,8 +126,13 @@ namespace AntiqueTradingSimulator.UI
             }
 
             if (feesText != null && auctionManager != null)
-                feesText.text = $"Buyer's premium {UIFormat.Percent(auctionManager.Settings.BuyersPremiumRate)} · " +
-                                $"ships from {auctionManager.Settings.AuctionHouseZone.ToDisplayString()}";
+            {
+                var settings = auctionManager.Settings;
+                string fees = settings.BuyersPremiumRate > 0f
+                    ? $"Buyer's premium {UIFormat.Percent(settings.BuyersPremiumRate)}"
+                    : "You pay the hammer price";
+                feesText.text = $"{fees} · ships from {settings.AuctionHouseZone.ToDisplayString()}";
+            }
 
             ShowScreen(RoomScreen.Presentation);
             if (_session.Current != null) HandleLotOpened(_session.Current);
@@ -495,7 +500,7 @@ namespace AntiqueTradingSimulator.UI
             }
         }
 
-        /// <summary>"1 500 £ for the first time…" — what the auctioneer just called.</summary>
+        /// <summary>"£1,500 for the first time…" — what the auctioneer just called.</summary>
         private static string CallLine(LotBidding bidding, AuctioneerCall call)
         {
             string price = bidding.HasBid ? UIFormat.Money(bidding.CurrentBid) : UIFormat.Money(bidding.Lot.StartPrice);
@@ -561,7 +566,10 @@ namespace AntiqueTradingSimulator.UI
             foreach (var lot in won)
             {
                 float premium = lot.HammerPrice * premiumRate;
-                sb.Append($"{AuctionPresentation.LotTitle(lot)}  —  {UIFormat.Money(lot.HammerPrice)} + {UIFormat.Money(premium)} premium\n");
+                string paid = premium > 0f
+                    ? $"{UIFormat.Money(lot.HammerPrice)} + {UIFormat.Money(premium)} premium"
+                    : UIFormat.Money(lot.HammerPrice);
+                sb.Append($"{AuctionPresentation.LotTitle(lot)}  —  {paid}\n");
             }
 
             if (won.Count > 0)

@@ -776,13 +776,8 @@ namespace AntiqueTradingSimulator.Contracts
             return RoundDownToNice(reference * condition);
         }
 
-        /// <summary>537 → 500 (steps of 10 below 200 £, 50 below 2 000 £, 100 above).</summary>
-        private static float RoundDownToNice(float value)
-        {
-            float step = value < 200f ? 10f : value < 2000f ? 50f : 100f;
-            if (value < step) return Mathf.Max(1f, Mathf.Floor(value));
-            return Mathf.Floor(value / step) * step;
-        }
+        /// <summary>4.63 → £4 10s, 37.4 → £37, 537 → £530 — see Core.Money.RoundDownToNice.</summary>
+        private static float RoundDownToNice(float value) => Core.Money.RoundDownToNice(value);
 
         /// <summary>
         /// Full bonus for the shortest deadline a purchase can still make, none for the longest. Measured

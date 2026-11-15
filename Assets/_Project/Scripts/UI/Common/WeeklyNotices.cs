@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using AntiqueTradingSimulator.Agents;
+using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Logistics;
@@ -17,8 +18,9 @@ namespace AntiqueTradingSimulator.UI
     /// shipments — held up by the weather, arrived early, or damaged in transit. Nothing is posted in
     /// a quiet week. Plain C#, owned by ToastUI.
     ///
-    /// One exception is posted at once rather than at the next week: an open contract the player
-    /// had accepted being delivered by another trader (it can happen mid-week, on an NPC's tick).
+    /// Posted at once rather than at the next week: an open contract the player had accepted being
+    /// delivered by another trader (it can happen mid-week, on an NPC's tick), and an upgrade lost
+    /// because its weekly upkeep couldn't be paid.
     /// </summary>
     public sealed class WeeklyNotices : IDisposable
     {
@@ -28,6 +30,7 @@ namespace AntiqueTradingSimulator.UI
         private readonly TimeManager _time;
         private readonly TransportManager _transport;
         private readonly PlayerTrader _player;
+        private readonly CompanyManager _company;
 
         private string _seasonNotice;
         private readonly List<string> _heldUp = new();
@@ -41,6 +44,7 @@ namespace AntiqueTradingSimulator.UI
             _time = UnityEngine.Object.FindFirstObjectByType<TimeManager>();
             _transport = UnityEngine.Object.FindFirstObjectByType<TransportManager>();
             _player = UnityEngine.Object.FindFirstObjectByType<PlayerTrader>();
+            _company = UnityEngine.Object.FindFirstObjectByType<CompanyManager>();
 
             if (_time != null) _time.OnTick += HandleTick;
 
@@ -53,6 +57,7 @@ namespace AntiqueTradingSimulator.UI
             }
 
             if (_player != null) _player.OnContractLost += HandleContractLost;
+            if (_company != null) _company.OnUpkeepUnpaid += HandleUpkeepUnpaid;
         }
 
         public void Dispose()
@@ -68,7 +73,14 @@ namespace AntiqueTradingSimulator.UI
             }
 
             if (_player != null) _player.OnContractLost -= HandleContractLost;
+            if (_company != null) _company.OnUpkeepUnpaid -= HandleUpkeepUnpaid;
         }
+
+        /// <summary>Shown once when a new campaign starts (ToastUI): what £ and s mean, and what money is worth.</summary>
+        public static string CampaignStartNotice =>
+            "<b>Money in 1884</b>\n" +
+            Money.CurrencyExplanation + "\n" +
+            UIFormat.Colorize(Money.ScaleReference + " Hover over your cash for a reminder.", UIFormat.MutedColor);
 
         // ---------------------------------------------------------------- contracts (posted at once)
 
@@ -79,6 +91,16 @@ namespace AntiqueTradingSimulator.UI
             string who = UIFormat.OwnerName(contract.FulfilledByTraderId, "Another trader", "You");
             _post?.Invoke($"<b>Contract lost</b>\n{who} delivered {contract.DisplayName} first. " +
                           UIFormat.Colorize("It's been removed from your contracts.", UIFormat.MutedColor));
+        }
+
+        // ---------------------------------------------------------------- upkeep (posted at once)
+
+        private void HandleUpkeepUnpaid(string upgradeName, int levelNow, float unpaidUpkeep)
+        {
+            _post?.Invoke($"<b>{upgradeName}: upkeep unpaid</b>\n" +
+                          $"You couldn't pay this week's {Money.Format(unpaidUpkeep)}, so {upgradeName} " +
+                          $"dropped to level {levelNow}. " +
+                          UIFormat.Colorize("Keep cash for wages before the week turns.", UIFormat.MutedColor));
         }
 
         // ---------------------------------------------------------------- collecting (during OnWeekChanged)

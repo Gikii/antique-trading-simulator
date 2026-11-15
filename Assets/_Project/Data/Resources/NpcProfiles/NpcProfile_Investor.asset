@@ -17,7 +17,7 @@ MonoBehaviour:
   TraderNames:
   - Halden Capital
   - Morrow Collection
-  StartingCash: 5000
+  StartingCash: 170
   PreferredTypes: 
   PreferredCountries: 
   PreferredCenturies: 

@@ -147,11 +147,12 @@ namespace AntiqueTradingSimulator.Contracts
         }
 
         /// <summary>
-        /// Market value (CurrentPrice, never an asking price) against the value floor. Half a pound of
-        /// slack so an antique shown as "540 £" meets a 540 £ requirement.
+        /// Market value (CurrentPrice, never an asking price) against the value floor, with the slack of
+        /// the display rounding so an antique shown as "£4 12s" meets a "£4 12s" requirement.
         /// </summary>
         public bool MeetsMinValue(Antique antique) =>
-            antique != null && (!HasMinValue || antique.CurrentPrice + 0.5f >= MinAcceptedValue);
+            antique != null && (!HasMinValue ||
+                                antique.CurrentPrice + Core.Money.DisplayTolerance(MinAcceptedValue) >= MinAcceptedValue);
 
         /// <summary>
         /// What one qualifying antique roughly costs: the value floor. Contracts without one (older

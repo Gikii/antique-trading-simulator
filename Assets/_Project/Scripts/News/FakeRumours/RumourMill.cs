@@ -110,7 +110,7 @@ namespace AntiqueTradingSimulator.Rumours
 
             for (int i = 0; i <= steps; i++)
             {
-                float spend = Round(Mathf.Lerp(min, max, i / (float)steps), s.SpendRounding);
+                float spend = RoundSpend(Mathf.Lerp(min, max, i / (float)steps), s.SpendRounding);
                 spend = Mathf.Clamp(spend, min, max);
                 if (options.Count == 0 || spend > options[options.Count - 1]) options.Add(spend);
             }
@@ -147,7 +147,7 @@ namespace AntiqueTradingSimulator.Rumours
                 quote.Blocker = $"A rumour can name at most {s.MaxTotalValues} things.";
             else if (ActiveCount(Antique.PlayerOwnerId) >= s.SlotsFor(level))
                 quote.Blocker = $"No free rumour slot ({ActiveCount(Antique.PlayerOwnerId)} of {s.SlotsFor(level)} in use).";
-            else if (Player == null || Player.Inventory == null || Player.Inventory.Cash < quote.Spend)
+            else if (Player == null || Player.Inventory == null || !Core.Money.Covers(Player.Inventory.Cash, quote.Spend))
                 quote.Blocker = "Not enough cash.";
             else if (Clock != null && quote.ClaimWeek > Clock.CampaignLength)
                 quote.Blocker = "The claimed date is after the end of the campaign.";
@@ -197,7 +197,7 @@ namespace AntiqueTradingSimulator.Rumours
         public bool PlantFor(NPCTrader npc, RumourQuote quote)
         {
             if (npc == null || quote == null || quote.Claim == null || quote.Claim.IsEmpty) return false;
-            if (!CanPlant(npc, quote.PlantWeek) || npc.Inventory.Cash < quote.Spend) return false;
+            if (!CanPlant(npc, quote.PlantWeek) || !Core.Money.Covers(npc.Inventory.Cash, quote.Spend)) return false;
 
             npc.Inventory.RemoveCash(quote.Spend, LedgerCategory.Rumour, $"Planted rumour: {quote.Claim.Summary()}");
 
@@ -378,8 +378,8 @@ namespace AntiqueTradingSimulator.Rumours
             float value = ScopeValue(claim.AffectedDefinitions());
             float costScale = s.CostScale * value * s.ClaimWeight(claim) * s.CostMultiplierFor(level);
 
-            min = Mathf.Max(1f, Round(s.MinFeeShare * value, s.SpendRounding));
-            max = Mathf.Max(min, Round(s.MaxSpendInK * costScale, s.SpendRounding));
+            min = Mathf.Max(Core.Money.OneShilling, RoundSpend(s.MinFeeShare * value, s.SpendRounding));
+            max = Mathf.Max(min, RoundSpend(s.MaxSpendInK * costScale, s.SpendRounding));
         }
 
         /// <summary>Average current reference price of the given antique definitions.</summary>
@@ -409,8 +409,9 @@ namespace AntiqueTradingSimulator.Rumours
             _ => new List<AntiqueDefinition>()
         };
 
-        private static float Round(float value, float step) =>
-            step > 0f ? Mathf.Round(value / step) * step : value;
+        /// <summary>Rounds to <paramref name="step"/>, or to a round amount for the size (Core.Money.NiceStep) when 0.</summary>
+        private static float RoundSpend(float value, float step) =>
+            step > 0f ? Mathf.Round(value / step) * step : Core.Money.RoundToNice(value);
 
         // ---------------------------------------------------------------- weekly
 

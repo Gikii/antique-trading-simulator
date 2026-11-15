@@ -18,7 +18,7 @@ namespace AntiqueTradingSimulator.Agents
         [SerializeField] protected string traderName = "Trader";
         [SerializeField] protected EconomyManager economyManager;
         [SerializeField] protected TransportManager transportManager;
-        [SerializeField] protected float startingCash = 1000f;
+        [SerializeField] protected float startingCash = 35f;
         [Tooltip("Which news this trader receives. Ignored by PlayerTrader — the player's access " +
                  "comes from the Information Network upgrade (CompanyManager).")]
         [SerializeField] protected InfoAccessLevel accessLevel = InfoAccessLevel.LocalPress;

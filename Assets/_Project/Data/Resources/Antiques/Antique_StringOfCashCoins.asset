@@ -17,6 +17,6 @@ MonoBehaviour:
   Type: 7
   Century: 19
   Country: 10
-  BasePrice: 80
+  BasePrice: 0.5
   EditionSize: 0
   Description: 'Bronze cash coins threaded on a cord, the everyday money of Qing China.'

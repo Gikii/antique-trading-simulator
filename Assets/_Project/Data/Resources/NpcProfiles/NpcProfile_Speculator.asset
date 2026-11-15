@@ -17,7 +17,7 @@ MonoBehaviour:
   TraderNames:
   - Kessler Trading
   - Brightwater Lots
-  StartingCash: 3000
+  StartingCash: 100
   PreferredTypes: 
   PreferredCountries: 
   PreferredCenturies: 

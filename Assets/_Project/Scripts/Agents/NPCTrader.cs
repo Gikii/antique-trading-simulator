@@ -495,7 +495,7 @@ namespace AntiqueTradingSimulator.Agents
             if (victim == null) return;
 
             var sold = Inventory.GetHolding(victim);
-            Debug.Log($"{TraderName} panic sells {sold?.Name}: worth {sold?.CurrentPrice:F0} £, paid {paid:F0} £.");
+            Debug.Log($"{TraderName} panic sells {sold?.Name}: worth {Core.Money.Format(sold?.CurrentPrice ?? 0f)}, paid {Core.Money.Format(paid)}.");
             if (SellListing(victim)) _acquisitions.Remove(victim);
         }
 
@@ -571,7 +571,7 @@ namespace AntiqueTradingSimulator.Agents
                 if (offer.Listing == null) continue;
 
                 float cost = offer.Cost;
-                if (cost > Inventory.Cash) continue;
+                if (!Core.Money.Covers(Inventory.Cash, cost)) continue;
 
                 if (!BuyListing(offer.Listing.Id, offer.Option)) continue;
 
@@ -824,7 +824,7 @@ namespace AntiqueTradingSimulator.Agents
             {
                 if (!Inventory.ListForSale(_economyManager.Market, chosen, askingPrice, week)) return false;
 
-                Debug.Log($"{TraderName} listed {chosenName} for {askingPrice:F0} £ (value {estimatedValue:F0} £).");
+                Debug.Log($"{TraderName} listed {chosenName} for {Core.Money.Format(askingPrice)} (value {Core.Money.Format(estimatedValue)}).");
                 return true;
             }
 
@@ -873,7 +873,7 @@ namespace AntiqueTradingSimulator.Agents
 
             if (!TryBuyForStock(best, week, bestCost)) return false;
 
-            Debug.Log($"{TraderName} bought {best.Name} on the open market (score {bestScore:P0}, cost {bestCost:F0} £).");
+            Debug.Log($"{TraderName} bought {best.Name} on the open market (score {bestScore:P0}, cost {Core.Money.Format(bestCost)}).");
             return true;
         }
 

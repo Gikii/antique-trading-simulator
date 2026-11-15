@@ -114,7 +114,8 @@ namespace AntiqueTradingSimulator.Contracts
                     if (condition + 0.0005f < requirement.MinCondition) continue;
 
                     float value = def.BasePrice * condition * priceFactor * marketMultiplier;
-                    if (requirement.HasMinValue && value + 0.5f < requirement.MinAcceptedValue) continue;
+                    if (requirement.HasMinValue &&
+                        value + Core.Money.DisplayTolerance(requirement.MinAcceptedValue) < requirement.MinAcceptedValue) continue;
 
                     qualifying++;
                 }

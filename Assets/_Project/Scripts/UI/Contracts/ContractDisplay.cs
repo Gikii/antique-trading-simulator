@@ -19,7 +19,7 @@ namespace AntiqueTradingSimulator.UI
             return string.IsNullOrEmpty(contract.ClassName) ? type : $"{type} · {contract.ClassName}";
         }
 
-        /// <summary>"4x Netherlands, min. 65% condition, 600 £+ each" – the one-line form for list rows.</summary>
+        /// <summary>"4x Netherlands, min. 65% condition, £600+ each" – the one-line form for list rows.</summary>
         public static string RequirementSummary(ContractRequirement requirement)
         {
             if (requirement == null) return "";
@@ -33,13 +33,13 @@ namespace AntiqueTradingSimulator.UI
             return summary;
         }
 
-        /// <summary>"at least 600 £ each", or "any" for contracts without a value floor.</summary>
+        /// <summary>"at least £600 each", or "any" for contracts without a value floor.</summary>
         public static string ValueRequirementShort(ContractRequirement requirement) =>
             requirement != null && requirement.HasMinValue
                 ? $"at least {UIFormat.Money(requirement.MinValue)} each"
                 : "any";
 
-        /// <summary>"Value: at least 600 £ each", or "Value: any".</summary>
+        /// <summary>"Value: at least £600 each", or "Value: any".</summary>
         public static string ValueRequirement(ContractRequirement requirement) =>
             $"Value: {ValueRequirementShort(requirement)}";
 
@@ -145,7 +145,7 @@ namespace AntiqueTradingSimulator.UI
 
         private static string Muted(string text) => UIFormat.Colorize(text, UIFormat.MutedColor);
 
-        /// <summary>"+1 320 £ over market value", or "" for contracts without a value floor.</summary>
+        /// <summary>"+£1,320 over market value", or "" for contracts without a value floor.</summary>
         public static string PremiumText(Contract contract)
         {
             float? premium = contract?.Premium;

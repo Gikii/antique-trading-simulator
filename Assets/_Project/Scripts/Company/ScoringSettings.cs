@@ -62,8 +62,8 @@ namespace AntiqueTradingSimulator.Company
     {
         public List<ScoreCriterionSettings> Criteria = new List<ScoreCriterionSettings>
         {
-            new ScoreCriterionSettings(ScoreCriterion.Wealth, 20000f, 0.25f),
-            new ScoreCriterionSettings(ScoreCriterion.CollectionValue, 10000f, 0.25f),
+            new ScoreCriterionSettings(ScoreCriterion.Wealth, 650f, 0.25f),
+            new ScoreCriterionSettings(ScoreCriterion.CollectionValue, 330f, 0.25f),
             new ScoreCriterionSettings(ScoreCriterion.ContractsFulfilled, 12f, 0.15f),
             new ScoreCriterionSettings(ScoreCriterion.Reputation, 2500f, 0.15f),
             new ScoreCriterionSettings(ScoreCriterion.Credibility, 1f, 0.10f),

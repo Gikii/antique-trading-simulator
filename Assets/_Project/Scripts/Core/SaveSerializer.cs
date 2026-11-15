@@ -8,7 +8,8 @@ namespace AntiqueTradingSimulator.Core
     public static class SaveSerializer
     {
 
-        public const int SaveFormatVersion = 1;
+        // 2: money rescaled to 1884 prices (pounds and shillings) — older saves hold amounts ~30x too large.
+        public const int SaveFormatVersion = 2;
 
         public static readonly JsonSerializerSettings Settings = CreateSettings();
 

@@ -31,6 +31,9 @@ namespace AntiqueTradingSimulator.UI
         [Tooltip("Show the weekly notices about seasons and the player's shipments.")]
         [SerializeField] private bool showWeeklyNotices = true;
 
+        [Tooltip("How long the note explaining the currency stays at the start of a new campaign.")]
+        [Min(0.1f)] [SerializeField] private float campaignStartSeconds = 9f;
+
         private const int MaxQueued = 6;
 
         private static event Action<string, float> Posted;
@@ -58,6 +61,19 @@ namespace AntiqueTradingSimulator.UI
             // After every Awake, so TransportManager has created its SeasonWeather.
             if (showWeeklyNotices)
                 _notices = new WeeklyNotices(message => Enqueue(message, noticeSeconds));
+
+            StartCoroutine(PostCampaignStartNotice());
+        }
+
+        // One frame later: GameBootstrap (execution order 1000) restores a save in its Start, so only
+        // now does week 1, tick 0 mean a campaign that has just begun rather than one being loaded.
+        private IEnumerator PostCampaignStartNotice()
+        {
+            yield return null;
+
+            var time = FindFirstObjectByType<Core.TimeManager>();
+            if (time != null && time.CurrentWeek == 1 && time.CurrentTick == 0)
+                Enqueue(WeeklyNotices.CampaignStartNotice, campaignStartSeconds);
         }
 
         private void OnEnable()

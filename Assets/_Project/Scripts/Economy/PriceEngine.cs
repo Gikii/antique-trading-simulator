@@ -17,10 +17,15 @@ namespace AntiqueTradingSimulator.Economy
         private const float MaxPriceMultiplier = 5f;
         private const float MinPriceMultiplier = 0.1f;
 
+        // Nothing is worth less than a shilling: a battered 10s curio in a slump would otherwise drop
+        // to fractions of a penny.
+        private const float MinPrice = Core.Money.OneShilling;
+
         public static float CalculatePrice(Market.Antique listing, Market.AntiqueMarketState typeState)
         {
             float multiplier = CalculateSupplyDemandMultiplier(typeState);
-            return listing.BasePrice * listing.Condition * listing.PriceFactor * multiplier;
+            return Core.Money.RoundToShilling(
+                Mathf.Max(MinPrice, listing.BasePrice * listing.Condition * listing.PriceFactor * multiplier));
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Core;
 using AntiqueTradingSimulator.Market;
 using UnityEngine;
+using CurrencyFormat = AntiqueTradingSimulator.Core.Money;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -20,24 +21,23 @@ namespace AntiqueTradingSimulator.UI
         /// <summary>Highlight colour of the greybox UI (active tab, player row, progress bars).</summary>
         public static readonly Color AccentColor = new Color32(0xC9, 0x9A, 0x3C, 0xFF);
 
-        private static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo
+        // Thousands separator for plain numbers (reputation…), matching the money format ("£1,250").
+        private static readonly NumberFormatInfo NumberFormat = new NumberFormatInfo
         {
-            NumberGroupSeparator = " ",
+            NumberGroupSeparator = ",",
             NumberDecimalSeparator = ".",
             NumberGroupSizes = new[] { 3 }
         };
 
-        /// <summary>"128 450 £"</summary>
-        public static string Money(float value) =>
-            Mathf.RoundToInt(value).ToString("#,0", MoneyFormat) + " £";
+        /// <summary>"£4 12s", "15s", "£128,450" — see Core.Money.</summary>
+        public static string Money(float value) => CurrencyFormat.Format(value);
 
-        /// <summary>"+30 220 £" / "-1 200 £" / "0 £"</summary>
-        public static string SignedMoney(float value)
-        {
-            int rounded = Mathf.RoundToInt(value);
-            string sign = rounded > 0 ? "+" : rounded < 0 ? "-" : "";
-            return sign + Mathf.Abs(rounded).ToString("#,0", MoneyFormat) + " £";
-        }
+        /// <summary>"+£30,220" / "-£4 12s" / "£0"</summary>
+        public static string SignedMoney(float value) => CurrencyFormat.FormatSigned(value);
+
+        /// <summary>"£850–£1,300", "£4 10s–£6".</summary>
+        public static string MoneyRange(float low, float high, string separator = "–") =>
+            CurrencyFormat.FormatRange(low, high, separator);
 
         /// <summary>"+30.8%" for 0.308</summary>
         public static string SignedPercent(float ratio)
@@ -162,12 +162,12 @@ namespace AntiqueTradingSimulator.UI
         {
             int rounded = Mathf.RoundToInt(value);
             string sign = rounded > 0 ? "+" : rounded < 0 ? "-" : "";
-            return sign + Mathf.Abs(rounded).ToString("#,0", MoneyFormat);
+            return sign + Mathf.Abs(rounded).ToString("#,0", NumberFormat);
         }
 
-        /// <summary>"1 250" — whole number with a space as thousands separator.</summary>
+        /// <summary>"1,250" — whole number with a comma as thousands separator.</summary>
         public static string Number(float value) =>
-            Mathf.RoundToInt(value).ToString("#,0", MoneyFormat);
+            Mathf.RoundToInt(value).ToString("#,0", NumberFormat);
 
         /// <summary>Wraps text in a TMP rich-text color tag picked by the sign of <paramref name="value"/>.</summary>
         public static string ColorBySign(string text, float value)

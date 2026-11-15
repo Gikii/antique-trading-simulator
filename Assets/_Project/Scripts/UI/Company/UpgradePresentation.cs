@@ -13,7 +13,7 @@ namespace AntiqueTradingSimulator.UI
 
         public static string LevelLabel(UpgradeInfo info) => $"Level {info.DisplayLevel} / {info.LevelCount}";
 
-        /// <summary>"40 £ / week" — upkeep is charged once per period (week).</summary>
+        /// <summary>"£40 / week" — upkeep is charged once per period (week).</summary>
         public static string PerWeek(float amount) => $"{UIFormat.Money(amount)} / week";
 
         public static string CostValue(UpgradeInfo info) => info.IsMaxed ? "—" : UIFormat.Money(info.NextCost);
@@ -120,20 +120,50 @@ namespace AntiqueTradingSimulator.UI
 
         /// <summary>
         /// Multi-line rich text for a card column: small muted header, the effect lines
-        /// (optionally coloured) and the daily upkeep.
+        /// (optionally coloured) and the weekly upkeep. <paramref name="valuesOnly"/> keeps just the
+        /// "Label: value" rows and drops the note's descriptive lines ("+ A clerk (25s a week)") —
+        /// the card has room for a few lines only; the details panel shows everything.
         /// </summary>
-        public static string EffectBlock(string header, UpgradeLevelEffects effects, float upkeep, Color? color = null)
+        public static string EffectBlock(string header, UpgradeLevelEffects effects, float upkeep, Color? color = null,
+                                         bool valuesOnly = false)
         {
             var sb = new StringBuilder();
             sb.Append("<size=80%>").Append(UIFormat.Colorize(header, UIFormat.MutedColor)).Append("</size>");
 
             foreach (var (label, value) in EffectRows(effects))
             {
+                if (valuesOnly && value.Length == 0) continue;
                 string line = value.Length > 0 ? $"{label}: {value}" : label;
                 sb.Append('\n').Append(color.HasValue ? UIFormat.Colorize(line, color.Value) : line);
             }
 
             sb.Append('\n').Append(UIFormat.Colorize($"Upkeep: {PerWeek(upkeep)}", UIFormat.MutedColor));
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Body of the "Upgrade X?" confirmation: what it costs now, what it adds to the weekly bill,
+        /// and what the next level gives (including who or what the upkeep pays for).
+        /// </summary>
+        public static string ConfirmMessage(UpgradeInfo info)
+        {
+            var sb = new StringBuilder();
+            sb.Append($"Level {info.DisplayLevel} → {info.DisplayLevel + 1}\n");
+            sb.Append($"{UIFormat.Colorize("Cost now:", UIFormat.MutedColor)} {UIFormat.Money(info.NextCost)}\n");
+
+            float extra = info.NextUpkeep - info.CurrentUpkeep;
+            sb.Append($"{UIFormat.Colorize("Upkeep:", UIFormat.MutedColor)} {PerWeek(info.CurrentUpkeep)} → {PerWeek(info.NextUpkeep)}");
+            if (extra > 0f) sb.Append(UIFormat.Colorize($" ({UIFormat.SignedMoney(extra)})", UIFormat.NegativeColor));
+
+            foreach (var (label, value) in EffectRows(info.NextEffects))
+                sb.Append('\n').Append(UIFormat.Colorize(value.Length > 0 ? $"{label}: {value}" : label, UIFormat.PositiveColor));
+
+            if (!info.EffectActive)
+                sb.Append("\n<size=85%>").Append(UIFormat.Colorize("No game system uses this level yet.", UIFormat.MutedColor)).Append("</size>");
+            if (extra > 0f)
+                sb.Append("\n<size=85%>").Append(UIFormat.Colorize(
+                    "Upkeep is paid every week — if you can't pay it, the upgrade drops a level.", UIFormat.MutedColor)).Append("</size>");
+
             return sb.ToString();
         }
 

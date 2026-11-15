@@ -26,8 +26,8 @@ namespace AntiqueTradingSimulator.Restoration
         [Tooltip("Fee as a share of the value the work adds at full success (value at perfect condition × condition gained).")]
         [Range(0f, 2f)] public float CostRate = 0.3f;
 
-        [Tooltip("The fee never goes below this amount (€).")]
-        [Min(0f)] public float MinimumFee = 50f;
+        [Tooltip("The fee never goes below this amount (£).")]
+        [Min(0f)] public float MinimumFee = 0.5f;
 
         [FormerlySerializedAs("DurationDays")]
         [Min(1)] public int DurationWeeks = 3;
@@ -76,13 +76,13 @@ namespace AntiqueTradingSimulator.Restoration
         {
             new RestorationOption("local", "Local Workshop",
                 "A craftsman around the corner. Quick and cheap, but not every job turns out well.",
-                0.70f, 0.30f, 50f, 3, 0.70f, 0.20f, 0),
+                0.70f, 0.30f, 0.5f, 3, 0.70f, 0.20f, 0),   // min. 10s — a jobbing craftsman
             new RestorationOption("certified", "Certified Conservator",
                 "A qualified conservator with a good track record.",
-                0.85f, 0.45f, 100f, 6, 0.85f, 0.12f, 0),
+                0.85f, 0.45f, 1f, 6, 0.85f, 0.12f, 0),     // min. £1
             new RestorationOption("master", "Master Workshop",
                 "A renowned studio that works with museums. Takes its time and almost never fails.",
-                0.95f, 0.60f, 200f, 10, 0.95f, 0.05f, 500),
+                0.95f, 0.60f, 3f, 10, 0.95f, 0.05f, 500),   // min. £3 — museum studio
         };
 
         [Header("History")]

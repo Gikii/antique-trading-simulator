@@ -11,7 +11,7 @@ namespace AntiqueTradingSimulator.UI
     ///
     ///   Summary text (can be two lines)
     ///   THIS WEEK                                        ← heading
-    ///   ■ Hargreaves bought your Ormolu clock   +1 240 £ ← entry: marker, text, amount
+    ///   ■ Hargreaves bought your Ormolu clock   +£1,240 ← entry: marker, text, amount
     ///       + 14 new listings                            ← note
     ///
     /// Plain C# helper owned by a feed view: Clear() and add the rows again whenever the feed changes.

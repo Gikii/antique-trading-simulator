@@ -198,7 +198,7 @@ namespace AntiqueTradingSimulator.Market
             OwnerId = ownerId;
 
             var def = Definition;
-            CurrentPrice = def != null ? def.BasePrice * Condition * PriceFactor : 0f;
+            CurrentPrice = def != null ? Core.Money.RoundToShilling(def.BasePrice * Condition * PriceFactor) : 0f;
 
         }
 

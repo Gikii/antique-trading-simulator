@@ -55,8 +55,9 @@ namespace AntiqueTradingSimulator.Contracts
             Requirement = requirement;
             CreatedWeek = createdWeek;
             DurationWeeks = Mathf.Clamp(durationWeeks, 1, maxDurationWeeks);
-            RewardPerUnit = Mathf.Max(0f, rewardPerUnit);
-            Penalty = type == ContractType.Exclusive ? Mathf.Max(0f, penalty) : 0f;
+            // Whole shillings, so the reward per piece times the quantity is exactly the total shown.
+            RewardPerUnit = Core.Money.RoundToShilling(Mathf.Max(0f, rewardPerUnit));
+            Penalty = type == ContractType.Exclusive ? Core.Money.RoundToShilling(Mathf.Max(0f, penalty)) : 0f;
             RequiredReputation = Mathf.Max(0, requiredReputation);
             ClassName = className ?? "";
         } 

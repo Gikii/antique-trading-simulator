@@ -84,16 +84,16 @@ namespace AntiqueTradingSimulator.Company
 
         [Header("Contracts")]
         public int ContractFulfilledReputation = 15;
-        [Tooltip("Extra reputation per € of contract reward (0.01 = +1 per 100 £).")]
-        [Min(0f)] public float ReputationPerContractReward = 0.01f;
+        [Tooltip("Extra reputation per £ of contract reward (0.3 = +3 per £10).")]
+        [Min(0f)] public float ReputationPerContractReward = 0.3f;
         public int ExclusiveContractBonusReputation = 10;
         public float ContractFulfilledCredibility = 0.03f;
         public float ExclusiveContractBonusCredibility = 0.02f;
         [Tooltip("Reputation lost for a contract that runs out unfulfilled, before the part scaled by its reward.")]
         public int ContractFailedReputation = -15;
-        [Tooltip("Extra reputation lost per £ of a failed contract's reward (0.01 = −1 per 100 £): failing a big " +
+        [Tooltip("Extra reputation lost per £ of a failed contract's reward (0.3 = −3 per £10): failing a big " +
                  "contract hurts more, just as fulfilling it helps more.")]
-        [Min(0f)] public float ReputationLostPerContractReward = 0.01f;
+        [Min(0f)] public float ReputationLostPerContractReward = 0.3f;
         public float ContractFailedCredibility = -0.08f;
 
         /// <summary>Reputation a trader gains for fulfilling this contract (TraderRecord applies it; the UI shows it).</summary>
@@ -121,8 +121,8 @@ namespace AntiqueTradingSimulator.Company
         }
 
         [Header("Market sales")]
-        [Tooltip("Reputation per € of market sales, summed per week (0.02 = +1 per 50 £).")]
-        [Min(0f)] public float ReputationPerSaleValue = 0.02f;
+        [Tooltip("Reputation per £ of market sales, summed per week (0.6 = +3 per £5).")]
+        [Min(0f)] public float ReputationPerSaleValue = 0.6f;
 
         [Header("History")]
         [Tooltip("How many reputation/credibility changes are kept for the history lists.")]

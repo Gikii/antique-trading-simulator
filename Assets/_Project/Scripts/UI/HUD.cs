@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using TMPro;
 using UnityEngine;
 using AntiqueTradingSimulator.Agents;
@@ -35,19 +34,13 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text credibilityText;
         [SerializeField] private TMP_Text marketShareText;
 
-        // "128 450 £" – space as thousands separator, like in the mockup.
-        private static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo
-        {
-            NumberGroupSeparator = " ",
-            NumberDecimalSeparator = ","
-        };
-
         void Awake()
         {
             if (playerTrader == null) playerTrader = FindFirstObjectByType<PlayerTrader>();
             if (timeManager == null) timeManager = FindFirstObjectByType<TimeManager>();
         }
 
+        private TooltipTrigger _cashTooltip;
         private TooltipTrigger _wealthTooltip;
         private TooltipTrigger _reputationTooltip;
         private TooltipTrigger _credibilityTooltip;
@@ -58,6 +51,9 @@ namespace AntiqueTradingSimulator.UI
         {
             var inventory = playerTrader.Inventory;
             inventory.OnCashChanged += UpdateCash;
+            _cashTooltip = AddTooltip(cashText);
+            if (_cashTooltip != null)
+                _cashTooltip.Text = CashTooltip;
             UpdateCash(inventory.Cash);
 
             // Wealth moves with cash, with every bought/sold antique and with market prices.
@@ -165,7 +161,7 @@ namespace AntiqueTradingSimulator.UI
 
         private void UpdateCash(float cash)
         {
-            SetText(cashText, FormatMoney(cash));
+            SetText(cashText, UIFormat.Money(cash));
             UpdateWealth();
             UpdateMarketShare(); // the player's own trades move it
         }
@@ -222,17 +218,19 @@ namespace AntiqueTradingSimulator.UI
             }
 
             float antiques = inventory.TotalHoldingsValue;
-            SetText(wealthText, FormatMoney(inventory.Wealth));
+            SetText(wealthText, UIFormat.Money(inventory.Wealth));
 
             if (_wealthTooltip != null)
                 _wealthTooltip.Text =
-                    $"Cash: {FormatMoney(inventory.Cash)}\n" +
-                    $"Antiques ({inventory.Holdings.Count}): {FormatMoney(antiques)}\n" +
+                    $"Cash: {UIFormat.Money(inventory.Cash)}\n" +
+                    $"Antiques ({inventory.Holdings.Count}): {UIFormat.Money(antiques)}\n" +
                     "<size=85%>Antiques at current market value, incl. items in transit.</size>";
         }
 
-        /// <summary>1000 → "1 000 €", 128450 → "128 450 £"</summary>
-        public static string FormatMoney(float amount) => amount.ToString("#,0", MoneyFormat) + " £";
+        /// <summary>Explains the currency on hover over the cash value.</summary>
+        private const string CashTooltip =
+            Money.CurrencyExplanation + "\n" +
+            "<size=85%>" + Money.ScaleReference + "</size>";
 
         private static void SetText(TMP_Text text, string value)
         {

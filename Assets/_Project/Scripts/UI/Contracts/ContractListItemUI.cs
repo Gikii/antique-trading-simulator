@@ -53,7 +53,7 @@ namespace AntiqueTradingSimulator.UI
                 requirementText.text = ContractDisplay.RequirementSummary(contract.Requirement);
 
             if (rewardText != null)
-                rewardText.text = $"{contract.TotalReward:F0} £";
+                rewardText.text = UIFormat.Money(contract.TotalReward);
 
             if (deadlineText != null)
             {

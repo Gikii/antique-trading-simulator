@@ -19,7 +19,7 @@ namespace AntiqueTradingSimulator.Logistics
             [Tooltip("Base shipping cost as a fraction of the item's sale price.")]
             [Range(0f, 0.5f)] public float RateOfItemPrice;
 
-            [Tooltip("Base shipping cost never goes below this amount (€).")]
+            [Tooltip("Base shipping cost never goes below this amount (£).")]
             [Min(0f)] public float MinimumFee;
         }
 
@@ -41,9 +41,9 @@ namespace AntiqueTradingSimulator.Logistics
         }
 
         [Header("Base cost per zone")]
-        public ZoneCost Local = new ZoneCost { RateOfItemPrice = 0.02f, MinimumFee = 10f };
-        public ZoneCost Domestic = new ZoneCost { RateOfItemPrice = 0.05f, MinimumFee = 25f };
-        public ZoneCost International = new ZoneCost { RateOfItemPrice = 0.10f, MinimumFee = 60f };
+        public ZoneCost Local = new ZoneCost { RateOfItemPrice = 0.02f, MinimumFee = 0.05f };          // 1s: a carrier across town
+        public ZoneCost Domestic = new ZoneCost { RateOfItemPrice = 0.05f, MinimumFee = 0.15f };       // 3s: a parcel by rail
+        public ZoneCost International = new ZoneCost { RateOfItemPrice = 0.10f, MinimumFee = 0.5f };     // 10s: packing, freight and insurance abroad
 
         [Header("Transport services")]
         public OptionSettings Economy = new OptionSettings
