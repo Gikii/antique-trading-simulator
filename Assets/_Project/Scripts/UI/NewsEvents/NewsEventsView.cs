@@ -1,11 +1,12 @@
-﻿using System;
+﻿using AntiqueTradingSimulator.Agents;
+using AntiqueTradingSimulator.Events;
+using AntiqueTradingSimulator.News;
+using AntiqueTradingSimulator.Rumours;
+using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using AntiqueTradingSimulator.Agents;
-using AntiqueTradingSimulator.News;
-using AntiqueTradingSimulator.Events;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -26,6 +27,8 @@ namespace AntiqueTradingSimulator.UI
         [Header("Header Actions")]
         [SerializeField] private Button createEventButton;
         [SerializeField] private CreateEventModalUI createEventModal; // auto-found (also when inactive)
+        [SerializeField] private Button createRumourButton;
+        [SerializeField] private CreateRumourModalUI createRumourModal;
 
         [Header("Player Information Access (auto-found if empty)")]
         [SerializeField] private PlayerTrader player;
@@ -113,6 +116,7 @@ namespace AntiqueTradingSimulator.UI
         private void Awake()
         {
             AutoWireWeekView();
+            AutoWireRumourButton();
             BindButtons();
 
             newsDetailsUI = GetOrAddDetailsPanel(newsDetails);
@@ -404,6 +408,7 @@ namespace AntiqueTradingSimulator.UI
             Bind(closeWeekButton, ShowNewsMode);
 
             Bind(createEventButton, OpenCreateEvent);
+            Bind(createRumourButton, OpenCreateRumour);
 
             Bind(newsDetailsCloseButton, CloseNewsDetails);
             Bind(eventDetailsCloseButton, CloseEventDetails);
@@ -579,7 +584,7 @@ namespace AntiqueTradingSimulator.UI
                     return news.Type == AntiqueTradingSimulator.News.NewsType.Official;
 
                 case NewsFilter.Rumours:
-                    return news.Type == AntiqueTradingSimulator.News.NewsType.Rumor;
+                    return NewsPresentation.IsRumour(news);
 
                 case NewsFilter.Leaked:
                     return news.Type == AntiqueTradingSimulator.News.NewsType.Leak;
@@ -1035,10 +1040,11 @@ namespace AntiqueTradingSimulator.UI
 
                     all++;
 
-                    switch (news.Type)
+                    switch (NewsPresentation.DisplayType(news))
                     {
                         case NewsType.Official: official++; break;
-                        case NewsType.Rumor: rumours++; break;
+                        case NewsType.Rumor:
+                        case NewsType.Fake: rumours++; break;
                         case NewsType.Leak: leaked++; break;
                     }
                 }
@@ -1116,16 +1122,39 @@ namespace AntiqueTradingSimulator.UI
 
             if (createEventModal == null)
             {
-                Debug.LogError(
-                    "NewsEventsView: Create Event modal not found. " +
-                    "Build it with Tools > UI > News & Events > Build Create Event Modal.",
-                    this
-                );
+                Debug.LogError("NewsEventsView: Create Event modal not found. ", this);
 
                 return;
             }
 
             createEventModal.Open();
+        }
+
+        // =====================================================
+        // CREATE RUMOUR
+        // =====================================================
+
+        private void AutoWireRumourButton()
+        {
+            if (createRumourButton != null || createEventButton == null || createEventButton.transform.parent == null)
+                return;
+
+            createRumourButton = FindIn<Button>(createEventButton.transform.parent, "CreateRumourButton");
+        }
+
+        public void OpenCreateRumour()
+        {
+            if (createRumourModal == null)
+                createRumourModal = FindAnyObjectByType<CreateRumourModalUI>(FindObjectsInactive.Include);
+
+            if (createRumourModal == null)
+            {
+                Debug.LogError("NewsEventsView: Create Rumour modal not found. ", this);
+
+                return;
+            }
+
+            createRumourModal.Open();
         }
 
 

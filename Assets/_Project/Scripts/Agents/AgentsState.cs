@@ -34,6 +34,10 @@ namespace AntiqueTradingSimulator.Agents
         public float ContractReserve;
 
         public int ContractSlotsUsed;
+
+        public int RumourExitWeek;
+        public int RumourClaimWeek;
+        public List<NewsEventData> RumourExitScope;
     }
 
     public class AcquisitionState

@@ -25,7 +25,7 @@ namespace AntiqueTradingSimulator.UI
             Event = activeEvent;
         }
 
-        public static WeekEntry ForNews(NewsItem news) => new WeekEntry(WeekEntries.KindOf(news.Type), news, null);
+        public static WeekEntry ForNews(NewsItem news) => new WeekEntry(WeekEntries.KindOf(NewsPresentation.DisplayType(news)), news, null);
 
         public static WeekEntry ForEvent(ActiveEvent activeEvent) => new WeekEntry(WeekEntryKind.Event, null, activeEvent);
 
@@ -92,7 +92,7 @@ namespace AntiqueTradingSimulator.UI
         /// <summary>Fake news look like official news to the player.</summary>
         public static WeekEntryKind KindOf(NewsType type) => type switch
         {
-            NewsType.Rumor => WeekEntryKind.Rumour,
+            NewsType.Rumor or NewsType.Fake => WeekEntryKind.Rumour,
             NewsType.Leak => WeekEntryKind.Leaked,
             _ => WeekEntryKind.Official
         };

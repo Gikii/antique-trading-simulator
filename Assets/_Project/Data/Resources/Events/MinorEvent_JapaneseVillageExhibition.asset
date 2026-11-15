@@ -22,7 +22,7 @@ MonoBehaviour:
   DurationWeeks: 6
   MinLeadWeeks: 3
   MaxLeadWeeks: 8
-  PlayerSelectsLeadTime: 1
+  PlayerSelectsLeadTime: 0
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1

@@ -1,5 +1,6 @@
 ﻿using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Events;
+using AntiqueTradingSimulator.Rumours;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -40,6 +41,11 @@ namespace AntiqueTradingSimulator.News
 
         private PlayerTrader _player;
 
+        private RumourMill _rumourMill;
+
+        /// <summary>Fake rumours (planting, debunking). Added to this GameObject if missing.</summary>
+        public RumourMill Rumours => _rumourMill;
+
         /// <summary>Raised after a news item has been published (e.g. so the UI can refresh).</summary>
         public event System.Action<NewsItem> OnNewsPublished;
 
@@ -55,9 +61,6 @@ namespace AntiqueTradingSimulator.News
             public NewsType Type;
         }
 
-
-
-
         private void Awake()
         {
             if (eventManager == null) eventManager = FindFirstObjectByType<EventManager>();
@@ -65,6 +68,9 @@ namespace AntiqueTradingSimulator.News
 
             // So UI with no NewsManager reference shows the same numbers.
             InformationSettings.SetActive(informationSettings);
+
+            _rumourMill = GetComponent<RumourMill>();
+            if (_rumourMill == null) _rumourMill = gameObject.AddComponent<RumourMill>();
 
             if (eventManager != null)
             {
@@ -232,6 +238,36 @@ namespace AntiqueTradingSimulator.News
 
         public void PublishManual(NewsItem item) => Publish(item);
 
+        /// <summary>
+        /// Fake rumour sent to everyone but the creator.
+        /// </summary>
+        public void PublishFabricated(NewsItem item, string planterId, int deliveryWeek)
+        {
+            if (item == null) return;
+
+            _publishedNews.Add(item);
+
+            foreach (var receiver in ResolveReceivers())
+            {
+                if (receiver == null || receiver.ReceiverId == planterId) continue;
+                receiver.ReceiveNews(item, deliveryWeek);
+            }
+
+            OnNewsPublished?.Invoke(item);
+        }
+
+        /// <summary>Published item with this Id, or null.</summary>
+        public NewsItem FindById(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+
+            foreach (var item in _publishedNews)
+                if (item != null && item.Id == id)
+                    return item;
+
+            return null;
+        }
+
         private void Publish(NewsItem item)
         {
             _publishedNews.Add(item);
@@ -377,6 +413,8 @@ namespace AntiqueTradingSimulator.News
                 }
             }
 
+            state.Rumours = _rumourMill != null ? _rumourMill.CaptureState() : null;
+
             return state;
         }
 
@@ -388,6 +426,7 @@ namespace AntiqueTradingSimulator.News
 
             if (state == null)
             {
+                if (_rumourMill != null) _rumourMill.RestoreState(null);
                 OnNewsRestored?.Invoke();
                 return;
             }
@@ -432,6 +471,8 @@ namespace AntiqueTradingSimulator.News
                     });
                 }
             }
+
+            if (_rumourMill != null) _rumourMill.RestoreState(state.Rumours);
 
             OnNewsRestored?.Invoke();
         }

@@ -27,7 +27,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: 15
+  AllowedSeasons: -1
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
@@ -73,6 +73,7 @@ MonoBehaviour:
         Country: 0
         Quantity: 0
         MinCondition: 0
+        MinValue: 0
         DurationWeeks: 8
         RewardPerUnit: 0
         Type: 2
@@ -90,6 +91,7 @@ MonoBehaviour:
         Country: 0
         Quantity: 0
         MinCondition: 0
+        MinValue: 0
         DurationWeeks: 6
         RewardPerUnit: 0
         Type: 1

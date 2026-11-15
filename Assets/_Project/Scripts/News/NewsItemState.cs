@@ -6,6 +6,8 @@ namespace AntiqueTradingSimulator.News
 
     public class NewsItemState
     {
+        public string Id;
+
         public List<NewsEventData> NewsData = new List<NewsEventData>();
 
         public string OfficialName;
@@ -18,12 +20,18 @@ namespace AntiqueTradingSimulator.News
         public bool GuaranteedDelivery;
         public int PlayerDeliveryWeek = NewsItem.NotDelivered;
 
+        public string PlantedBy;
+        public bool Debunked;
+        public bool PlayerSuspectsFake;
+        public string DebunksNewsId;
+
         public static NewsItemState Capture(NewsItem news)
         {
             if (news == null) return null;
 
             return new NewsItemState
             {
+                Id = news.Id,
                 NewsData = news.NewsData != null ? new List<NewsEventData>(news.NewsData) : new List<NewsEventData>(),
                 OfficialName = news.OfficialName,
                 EventDescription = news.EventDescription,
@@ -32,7 +40,11 @@ namespace AntiqueTradingSimulator.News
                 WeekPublished = news.WeekPublished,
                 EventTriggerWeek = news.EventTriggerWeek,
                 GuaranteedDelivery = news.GuaranteedDelivery,
-                PlayerDeliveryWeek = news.PlayerDeliveryWeek
+                PlayerDeliveryWeek = news.PlayerDeliveryWeek,
+                PlantedBy = news.PlantedBy,
+                Debunked = news.Debunked,
+                PlayerSuspectsFake = news.PlayerSuspectsFake,
+                DebunksNewsId = news.DebunksNewsId
             };
         }
 
@@ -45,6 +57,13 @@ namespace AntiqueTradingSimulator.News
             WeekPublished,
             EventTriggerWeek,
             GuaranteedDelivery,
-            PlayerDeliveryWeek);
+            PlayerDeliveryWeek,
+            Id)
+        {
+            PlantedBy = PlantedBy,
+            Debunked = Debunked,
+            PlayerSuspectsFake = PlayerSuspectsFake,
+            DebunksNewsId = DebunksNewsId
+        };
     }
 }

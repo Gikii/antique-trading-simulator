@@ -18,29 +18,36 @@ MonoBehaviour:
   - Halden Capital
   - Morrow Collection
   StartingCash: 5000
-  AccessLevel: 2
   PreferredTypes: 
   PreferredCountries: 
   PreferredCenturies: 
+  ActionsPerPeriod: 5
+  ContractSlotShare: 0.8
+  MinBargainScore: 0.08
+  AccessLevel: 2
   RumorTrust: 0.2
   LeakTrust: 0.6
-  MinReactionDelayDays: 1
-  MaxReactionDelayDays: 3
-  DailyBudgetFraction: 0.15
+  MinReactionDelayWeeks: 1
+  MaxReactionDelayWeeks: 3
+  RumourPlantChance: 0.05
+  WeeklyBudgetFraction: 0.15
   MaxPriceMultiplierWillingToPay: 0.95
   RiskTolerance: 0.3
   MinConditionToBuy: 0.5
   ConditionPremium: 0
   NeverSells: 0
   ProfitTargetMultiplier: 1.5
-  MinHoldingDaysBeforeSell: 10
-  PatientSellAfterDays: 25
+  MinHoldingWeeksBeforeSell: 10
+  PatientSellAfterWeeks: 25
   PatientProfitMultiplier: 1.15
   StopLossMultiplier: 0
   ListsOnMarket: 1
   ListingMarkup: 1.25
-  RelistAfterDays: 10
+  RelistAfterWeeks: 10
+  SeasonalForesight: 0.8
+  SeasonalHorizonWeeks: 10
   TakesContracts: 1
+  ContractPanicWeeks: 2
   AuctionAttendance: 0.6
   AuctionValueMultiplier: 0.9
   AuctionBudgetShare: 0.4
@@ -48,5 +55,3 @@ MonoBehaviour:
   AuctionFeverChance: 0
   AuctionFeverRaise: 0.1
   AuctionHesitation: 0.7
-  SeasonalForesight: 0.8
-  SeasonalHorizonDays: 10

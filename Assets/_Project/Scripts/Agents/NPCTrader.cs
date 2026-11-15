@@ -6,6 +6,7 @@ using AntiqueTradingSimulator.Events;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
 using AntiqueTradingSimulator.News;
+using AntiqueTradingSimulator.Rumours;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -91,6 +92,19 @@ namespace AntiqueTradingSimulator.Agents
         }
 
         private readonly List<PendingReaction> _pendingReactions = new();
+
+        /// <summary>Scope of the rumour this NPC planted, to sell into. Empty when it has none running.</summary>
+        private readonly List<NewsEventData> _rumourExitScope = new();
+
+        /// <summary>First week to start selling into its own rumour; -1 = no rumour running.</summary>
+        private int _rumourExitWeek = -1;
+
+        /// <summary>The rumour's claimed week: selling after it is pointless, the hangover has landed.</summary>
+        private int _rumourClaimWeek = -1;
+
+        /// <summary>Set by PlanPeriod once a week when the profile's roll comes up; spent by TierPlantRumour.</summary>
+        private bool _mayPlantRumour;
+
         private readonly Dictionary<string, Acquisition> _acquisitions = new();
 
         private int _planWeek = -1;
@@ -206,6 +220,10 @@ namespace AntiqueTradingSimulator.Agents
 
             DropInactiveContracts();
             DropExpiredReactions(week);
+            DropFinishedRumourExit(week);
+
+            _mayPlantRumour = profile.RumourPlantChance > 0f && !profile.NeverSells &&
+                              UnityEngine.Random.value < profile.RumourPlantChance;
 
             _contractReserve = CalculateContractReserve();
             _weekBudget = Mathf.Max(0f, Inventory.Cash - _contractReserve) * profile.WeeklyBudgetFraction;
@@ -506,11 +524,13 @@ namespace AntiqueTradingSimulator.Agents
         private void RunOneBudgetedAction(int week, NpcBehaviorProfile profile)
         {
             if (TierContractRescue(week, profile)) return;
+            if (TierRumourExit(week, profile)) return;
             if (TierDamageControl(week, profile)) return;
             if (TierNewsBuy(week, profile)) return;
             if (TierContractWork(week, profile)) return;
             if (TierReviewHoldings(week, profile)) return;
             if (TierTakeContract(week, profile)) return;
+            if (TierPlantRumour(week, profile)) return;
             if (TierBrowseMarket(week, profile)) return;
         }
 
@@ -606,6 +626,46 @@ namespace AntiqueTradingSimulator.Agents
             return false;
         }
 
+        /// <summary>
+        /// Sells into the rumour this NPC planted, while the price is still carrying the believers'
+        /// purchases. Nothing left to sell leaves the exit open for the next slot.
+        /// </summary>
+        private bool TierRumourExit(int week, NpcBehaviorProfile profile)
+        {
+            if (profile.NeverSells || _rumourExitWeek < 0) return false;
+            if (week < _rumourExitWeek || week >= _rumourClaimWeek) return false;
+
+            return SellMatching(_rumourExitScope, fallingOnly: false, "into the rumour it planted");
+        }
+
+        /// <summary>
+        /// Plants a fake rumour to pump stock this NPC already holds, when one pays for itself
+        /// (NpcRumourPlanner). The spend comes out of its cash like any other purchase.
+        /// </summary>
+        private bool TierPlantRumour(int week, NpcBehaviorProfile profile)
+        {
+            if (!_mayPlantRumour) return false;
+
+            var mill = RumourMill.Current;
+            if (mill == null || !mill.CanPlant(this, week))
+            {
+                _mayPlantRumour = false;
+                return false;
+            }
+
+            _mayPlantRumour = false;
+
+            if (!NpcRumourPlanner.TryFindPlan(mill, this, week, out var plan)) return false;
+
+            if (plan.Spend > _weekBudget || !PassesCashFloor(plan.Spend)) return false;
+
+            if (!mill.PlantFor(this, plan)) return false;
+
+            _weekBudget = Mathf.Max(0f, _weekBudget - plan.Spend);
+            return true;
+        }
+
+
         private bool TierNewsBuy(int week, NpcBehaviorProfile profile)
         {
             for (int i = _pendingReactions.Count - 1; i >= 0; i--)
@@ -618,11 +678,23 @@ namespace AntiqueTradingSimulator.Agents
             return false;
         }
 
-        private bool SellOnNews(NewsItem news, int week, NpcBehaviorProfile profile)
+        private bool SellOnNews(NewsItem news, int week, NpcBehaviorProfile profile) =>
+            SellMatching(news.NewsData, fallingOnly: true,
+                $"ahead of {news.Type} news from week {news.WeekPublished}");
+
+        /// <summary>
+        /// Sells the first free holding matching any of <paramref name="effects"/>. With
+        /// <paramref name="fallingOnly"/> only effects predicting a fall count (reacting to bad news);
+        /// without it every matching scope counts (selling into a rumour this NPC planted).
+        /// </summary>
+        private bool SellMatching(IReadOnlyList<NewsEventData> effects, bool fallingOnly, string reason)
         {
-            foreach (var effect in news.NewsData)
+            if (effects == null) return false;
+
+            foreach (var effect in effects)
             {
-                if (effect.targetScope == TargetScope.Other || effect.affectsPriceUp) continue;
+                if (effect == null || effect.targetScope == TargetScope.Other) continue;
+                if (fallingOnly && effect.affectsPriceUp) continue;
 
                 string victim = null;
                 string victimName = null;
@@ -647,7 +719,7 @@ namespace AntiqueTradingSimulator.Agents
                 if (!SellListing(victim)) continue;
 
                 _acquisitions.Remove(victim);
-                Debug.Log($"{TraderName} sold {victimName} ahead of {news.Type} news from week {news.WeekPublished}.");
+                Debug.Log($"{TraderName} sold {victimName} {reason}.");
                 return true;
             }
 
@@ -1189,10 +1261,15 @@ namespace AntiqueTradingSimulator.Agents
             {
                 NewsType.Official => 1f,
                 NewsType.Leak => profile.LeakTrust,
-                NewsType.Rumor => profile.RumorTrust,
-                NewsType.Fake => profile.RumorTrust * 0.5f,
-                _ => 0f
+                NewsType.Rumor or NewsType.Fake => profile.RumorTrust * (1f - RumourMill.CurrentSkepticism),
             };
+
+            if (news.Type == NewsType.Fake && AccessLevel >= InfoAccessLevel.Expert &&
+                UnityEngine.Random.value < FakeRumourSettings.Active.ExpertDetection * (1f - news.Credibility))
+            {
+                Debug.Log($"Trader {TraderName} spotted the fake rumour '{news.OfficialName}'.");
+                return;
+            }
 
             float actionChance = trust * news.Credibility * (0.5f + profile.RiskTolerance);
 
@@ -1212,6 +1289,44 @@ namespace AntiqueTradingSimulator.Agents
             }
 
             _pendingReactions.Add(new PendingReaction { News = news, ReactionWeek = reactionWeek });
+        }
+
+        /// <summary>Drops planned reactions to a news item (a debunked rumour).</summary>
+        public void ForgetNews(string newsId)
+        {
+            if (string.IsNullOrEmpty(newsId)) return;
+
+            int removed = _pendingReactions.RemoveAll(p => p.News != null && p.News.Id == newsId);
+            if (removed > 0) Debug.Log($"Trader {TraderName} dropped {removed} reaction(s) to debunked news.");
+        }
+
+        /// <summary>
+        /// Starts selling into a rumour this NPC planted: from <paramref name="fromWeek"/> (once the
+        /// believers' purchases have moved the price) until <paramref name="claimWeek"/>, when the
+        /// rumour is debunked. Called by RumourMill when the rumour is published.
+        /// </summary>
+        public void BeginRumourExit(IReadOnlyList<NewsEventData> scope, int fromWeek, int claimWeek)
+        {
+            _rumourExitScope.Clear();
+            if (scope == null) return;
+
+            foreach (var data in scope)
+                if (data != null && data.targetScope != TargetScope.Other)
+                    _rumourExitScope.Add(data);
+
+            if (_rumourExitScope.Count == 0) return;
+
+            _rumourExitWeek = fromWeek;
+            _rumourClaimWeek = claimWeek;
+        }
+
+        private void DropFinishedRumourExit(int week)
+        {
+            if (_rumourExitWeek < 0 || week < _rumourClaimWeek) return;
+
+            _rumourExitScope.Clear();
+            _rumourExitWeek = -1;
+            _rumourClaimWeek = -1;
         }
 
         // ---------------------------------------------------------------- transactions
@@ -1341,7 +1456,10 @@ namespace AntiqueTradingSimulator.Agents
                 SlotTicks = new List<int>(_slotTicks),
                 WeekBudget = _weekBudget,
                 ContractReserve = _contractReserve,
-                ContractSlotsUsed = _contractSlotsUsed
+                ContractSlotsUsed = _contractSlotsUsed,
+                RumourExitWeek = _rumourExitWeek,
+                RumourClaimWeek = _rumourClaimWeek,
+                RumourExitScope = new List<NewsEventData>(_rumourExitScope)
             };
 
             foreach (var pair in _acquisitions)
@@ -1408,6 +1526,10 @@ namespace AntiqueTradingSimulator.Agents
 
             // The period in progress. A save from before intra-period acting carries PlanWeek 0,
             // which leaves _planWeek at -1 and makes the next tick plan the period from scratch.
+            _rumourExitScope.Clear();
+            if (state.RumourExitScope != null) _rumourExitScope.AddRange(state.RumourExitScope);
+            _rumourExitWeek = _rumourExitScope.Count > 0 ? state.RumourExitWeek : -1;
+            _rumourClaimWeek = state.RumourClaimWeek;
             _planWeek = state.PlanWeek > 0 ? state.PlanWeek : -1;
             _weekBudget = state.WeekBudget;
             _contractReserve = state.ContractReserve;

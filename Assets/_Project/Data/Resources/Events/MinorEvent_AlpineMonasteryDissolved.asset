@@ -26,7 +26,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: 15
+  AllowedSeasons: -1
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1

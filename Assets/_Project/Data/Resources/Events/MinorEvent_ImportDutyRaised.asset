@@ -21,11 +21,11 @@ MonoBehaviour:
   DurationWeeks: 6
   MinLeadWeeks: 3
   MaxLeadWeeks: 8
-  PlayerSelectsLeadTime: 1
+  PlayerSelectsLeadTime: 0
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: 15
+  AllowedSeasons: -1
   FailureChance: 0.15
   CanBeFakeNews: 1
   CreateOfficialNews: 1
