@@ -136,8 +136,20 @@ namespace AntiqueTradingSimulator.UI
 
         void OnDestroy()
         {
-            if (_subscribed && timeManager != null)
+            if (!_subscribed)
+                return;
+
+            if (timeManager != null)
                 timeManager.OnWeekChanged -= HandleWeekChanged;
+
+            var market = economyManager != null ? economyManager.Market : null;
+            if (market != null)
+            {
+                market.OnListingAdded -= HandleListingsChanged;
+                market.OnListingRemoved -= HandleListingsChanged;
+            }
+
+            _subscribed = false;
         }
 
         private void HandleWeekChanged(int newWeek)

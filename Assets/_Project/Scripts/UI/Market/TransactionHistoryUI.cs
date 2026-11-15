@@ -61,6 +61,9 @@ namespace AntiqueTradingSimulator.UI
         private bool _subscribed;
         private FeedList _list;
 
+        private bool _rebuildPending;
+        private bool _wasAtTop;
+
         // ------------------------------------------------------------------ lifecycle
 
         private void Awake()
@@ -148,14 +151,27 @@ namespace AntiqueTradingSimulator.UI
 
         private void HandleChanged()
         {
-            bool wasAtTop = scrollRect == null || scrollRect.verticalNormalizedPosition >= 0.999f;
-            Rebuild();
-            if (wasAtTop)
-                ScrollToTop();
+            if (!_rebuildPending)
+                _wasAtTop = scrollRect == null || scrollRect.verticalNormalizedPosition >= 0.999f;
+
+            _rebuildPending = true;
         }
 
         // "This week" / "Last week" headings and the week's stats move on with the calendar.
         private void HandleWeekChanged(int week) => HandleChanged();
+
+        private void LateUpdate()
+        {
+            if (!_rebuildPending)
+                return;
+
+            _rebuildPending = false;
+
+            Rebuild();
+
+            if (_wasAtTop)
+                ScrollToTop();
+        }
 
         // ------------------------------------------------------------------ building
 
@@ -187,6 +203,8 @@ namespace AntiqueTradingSimulator.UI
             }
 
             int shownWeek = int.MinValue;
+            int rendered = 0;
+
             foreach (var entry in entries)
             {
                 if (entry == null)
@@ -201,12 +219,14 @@ namespace AntiqueTradingSimulator.UI
                 if (entry.Kind == MarketFeedKind.Listed)
                 {
                     _list.AddNote(entry.Count == 1 ? "+ 1 new listing" : $"+ {entry.Count} new listings");
+                    rendered++;
                     continue;
                 }
 
                 string amount = AmountText(entry, out Color amountColor);
                 Color textColor = entry.Kind == MarketFeedKind.AuctionUnsold ? _list.Muted : _list.Primary;
                 _list.AddEntry(MarkerColor(entry), Describe(entry), textColor, amount, amountColor);
+                rendered++;
             }
         }
 
@@ -315,7 +335,6 @@ namespace AntiqueTradingSimulator.UI
             if (scrollRect == null || content == null)
                 return;
 
-            Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(content);
             scrollRect.verticalNormalizedPosition = 1f;
         }
