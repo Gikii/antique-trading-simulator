@@ -1095,7 +1095,7 @@ namespace AntiqueTradingSimulator.UI
             if (accessLevelText == null)
                 return;
 
-            accessLevelText.text = NewsPresentation.AccessLevelSummary(
+            accessLevelText.text = NewsPresentation.AccessLevelLabel(
                 NewsPresentation.GetAccessLevel(player)
             );
         }

@@ -100,17 +100,20 @@ namespace AntiqueTradingSimulator.UI
 
             string when = NewsPresentation.RelativeWeeks(heardWeek - thisWeek).ToLowerInvariant();
             string type = NewsPresentation.TypeLabel(news);
-            string title = NewsPresentation.GetTitle(news);
 
-            string tooltip = $"{title}\n" +
+            string label = NewsPresentation.GetTitle(news, TextBudget.Tight);
+            string lines = NewsPresentation.GetLines(news);
+
+            string tooltip = $"{NewsPresentation.GetTitle(news, TextBudget.Wide)}\n" +
                              $"{type} · {NewsPresentation.FormatWeek(heardWeek, timeManager)}" +
                              (weeksLate > 0 ? $" · reached you {NewsPresentation.WeeksLabel(weeksLate)} late" : "") +
+                             (string.IsNullOrEmpty(lines) ? "" : $"\n\n{lines}") +
                              "\n\n" +
                              NewsPresentation.GetNewsDescription(news);
 
             return new RowData
             {
-                Label = title,
+                Label = label,
                 Detail = UIFormat.Colorize($"{type} · {when}", NewsPresentation.TypeColor(news)),
                 Tooltip = tooltip
             };

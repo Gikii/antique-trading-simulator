@@ -24,6 +24,8 @@ namespace AntiqueTradingSimulator.Rumours
 
         public string Title;
 
+        public string Scope;
+
         public int PlantWeek;
         public int SpreadWeek;
         public int ClaimWeek;

@@ -255,7 +255,7 @@ namespace AntiqueTradingSimulator.Rumours
             // cannot be told apart by its phrasing, and later changes to NewsWording reach both.
             var item = new NewsItem(
                 effects,
-                NewsWording.Headline(effects),
+                NewsWording.Headline(effects, TextBudget.Normal),
                 NewsWording.RumourBody(effects),
                 NewsType.Fake,
                 quote.Credibility,
@@ -277,7 +277,8 @@ namespace AntiqueTradingSimulator.Rumours
                 PlanterId = planterId,
                 PlanterName = planterName,
                 Claim = claim.Capture(),
-                Title = NewsWording.Headline(effects),
+                Title = NewsWording.Headline(effects, TextBudget.Normal),
+                Scope = claim.Summary(),
                 PlantWeek = quote.PlantWeek,
                 SpreadWeek = quote.SpreadWeek,
                 ClaimWeek = quote.ClaimWeek,
@@ -538,10 +539,15 @@ namespace AntiqueTradingSimulator.Rumours
                     : $"Investigators traced it to {record.PlanterName}.")
                 : "Its source is unknown.";
 
+            // The scope reads inside a sentence, where the headline would not.
+            string scope = string.IsNullOrEmpty(record.Scope)
+                ? (record.Claim != null ? record.Claim.Restore().Summary() : "the market")
+                : record.Scope;
+
             var notice = new NewsItem(
                 new List<NewsEventData>(),
-                $"Rumour debunked: {record.Title}",
-                $"The rumour about {record.Title} was false: its claimed date has passed and nothing happened. {source}",
+                $"Rumour debunked: {scope}",
+                $"The rumour about {scope} was false: its claimed date has passed and nothing happened. {source}",
                 NewsType.Official,
                 1f,
                 week,

@@ -52572,9 +52572,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 449738763}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4a26b1ed4d465d94c8cca81876f4f68e, type: 3}
+  m_Script: {fileID: 11500000, guid: 9d368a86a24559f45a47418f694a7316, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.UI.InfoBarNewsUI
+  listContainer: {fileID: 0}
+  rowPrefab: {fileID: 0}
+  maxRows: 3
+  timeManager: {fileID: 0}
+  newsManager: {fileID: 0}
+  playerTrader: {fileID: 0}
+  hideOnceEventStarted: 1
 --- !u!114 &449738770
 MonoBehaviour:
   m_ObjectHideFlags: 0

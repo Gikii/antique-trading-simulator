@@ -32,6 +32,9 @@ namespace AntiqueTradingSimulator.UI
         private Transform regionRow;
         private Transform periodRow;
 
+        /// <summary>Optional: shown only on panels that have a TargetRoute row.</summary>
+        private Transform routeRow;
+
         private TimeManager timeManager;
         private bool cached;
 
@@ -91,7 +94,7 @@ namespace AntiqueTradingSimulator.UI
         {
             int thisWeek = timeManager != null ? timeManager.CurrentWeek : news.WeekPublished;
 
-            SetText(titleText, NewsPresentation.GetTitle(news));
+            SetText(titleText, NewsPresentation.GetTitle(news, TextBudget.Wide));
             SetType(NewsPresentation.TypeLabel(news), NewsPresentation.TypeColor(news));
             SetText(descriptionText, NewsPresentation.GetNewsDescription(news));
 
@@ -130,31 +133,37 @@ namespace AntiqueTradingSimulator.UI
             SetText(noteText, NewsPresentation.EventNote);
         }
 
-        /// <summary>Puts every effect into the matching row: antique type → category, country → region, century → period.</summary>
+        /// <summary>Puts every effect into the matching row: antique type → category, country → region, century → period, shipping zone → route.</summary>
         private void FillTargets(IReadOnlyList<NewsEventData> effects, string emptyValue)
         {
-            var categories = new List<string>();
-            var regions = new List<string>();
-            var periods = new List<string>();
+            var summary = NewsSummary.Build(effects);
 
-            if (effects != null)
+            SetRowValue(categoryRow, Row(summary.Types, emptyValue, arrows: true));
+            SetRowValue(regionRow, Row(summary.Regions, emptyValue, arrows: true));
+            SetRowValue(periodRow, Row(summary.Periods, emptyValue, arrows: true));
+
+            if (routeRow != null)
             {
-                foreach (NewsEventData data in effects)
-                {
-                    string text = NewsPresentation.GetSubjectWithArrow(data);
+                routeRow.gameObject.SetActive(summary.HasRoutes);
+                SetRowValue(routeRow, Row(summary.Routes, emptyValue, arrows: false));
+            }
+        }
 
-                    switch (data.targetScope)
-                    {
-                        case EventEffect.TargetScope.AntiqueType: categories.Add(text); break;
-                        case EventEffect.TargetScope.Country: regions.Add(text); break;
-                        case EventEffect.TargetScope.Century: periods.Add(text); break;
-                    }
-                }
+        /// <summary>"clocks ↑, vases ↑" with tinted arrows, or emptyValue when nothing is named.</summary>
+        private static string Row(List<NewsSummary.Token> tokens, string emptyValue, bool arrows)
+        {
+            if (tokens == null || tokens.Count == 0) return emptyValue;
+
+            var builder = new System.Text.StringBuilder();
+
+            for (int i = 0; i < tokens.Count; i++)
+            {
+                if (i > 0) builder.Append(", ");
+                builder.Append(tokens[i].Label);
+                if (arrows) builder.Append(tokens[i].Up ? " ↑" : " ↓");
             }
 
-            SetRowValue(categoryRow, categories.Count > 0 ? string.Join(", ", categories) : emptyValue);
-            SetRowValue(regionRow, regions.Count > 0 ? string.Join(", ", regions) : emptyValue);
-            SetRowValue(periodRow, periods.Count > 0 ? string.Join(", ", periods) : emptyValue);
+            return NewsPresentation.ColorizeArrows(builder.ToString());
         }
 
         private static List<NewsEventData> BuildEventEffects(EventDefinition definition)
@@ -201,6 +210,7 @@ namespace AntiqueTradingSimulator.UI
             categoryRow = FindDeep(transform, "TargetCategory");
             regionRow = FindDeep(transform, "TargetRegion");
             periodRow = FindDeep(transform, "TargetPeriod");
+            routeRow = FindDeep(transform, "TargetRoute");
         }
 
         private void SetType(string label, Color color)
