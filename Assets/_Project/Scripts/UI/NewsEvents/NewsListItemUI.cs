@@ -87,10 +87,10 @@ namespace AntiqueTradingSimulator.UI
             // All wording comes from NewsPresentation, so the calendar and details panel show the same texts.
             titleText.text = NewsPresentation.GetTitle(news);
             previewText.text = NewsPresentation.GetPreview(news);
-            typeText.text = NewsPresentation.TypeLabel(news.Type);
+            typeText.text = NewsPresentation.TypeLabel(news);
             dateText.text = NewsPresentation.FormatWeek(NewsPresentation.PlayerWeek(news), timeManager);
 
-            Color typeColor = NewsPresentation.TypeColor(news.Type);
+            Color typeColor = NewsPresentation.TypeColor(news);
 
             typeText.color = typeColor;
 
@@ -99,7 +99,7 @@ namespace AntiqueTradingSimulator.UI
 
             var icons = UIIcons.Load();
             if (icons != null)
-                UIIcons.Show(thumbnail, icons.ForNewsType(news.Type));
+                UIIcons.Show(thumbnail, icons.ForNewsType(NewsPresentation.DisplayType(news)));
 
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() =>

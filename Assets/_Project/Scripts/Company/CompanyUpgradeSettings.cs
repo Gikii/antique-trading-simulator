@@ -50,7 +50,10 @@ namespace AntiqueTradingSimulator.Company
         RestorationCostReduction,
 
         /// <summary>Fraction taken off restoration time (0.1 = -10%, rounded, never below 1 day).</summary>
-        RestorationTimeReduction
+        RestorationTimeReduction,
+
+        /// <summary>Chance the player's experts flag a fake rumour planted by an NPC (0.15 = 15%).</summary>
+        NewsReliability
     }
 
     [Serializable]
@@ -157,6 +160,7 @@ namespace AntiqueTradingSimulator.Company
         private static UpgradeEffect ContractLimit(int count) => new UpgradeEffect(UpgradeStat.MaxActiveContracts, count);
         private static UpgradeEffect RestorationCost(float reduction) => new UpgradeEffect(UpgradeStat.RestorationCostReduction, reduction);
         private static UpgradeEffect RestorationTime(float reduction) => new UpgradeEffect(UpgradeStat.RestorationTimeReduction, reduction);
+        private static UpgradeEffect NewsReliability(float chance) => new UpgradeEffect(UpgradeStat.NewsReliability, chance);
 
         public List<CompanyUpgradeDefinition> Upgrades = new List<CompanyUpgradeDefinition>
         {
@@ -197,12 +201,12 @@ namespace AntiqueTradingSimulator.Company
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.Experts, "Experts",
                 "Hire experts to improve appraisals and news evaluation.",
-                false,
-                new CompanyUpgradeLevel(0, 0, 0, "Standard appraisal\nNews reliability: +0%"),
-                new CompanyUpgradeLevel(1000, 3, 0, "Better appraisal\nNews reliability: +15%"),
-                new CompanyUpgradeLevel(2500, 6, 200, "Hints about authenticity\nNews reliability: +25%"),
-                new CompanyUpgradeLevel(5000, 10, 500, "Reliable authenticity checks\nNews reliability: +35%"),
-                new CompanyUpgradeLevel(8000, 15, 1000, "Master appraisal\nNews reliability: +50%")),
+                true,
+                new CompanyUpgradeLevel(0, 0, 0, "Standard appraisal", NewsReliability(0f)),
+                new CompanyUpgradeLevel(1000, 3, 0, "Better appraisal", NewsReliability(0.15f)),
+                new CompanyUpgradeLevel(2500, 6, 200, "Hints about authenticity", NewsReliability(0.25f)),
+                new CompanyUpgradeLevel(5000, 10, 500, "Reliable authenticity checks", NewsReliability(0.35f)),
+                new CompanyUpgradeLevel(8000, 15, 1000, "Master appraisal", NewsReliability(0.50f))),
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.Conservators, "Conservators",
                 "Hire conservators to restore items faster and cheaper.",

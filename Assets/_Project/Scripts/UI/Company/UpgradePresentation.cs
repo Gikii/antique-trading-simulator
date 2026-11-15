@@ -75,6 +75,8 @@ namespace AntiqueTradingSimulator.UI
                     return ("Restoration cost", v > 0f ? "-" + UIFormat.PercentCompact(v) : "Base");
                 case UpgradeStat.RestorationTimeReduction:
                     return ("Restoration time", v > 0f ? "-" + UIFormat.PercentCompact(v) : "Base");
+                case UpgradeStat.NewsReliability:
+                    return ("Spots fake rumours", v > 0f ? UIFormat.PercentCompact(v) : "Never");
                 default:
                     return (effect.Stat.ToString(), v.ToString("0.##"));
             }

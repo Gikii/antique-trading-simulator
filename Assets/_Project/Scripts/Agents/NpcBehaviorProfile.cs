@@ -58,6 +58,10 @@ namespace AntiqueTradingSimulator.Agents
         [FormerlySerializedAs("MaxReactionDelayDays")]
         [Range(0, 5)] public int MaxReactionDelayWeeks = 2;
 
+        [Header("Fake rumours")]
+        [Tooltip("Weekly chance to look for a reason to plant a fake rumour. 0 = never. Ignored when Never Sells is set.")]
+        [Range(0f, 1f)] public float RumourPlantChance = 0;
+
         [Header("Buying")]
         [FormerlySerializedAs("DailyBudgetFraction")]
         [Range(0f, 1f)] public float WeeklyBudgetFraction = 0.2f;

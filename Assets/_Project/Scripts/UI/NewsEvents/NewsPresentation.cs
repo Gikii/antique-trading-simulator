@@ -2,7 +2,6 @@
 using AntiqueTradingSimulator.Helpers;
 using AntiqueTradingSimulator.News;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace AntiqueTradingSimulator.UI
@@ -24,25 +23,53 @@ namespace AntiqueTradingSimulator.UI
 
         public static Color TypeColor(NewsType type) => type switch
         {
-            NewsType.Rumor => RumourColor,
+            NewsType.Rumor or NewsType.Fake => RumourColor,
             NewsType.Leak => LeakedColor,
             _ => OfficialColor
         };
+
+        /// <summary>Colour of the type the player sees.</summary>
+        public static Color TypeColor(NewsItem item) => TypeColor(DisplayType(item));
 
         // ------------------------------------------------------------------
         // Labels
         // ------------------------------------------------------------------
 
-        /// <summary>"Official" / "Rumour" / "Leaked"</summary>
+        /// <summary>"Official" / "Rumour" / "Leaked" / "Planted"</summary>
         public static string TypeLabel(NewsType type) => type switch
         {
             NewsType.Official => "Official",
             NewsType.Rumor => "Rumour",
             NewsType.Leak => "Leaked",
+            NewsType.Fake => "Planted",
             _ => type.ToString()
         };
 
-        /// <summary>e.g. "Clock gaining market interest"</summary>
+        /// <summary>
+        /// The type the player sees: a fake planted by someone else shows as a rumour;
+        /// only the player's own fakes show as Fake ("Planted").
+        /// </summary>
+        public static NewsType DisplayType(NewsItem item)
+        {
+            if (item == null) return NewsType.Official;
+            return item.Type == NewsType.Fake && !item.PlantedByPlayer ? NewsType.Rumor : item.Type;
+        }
+
+        /// <summary>Type label for the player, with " · Debunked" once a fake's claimed date has passed.</summary>
+        public static string TypeLabel(NewsItem item)
+        {
+            string label = TypeLabel(DisplayType(item));
+            return item != null && item.Debunked ? label + " · Debunked" : label;
+        }
+
+        /// <summary>Rumours filter: rumours, NPC fakes and the player's planted rumours.</summary>
+        public static bool IsRumour(NewsItem item)
+        {
+            var type = DisplayType(item);
+            return type == NewsType.Rumor || type == NewsType.Fake;
+        }
+
+        /// <summary>e.g. "Clock gaining market interest". Rumour wording lives in NewsWording.</summary>
         public static string GetTitle(NewsItem item)
         {
             if (item.NewsData == null || item.NewsData.Count == 0)
@@ -51,16 +78,7 @@ namespace AntiqueTradingSimulator.UI
             if (item.Type == NewsType.Official)
                 return $"{item.OfficialName} official announcement";
 
-
-            NewsEventData data = item.NewsData[0];
-            string subject = GetSubject(data);
-
-            if (data.IsTransportDisruption)
-                return $"{subject} facing delays";
-
-            return data.affectsPriceUp
-                ? $"{subject} gaining market interest"
-                : $"{subject} facing market pressure";
+            return NewsWording.Headline(item.NewsData);
         }
 
         /// <summary>e.g. "Clock ↑ • France ↓"</summary>
@@ -71,44 +89,14 @@ namespace AntiqueTradingSimulator.UI
                     ? "No additional information available."
                     : item.EventDescription;
 
-            var builder = new StringBuilder();
-
-            for (int i = 0; i < item.NewsData.Count; i++)
-            {
-                if (i > 0)
-                    builder.Append(" • ");
-
-                builder.Append(GetSubjectWithArrow(item.NewsData[i]));
-            }
-
-            return builder.ToString();
+            return NewsWording.Preview(item.NewsData);
         }
 
         /// <summary>What the news is about: antique type, country, century or the market in general.</summary>
-        public static string GetSubject(NewsEventData data)
-        {
-            if (data.IsTransportDisruption)
-                return $"{data.Zone} shipping";
-
-            switch (data.targetScope)
-            {
-                case Events.EventEffect.TargetScope.AntiqueType:
-                    return data.AntiqueType.ToString();
-
-                case Events.EventEffect.TargetScope.Country:
-                    return data.Country.ToString();
-
-                case Events.EventEffect.TargetScope.Century:
-                    return data.Century.ToString();
-
-                default:
-                    return "Antique market";
-            }
-        }
+        public static string GetSubject(NewsEventData data) => NewsWording.Subject(data);
 
         /// <summary>"Clock ↑"</summary>
-        public static string GetSubjectWithArrow(NewsEventData data) =>
-            GetSubject(data) + (data.affectsPriceUp ? " ↑" : " ↓");
+        public static string GetSubjectWithArrow(NewsEventData data) => NewsWording.SubjectWithArrow(data);
 
         // ------------------------------------------------------------------
         // Longer texts (details panel)
@@ -118,7 +106,9 @@ namespace AntiqueTradingSimulator.UI
         {
             // News that isn't about an event's market effects (e.g. a weather forecast) carries its own text.
             if ((item.NewsData == null || item.NewsData.Count == 0) && !string.IsNullOrWhiteSpace(item.EventDescription))
-                return $"{item.EventDescription} Credibility: {UIFormat.Percent(item.Credibility)}.";
+                return item.Type == NewsType.Official
+                    ? item.EventDescription
+                    : $"{item.EventDescription} Credibility: {UIFormat.Percent(item.Credibility)}.";
 
             if (item.Type == NewsType.Official)
             {
@@ -127,11 +117,13 @@ namespace AntiqueTradingSimulator.UI
                     : TextHelper.Resolve(item.EventDescription, future: true);
             }
 
+            // A planted rumour reads exactly like a genuine one: no branch on Fake here. What marks
+            // the player's own is the badge and the note, not the words of the news itself.
             string intro = item.Type switch
             {
-                NewsType.Official => "Official sources have announced an upcoming market event.",
-                NewsType.Rumor => "Market circles whisper about an upcoming event.",
-                NewsType.Leak => "An inside source has revealed an event that has not been announced yet.",
+                NewsType.Official => NewsWording.OfficialIntro,
+                NewsType.Rumor or NewsType.Fake => NewsWording.RumourIntro,
+                NewsType.Leak => NewsWording.LeakIntro,
                 _ => "New market information is available."
             };
 
@@ -143,44 +135,9 @@ namespace AntiqueTradingSimulator.UI
             return $"{definition.DisplayName} is currently in progress. {TextHelper.Resolve(definition.Description, future: false)}";
         }
 
-        /// <summary>"Growing interest is expected in Clock and France. Weaker demand is expected for Porcelain."</summary>
-        public static string DescribeEffects(IReadOnlyList<NewsEventData> effects)
-        {
-            var up = new List<string>();
-            var down = new List<string>();
-            var delayed = new List<string>();
-
-            if (effects != null)
-            {
-                foreach (NewsEventData data in effects)
-                {
-                    if (data.IsTransportDisruption) delayed.Add(GetSubject(data).ToLowerInvariant());
-                    else (data.affectsPriceUp ? up : down).Add(GetSubject(data));
-                }
-            }
-
-            if (up.Count == 0 && down.Count == 0 && delayed.Count == 0)
-                return "No details are known yet.";
-
-            var builder = new StringBuilder();
-
-            if (up.Count > 0)
-                builder.Append($"Increase in prices is expected in {JoinNice(up)}.");
-
-            if (down.Count > 0)
-            {
-                if (builder.Length > 0) builder.Append(' ');
-                builder.Append($"Decrease in prices is expected for {JoinNice(down)}.");
-            }
-
-            if (delayed.Count > 0)
-            {
-                if (builder.Length > 0) builder.Append(' ');
-                builder.Append($"Delays are expected in {JoinNice(delayed)}.");
-            }
-
-            return builder.ToString();
-        }
+        /// <summary>"Increase in prices is expected in Clock and France." Wording lives in NewsWording.</summary>
+        public static string DescribeEffects(IReadOnlyList<NewsEventData> effects) =>
+            NewsWording.DescribeEffects(effects);
 
         public static string GetNote(NewsType type) => type switch
         {
@@ -189,6 +146,27 @@ namespace AntiqueTradingSimulator.UI
             NewsType.Leak => "This is a leak. The information is likely true, but it has not been officially announced yet, so most of the market doesn't know about it.",
             _ => ""
         };
+
+        /// <summary>Note for one news item: debunked, planted by the player, or flagged by the player's experts.</summary>
+        public static string GetNote(NewsItem item)
+        {
+            if (item == null) return "";
+
+            if (item.Debunked)
+                return "This rumour was false. Its claimed date passed and nothing happened.";
+
+            if (item.IsDebunkNotice)
+                return "This notice reached every trader. Traders who believed the rumour have dropped it.";
+
+            // The news text is identical to a genuine rumour's, so what the player knows about their
+            // own rumour is said here, outside the wording.
+            if (item.Type == NewsType.Fake && item.PlantedByPlayer)
+                return $"You planted this rumour (credibility {UIFormat.Percent(item.Credibility)}). " +
+                       "Every trader receives it in the week it spreads. It is debunked when the claimed date passes.";
+
+            string note = GetNote(DisplayType(item));
+            return item.PlayerSuspectsFake ? note + " Your experts suspect this rumour is fabricated." : note;
+        }
 
         public const string EventNote =
             "This event is in progress. Its effects will influence the market until it ends.";
@@ -345,19 +323,7 @@ namespace AntiqueTradingSimulator.UI
         // Helpers
         // ------------------------------------------------------------------
 
-        /// <summary>"A" / "A and B" / "A, B and C"</summary>
-        public static string JoinNice(IReadOnlyList<string> items)
-        {
-            if (items == null || items.Count == 0) return "";
-            if (items.Count == 1) return items[0];
-
-            var builder = new StringBuilder();
-            for (int i = 0; i < items.Count; i++)
-            {
-                if (i > 0) builder.Append(i == items.Count - 1 ? " and " : ", ");
-                builder.Append(items[i]);
-            }
-            return builder.ToString();
-        }
+        /// <summary>"A" / "A and B" / "A, B and C". One implementation, in NewsWording.</summary>
+        public static string JoinNice(IReadOnlyList<string> items) => NewsWording.JoinNice(items);
     }
 }

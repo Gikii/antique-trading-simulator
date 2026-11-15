@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd38f2e7d7af57d488c17831f640c1c7, type: 3}
+  m_Name: FakeRumourSettings
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Rumours.FakeRumourSettings
+  SpreadDelayWeeks: {x: 1, y: 5}
+  ClaimLeadWeeks: {x: 2, y: 6}
+  MinCredibility: 0.15
+  CredibilityCapPerLevel:
+  - 0
+  - 0.55
+  - 0.65
+  - 0.75
+  - 0.85
+  SlotsPerLevel: 0000000001000000010000000200000002000000
+  CostMultiplierPerLevel:
+  - 1
+  - 1
+  - 0.96
+  - 0.9357952
+  - 0.9220782
+  TraceMultiplierPerLevel:
+  - 1
+  - 1
+  - 0.8
+  - 0.65
+  - 0.5
+  TopCredibilityMargin: 0.02
+  MinTopSpendPremium: 0.03
+  CostScale: 0.15
+  ExtraAttributeWeight: 0.5
+  ExtraValueWeight: 0.3
+  MaxTotalValues: 6
+  MinFeeShare: 0.05
+  MaxSpendInK: 3
+  SpendSteps: 12
+  SpendRounding: 10
+  FatigueMultiplier: 0.6
+  FatigueWindowWeeks: 12
+  ExpertDetection: 0.4
+  HangoverDemand: 0.3
+  HangoverWeeks: 2
+  DebunkNoticeWeeks: 2
+  SkepticismPerDebunk: 0.08
+  SkepticismDecayPerWeek: 0.01
+  MaxSkepticism: 0.5
+  TraceBase: 0.05
+  TraceSpend: 0.15
+  TracePerRecent: 0.1
+  RecentWindowWeeks: 10
+  TracedCredibilityLoss: 0.1
+  TracedReputationLoss: 3
+  MaxActiveNpcRumours: 1
+  NpcCooldownWeeks: 8
+  NpcMinHoldings: 2
+  NpcMaxCashShare: 0.25
+  NpcCredibilityCap: 0.75
+  NpcPriceImpactPerReactor: 0.15
+  NpcMinReturnOnCost: 0.5
+  NpcSpendOptionsInK:
+  - 0.5
+  - 1
+  - 2
+  - 3
+  NpcSpreadDelayWeeks: 1
+  NpcClaimLeadWeeks: 3

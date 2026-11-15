@@ -99,7 +99,7 @@ namespace AntiqueTradingSimulator.UI
             int weeksLate = NewsPresentation.WeeksLate(news);
 
             string when = NewsPresentation.RelativeWeeks(heardWeek - thisWeek).ToLowerInvariant();
-            string type = NewsPresentation.TypeLabel(news.Type);
+            string type = NewsPresentation.TypeLabel(news);
             string title = NewsPresentation.GetTitle(news);
 
             string tooltip = $"{title}\n" +
@@ -111,7 +111,7 @@ namespace AntiqueTradingSimulator.UI
             return new RowData
             {
                 Label = title,
-                Detail = UIFormat.Colorize($"{type} · {when}", NewsPresentation.TypeColor(news.Type)),
+                Detail = UIFormat.Colorize($"{type} · {when}", NewsPresentation.TypeColor(news)),
                 Tooltip = tooltip
             };
         }

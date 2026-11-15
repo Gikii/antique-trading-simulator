@@ -29,6 +29,7 @@ MonoBehaviour:
   LeakTrust: 0.95
   MinReactionDelayWeeks: 0
   MaxReactionDelayWeeks: 1
+  RumourPlantChance: 0.15
   WeeklyBudgetFraction: 0.35
   MaxPriceMultiplierWillingToPay: 0.8
   RiskTolerance: 0.8

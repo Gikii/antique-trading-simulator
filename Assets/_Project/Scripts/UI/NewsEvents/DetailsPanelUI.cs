@@ -92,17 +92,18 @@ namespace AntiqueTradingSimulator.UI
             int thisWeek = timeManager != null ? timeManager.CurrentWeek : news.WeekPublished;
 
             SetText(titleText, NewsPresentation.GetTitle(news));
-            SetType(NewsPresentation.TypeLabel(news.Type), NewsPresentation.TypeColor(news.Type));
+            SetType(NewsPresentation.TypeLabel(news), NewsPresentation.TypeColor(news));
             SetText(descriptionText, NewsPresentation.GetNewsDescription(news));
 
-            SetRowValue(expectedDateRow,
-                $"{NewsPresentation.RelativeWeeks(news.EventTriggerWeek - thisWeek)}\n" +
-                NewsPresentation.FormatWeek(news.EventTriggerWeek, timeManager));
+            SetRowValue(expectedDateRow, news.IsDebunkNotice
+                ? "No event (debunked)"
+                : $"{NewsPresentation.RelativeWeeks(news.EventTriggerWeek - thisWeek)}\n" +
+                  NewsPresentation.FormatWeek(news.EventTriggerWeek, timeManager));
 
             // Rumours may reveal only some effects – the rest stays "Unknown".
             FillTargets(news.NewsData, UnknownValue);
 
-            SetText(noteText, NewsPresentation.GetNote(news.Type));
+            SetText(noteText, NewsPresentation.GetNote(news));
         }
 
         private void RenderEvent(ActiveEvent activeEvent)

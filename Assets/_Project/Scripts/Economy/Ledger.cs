@@ -22,6 +22,7 @@ namespace AntiqueTradingSimulator.Economy
         Upkeep,       // daily upkeep of company upgrades (staff, experts, ...)
         Penalty,      // failed contract penalty
         Restoration,  // conservator's fee for restoring an antique
+        Rumour,       // paid to plant a fake rumour
         Other
     }
 
@@ -46,6 +47,7 @@ namespace AntiqueTradingSimulator.Economy
             LedgerCategory.Upkeep => "Company Upkeep",
             LedgerCategory.Penalty => "Penalties",
             LedgerCategory.Restoration => "Restoration",
+            LedgerCategory.Rumour => "Rumours",
             _ => "Other"
         };
     }

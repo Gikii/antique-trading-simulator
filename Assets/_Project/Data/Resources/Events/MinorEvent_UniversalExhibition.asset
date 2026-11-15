@@ -15,18 +15,22 @@ MonoBehaviour:
   id: e6384a08da7d4fb7846e86cec7b44e30
   DisplayName: Universal Exhibition Opens
   EventType: 1
-  Description: A great exhibition {has opened|opens soon} in one of the capitals and the public
-    {crowds|will crowd} its art halls. Fashionable taste {favours|will favour} pictures and
-    statuary, while dealers from abroad {bring|are bringing} newer work along with them.
-  DurationDays: 7
-  MinLeadDays: 3
-  MaxLeadDays: 8
-  PlayerSelectsLeadTime: 1
+  Description: A great exhibition {has opened|opens soon} in one of the capitals
+    and the public {crowds|will crowd} its art halls. Fashionable taste {favours|will
+    favour} pictures and statuary, while dealers from abroad {bring|are bringing}
+    newer work along with them.
+  DurationWeeks: 7
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 8
+  PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
   AllowedSeasons: 3
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
-  OfficialAnnouncementDaysBefore: 1
+  OfficialAnnouncementWeeksBefore: 1
   CreateRumour: 1
   RumorCredibility: 0.5
   CreateLeak: 1

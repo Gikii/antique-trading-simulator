@@ -10,6 +10,8 @@ namespace AntiqueTradingSimulator.News
         public List<PendingNewsState> PendingNews = new List<PendingNewsState>();
 
         public List<InformationChannelState> Channels = new List<InformationChannelState>();
+
+        public AntiqueTradingSimulator.Rumours.RumourState Rumours;
     }
 
 
