@@ -192,6 +192,16 @@ namespace AntiqueTradingSimulator.UI
             if (passButton != null) passButton.onClick.AddListener(Pass);
             if (leaveButton != null) leaveButton.onClick.AddListener(Leave);
             if (closeButton != null) closeButton.onClick.AddListener(Hide);
+
+            // The big current-bid figure (44 pt) sits in a 56 px row: with Ellipsis overflow a line that
+            // doesn't fit shows only "…". Shrink to fit instead, and never cut the amount.
+            if (currentBidText != null)
+            {
+                currentBidText.fontSizeMax = currentBidText.fontSize;
+                currentBidText.fontSizeMin = Mathf.Min(24f, currentBidText.fontSize);
+                currentBidText.enableAutoSizing = true;
+                currentBidText.overflowMode = TextOverflowModes.Overflow;
+            }
         }
 
         private void Detach()
