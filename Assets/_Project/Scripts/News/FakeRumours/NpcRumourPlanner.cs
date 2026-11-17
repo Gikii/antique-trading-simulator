@@ -60,7 +60,7 @@ namespace AntiqueTradingSimulator.Rumours
                     foreach (var antique in options[i].Covered) covered.Add(antique.Id);
                 }
 
-                float heldValue = holdings.Where(h => covered.Contains(h.Id)).Sum(h => h.CurrentPrice);
+                float heldValue = holdings.Where(h => covered.Contains(h.Id)).Sum(h => h.SalePrice);
                 if (covered.Count < s.NpcMinHoldings) continue;
 
                 foreach (float multiple in s.NpcSpendOptionsInK ?? new float[0])
@@ -68,9 +68,12 @@ namespace AntiqueTradingSimulator.Rumours
                     var quote = Quote(mill, claim, npc.Id, week, multiple);
                     if (quote == null || quote.Spend > cashLimit) continue;
 
-                    float gain = heldValue * s.NpcPriceImpactPerReactor * Mathf.Min(quote.ExpectedReactors, covered.Count);
+                    float reactors = Mathf.Min(quote.ExpectedReactors, covered.Count);
+                    float gain = heldValue * s.NpcPriceImpactPerReactor * reactors;
                     float net = gain - quote.Spend;
                     if (net < quote.Spend * s.NpcMinReturnOnCost) continue;
+
+                    quote.ExpectedPumpMultiple = 1f + s.NpcPriceImpactPerReactor * reactors;
 
                     if (best == null || net > bestNet)
                     {

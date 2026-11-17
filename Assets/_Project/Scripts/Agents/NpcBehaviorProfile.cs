@@ -124,6 +124,43 @@ namespace AntiqueTradingSimulator.Agents
         [FormerlySerializedAs("ContractPanicDays")]
         [Min(0)] public int ContractPanicWeeks = 2;
 
+        [Header("Restoration")]
+        [Tooltip("Sends antiques to a conservator's workshop. Off leaves the NPC trading as-is only.")]
+        public bool Restores = true;
+
+        [Tooltip("How much better than its usual return on capital a restoration has to look before the " +
+                 "NPC prefers it to buying a piece that needs no work. 1.25 = 25% better.")]
+        [Min(1f)] public float RestorationHurdle = 1.25f;
+
+        [Tooltip("Longest workshop stay the NPC will accept, in weeks.")]
+        [Min(1)] public int MaxRestorationWeeks = 6;
+
+        [Tooltip("Most of its cash the NPC puts into one restoration fee.")]
+        [Range(0f, 1f)] public float MaxRestorationShareOfCash = 0.25f;
+
+        [Tooltip("How many of its antiques may be at a workshop at once.")]
+        [Min(1)] public int MaxConcurrentRestorations = 1;
+
+        [Tooltip("Restores held or bought antiques to meet a contract's condition or value floor.")]
+        public bool RestoresForContracts = true;
+
+        [Tooltip("Buys antiques below its condition floor when a workshop can bring them back over it.")]
+        public bool BuysToRestore = true;
+
+        [Header("Rumour exit")]
+        [Tooltip("Lists the stock its own rumour covers at an inflated price before dumping the rest. " +
+                 "Needs Lists On Market.")]
+        public bool ListsIntoOwnRumour = true;
+
+        [Tooltip("Where the asking price sits against what the antique is worth once the pump lands.")]
+        [Min(1f)] public float ExitTargetRatio = 1.2f;
+
+        [Tooltip("How many weeks before the rumour is debunked unsold listings are cancelled and sold to the market.")]
+        [Min(1)] public int ExitDumpLeadWeeks = 1;
+
+        [Tooltip("How much of the expected pump the NPC prices in. 1 = all of it.")]
+        [Range(0f, 1f)] public float ExitPumpConfidence = 0.7f;
+
         [Header("Auctions")]
         [Tooltip("Chance to attend an auction session at all.")]
         [Range(0f, 1f)] public float AuctionAttendance = 0.7f;

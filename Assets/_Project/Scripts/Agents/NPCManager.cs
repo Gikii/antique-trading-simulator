@@ -5,6 +5,7 @@ using AntiqueTradingSimulator.Company;
 using AntiqueTradingSimulator.Contracts;
 using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Logistics;
+using AntiqueTradingSimulator.Restoration;
 using AntiqueTradingSimulator.News;
 
 namespace AntiqueTradingSimulator.Agents
@@ -21,6 +22,7 @@ namespace AntiqueTradingSimulator.Agents
         [SerializeField] private NewsManager newsManager;
         [SerializeField] private ContractManager contractManager;
         [SerializeField] private TransportManager transportManager;
+        [SerializeField] private RestorationManager restorationManager;
 
         [Header("Initial NPC population. One entry per NPC, referencing an NpcBehaviorProfile.Id")]
         [SerializeField] private List<string> initialProfileIds = new();
@@ -44,6 +46,7 @@ namespace AntiqueTradingSimulator.Agents
             if (newsManager == null) newsManager = FindFirstObjectByType<NewsManager>();
             if (contractManager == null) contractManager = FindFirstObjectByType<ContractManager>();
             if (transportManager == null) transportManager = FindFirstObjectByType<TransportManager>();
+            if (restorationManager == null) restorationManager = FindFirstObjectByType<RestorationManager>();
             if (reputationSettings == null)
             {
                 var company = FindFirstObjectByType<CompanyManager>();
@@ -171,7 +174,7 @@ namespace AntiqueTradingSimulator.Agents
 
         public NPCTrader SpawnNPC(string traderName, string profileId, float? startingCash = null)
         {
-            var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager, contractManager, transportManager, reputationSettings);
+            var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager, contractManager, transportManager, reputationSettings, restorationManager);
             RegisterNPC(npc);
             Debug.Log("Created NPC Trader " + traderName);
             return npc;
@@ -237,7 +240,7 @@ namespace AntiqueTradingSimulator.Agents
 
                 // Starting cash is set to 0. Restoring inventory sets it to the saved value.
                 var npc = new NPCTrader(npcState.TraderName, npcState.ProfileId, 0f,
-                    economyManager, contractManager, transportManager, reputationSettings);
+                    economyManager, contractManager, transportManager, reputationSettings, restorationManager);
 
                 // Before RegisterNPC, which keys everything on the Id this restores.
                 npc.RestoreState(npcState);

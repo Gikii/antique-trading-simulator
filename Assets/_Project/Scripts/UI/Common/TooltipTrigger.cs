@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace AntiqueTradingSimulator.UI
 {
@@ -37,6 +38,10 @@ namespace AntiqueTradingSimulator.UI
         public static TooltipTrigger On(Component target)
         {
             if (target == null) return null;
+
+            var graphic = target.GetComponent<Graphic>();
+            if (graphic != null) graphic.raycastTarget = true;
+
             var trigger = target.GetComponent<TooltipTrigger>();
             return trigger != null ? trigger : target.gameObject.AddComponent<TooltipTrigger>();
         }
