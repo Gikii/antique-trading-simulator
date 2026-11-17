@@ -74,12 +74,6 @@ namespace AntiqueTradingSimulator.Agents
             public int ReactionWeek;
         }
 
-        private struct Acquisition
-        {
-            public float PurchasePrice;
-            public int Week;
-        }
-
         private readonly struct Offer
         {
             public readonly Antique Listing;
@@ -123,8 +117,6 @@ namespace AntiqueTradingSimulator.Agents
 
         /// <summary>Set by PlanPeriod once a week when the profile's roll comes up; spent by TierPlantRumour.</summary>
         private bool _mayPlantRumour;
-
-        private readonly Dictionary<string, Acquisition> _acquisitions = new();
 
         private readonly Dictionary<string, Plan> _plans = new();
 
@@ -811,11 +803,12 @@ namespace AntiqueTradingSimulator.Agents
                 var holding = pair.Value;
                 if (holding.IsReservedForContract || holding.IsListedForSale) continue;
                 if (holding.IsInTransit || holding.IsInRestoration) continue;
-                if (!_acquisitions.TryGetValue(holding.Id, out var acquisition)) continue;
-                if (holding.CurrentPrice >= acquisition.PurchasePrice * profile.StopLossMultiplier) continue;
+                if (!_plans.TryGetValue(holding.Id, out var plan)) continue;
+                if (plan.Purpose != PlanPurpose.Resale || plan.HasRestorationLeg) continue;
+                if (holding.CurrentPrice >= plan.CostBasis * profile.StopLossMultiplier) continue;
 
                 victim = holding.Id;
-                paid = acquisition.PurchasePrice;
+                paid = plan.CostBasis;
                 break;
             }
 
@@ -823,7 +816,7 @@ namespace AntiqueTradingSimulator.Agents
 
             var sold = Inventory.GetHolding(victim);
             Debug.Log($"{TraderName} panic sells {sold?.Name}: worth {Core.Money.Format(sold?.CurrentPrice ?? 0f)}, paid {Core.Money.Format(paid)}.");
-            if (SellListing(victim)) _acquisitions.Remove(victim);
+            if (SellListing(victim)) _plans.Remove(victim);
         }
 
         /// <summary>Withdraws one of its own listings that has sat unsold past RelistAfterWeeks.</summary>
@@ -1358,7 +1351,7 @@ namespace AntiqueTradingSimulator.Agents
 
             if (!SellListing(chosen)) return false;
 
-            _acquisitions.Remove(chosen);
+            _plans.Remove(chosen);
             return true;
         }
 
@@ -2290,6 +2283,7 @@ namespace AntiqueTradingSimulator.Agents
             _contractReserve = state.ContractReserve;
             _planReserve = state.PlanReserve;
             _contractSlotsUsed = state.ContractSlotsUsed;
+            _rumourDumpWeek = state.RumourDumpWeek > 0 ? state.RumourDumpWeek : _rumourExitWeek;
             _lastObligationTick = -1;
             _rng = new System.Random(SeedFor(Mathf.Max(1, _planWeek)));
 
