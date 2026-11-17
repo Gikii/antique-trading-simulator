@@ -33,6 +33,8 @@ namespace AntiqueTradingSimulator.Restoration
     /// <summary>A finished restoration — kept briefly for the info bar.</summary>
     public class RestorationRecord
     {
+        public string OwnerId;
+
         public string AntiqueId;
         public string AntiqueName;
         public string OptionName;

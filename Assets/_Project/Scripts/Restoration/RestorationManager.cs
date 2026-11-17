@@ -292,6 +292,7 @@ namespace AntiqueTradingSimulator.Restoration
 
             var record = new RestorationRecord
             {
+                OwnerId = job.Owner != null ? job.Owner.OwnerId : null,
                 AntiqueId = job.AntiqueId,
                 AntiqueName = job.AntiqueName,
                 OptionName = job.OptionName,
@@ -336,6 +337,17 @@ namespace AntiqueTradingSimulator.Restoration
         /// <summary>Restorations finished on or after the given day, newest first.</summary>
         public IEnumerable<RestorationRecord> GetCompletedSince(int sinceWeek) =>
             _completed.Where(r => r.Week >= sinceWeek).Reverse();
+
+        public IEnumerable<RestorationRecord> GetCompletedSince(int sinceWeek, TraderInventory owner)
+        {
+            string ownerId = owner != null ? owner.OwnerId : null;
+            bool isPlayer = playerTrader != null && ReferenceEquals(owner, playerTrader.Inventory);
+
+            return _completed
+                .Where(r => r.Week >= sinceWeek)
+                .Where(r => r.OwnerId == ownerId || (isPlayer && string.IsNullOrEmpty(r.OwnerId)))
+                .Reverse();
+        }
 
         // ---------------------------------------------------------------- save / load
 
