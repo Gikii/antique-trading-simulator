@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: furniture_003
   DisplayName: Painted dowry chest
-  Type: 3
+  Type: 2
   Century: 19
   Country: 15
   BasePrice: 4
   EditionSize: 0
-  Description: 'A pine dowry chest painted with folk flowers, made to carry a bride''s linen to her new home.'
+  Description: A pine dowry chest painted with folk flowers, made to carry a bride's
+    linen to her new home.
+  Artwork: {fileID: 0}

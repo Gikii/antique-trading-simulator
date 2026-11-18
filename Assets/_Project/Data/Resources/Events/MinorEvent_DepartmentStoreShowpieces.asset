@@ -17,7 +17,7 @@ MonoBehaviour:
   EventType: 1
   Description: A new department store {is opening|will open} on the high street with
     a hall given over to antiques. Its buyers {are placing|will place} orders across
-    the trade, and porcelain and silver {are|will be} first on their lists.
+    the trade, and porcelain and jewellery {are|will be} first on their lists.
   DurationWeeks: 3
   MinLeadWeeks: 1
   MaxLeadWeeks: 5
@@ -25,7 +25,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: -1
+  AllowedSeasons: 15
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
@@ -35,31 +35,31 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277103
-  - rid: 1280112227729277104
-  - rid: 1280112227729277105
+  - rid: 1280112333518012760
+  - rid: 1280112333518012761
+  - rid: 1280112333518012762
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277103
+    - rid: 1280112333518012760
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 12
+        AntiqueType: 9
         Country: 0
         Century: 0
         tempDemandChange: 0.75
         permDemandChange: 0
-    - rid: 1280112227729277104
+    - rid: 1280112333518012761
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 10
+        AntiqueType: 5
         Country: 0
         Century: 0
         tempDemandChange: 0.5
         permDemandChange: 0
-    - rid: 1280112227729277105
+    - rid: 1280112333518012762
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 2

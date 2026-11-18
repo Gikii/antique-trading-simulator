@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: sculpture_003
   DisplayName: Bronze animal figure
-  Type: 5
+  Type: 4
   Century: 19
   Country: 11
   BasePrice: 20
   EditionSize: 0
-  Description: 'A finely chased bronze figure of a crouching tiger, made for the Western market in the Meiji era.'
+  Description: A finely chased bronze figure of a crouching tiger, made for the Western
+    market in the Meiji era.
+  Artwork: {fileID: 0}

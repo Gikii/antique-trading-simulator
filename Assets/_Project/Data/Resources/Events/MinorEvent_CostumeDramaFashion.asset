@@ -26,7 +26,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: -1
+  AllowedSeasons: 15
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
@@ -36,19 +36,19 @@ MonoBehaviour:
   CreateLeak: 0
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277100
-  - rid: 1280112227729277101
-  - rid: 1280112227729277102
+  - rid: 1280112333518012757
+  - rid: 1280112333518012758
+  - rid: 1280112333518012759
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277100
+    - rid: 1280112333518012757
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
         MaxCount: 1
         Scope: 1
-        AntiqueType: 3
+        AntiqueType: 2
         Century: 0
         Country: 0
         Quantity: 2
@@ -60,13 +60,13 @@ MonoBehaviour:
         Penalty: -1
         ClassName: Standard
         RequiredReputation: -1
-    - rid: 1280112227729277101
+    - rid: 1280112333518012758
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
         MaxCount: 1
         Scope: 1
-        AntiqueType: 15
+        AntiqueType: 10
         Century: 0
         Country: 0
         Quantity: 2
@@ -78,13 +78,13 @@ MonoBehaviour:
         Penalty: -1
         ClassName: Standard
         RequiredReputation: -1
-    - rid: 1280112227729277102
+    - rid: 1280112333518012759
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
         MaxCount: 1
         Scope: 1
-        AntiqueType: 17
+        AntiqueType: 8
         Century: 0
         Country: 0
         Quantity: 0

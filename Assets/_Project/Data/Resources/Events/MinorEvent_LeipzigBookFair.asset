@@ -36,23 +36,23 @@ MonoBehaviour:
   CreateLeak: 0
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729276999
-  - rid: 1280112227729277000
-  - rid: 1280112227729277001
-  - rid: 1280112227729277002
+  - rid: 1280112333518012671
+  - rid: 1280112333518012672
+  - rid: 1280112333518012673
+  - rid: 1280112333518012674
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729276999
+    - rid: 1280112333518012671
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 8
+        AntiqueType: 7
         Country: 0
         Century: 0
         tempDemandChange: 1.5
         permDemandChange: 0
-    - rid: 1280112227729277000
+    - rid: 1280112333518012672
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 2
@@ -61,12 +61,12 @@ MonoBehaviour:
         Century: 15
         tempDemandChange: 0.75
         permDemandChange: 0
-    - rid: 1280112227729277001
+    - rid: 1280112333518012673
       type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 2
         MaxCount: 3
-        AntiqueType: 8
+        AntiqueType: 7
         Century: 0
         Country: 4
         Condition: 0
@@ -74,11 +74,11 @@ MonoBehaviour:
         RandomizeShippingZone: 0
         ShippingZone: 2
         AddSupplyPressure: 0
-    - rid: 1280112227729277002
+    - rid: 1280112333518012674
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 8
+        AntiqueType: 7
         Country: 0
         Century: 0
         tempSupplyChange: 0.75

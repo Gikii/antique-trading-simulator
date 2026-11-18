@@ -19,4 +19,6 @@ MonoBehaviour:
   Country: 4
   BasePrice: 4
   EditionSize: 0
-  Description: 'A silver open-face pocket watch in an engraved case. Modest, reliable and easy to resell.'
+  Description: A silver open-face pocket watch in an engraved case. Modest, reliable
+    and easy to resell.
+  Artwork: {fileID: 0}

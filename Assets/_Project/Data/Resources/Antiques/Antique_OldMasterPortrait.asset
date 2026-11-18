@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: painting_004
   DisplayName: Old master portrait
-  Type: 4
+  Type: 3
   Century: 16
   Country: 3
   BasePrice: 350
   EditionSize: 0
-  Description: 'A Renaissance panel portrait of an unknown nobleman. Its attribution is still debated, which keeps collectors talking.'
+  Description: A Renaissance panel portrait of an unknown nobleman. Its attribution
+    is still debated, which keeps collectors talking.
+  Artwork: {fileID: 0}

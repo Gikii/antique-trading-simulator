@@ -12,14 +12,18 @@ namespace AntiqueTradingSimulator.News
     {
         public static string Chip(AntiqueType type) => type switch
         {
-            AntiqueType.Other => "other pieces",
-            AntiqueType.Silverware => "silverware",
-            AntiqueType.Porcelain => "porcelain",
+            AntiqueType.Other => "unattributed",
+            AntiqueType.Timepiece => "timepieces",
             AntiqueType.Furniture => "furniture",
-            AntiqueType.Jewelry => "jewellery",
+            AntiqueType.Painting => "paintings",
+            AntiqueType.Sculpture => "sculptures",
+            AntiqueType.Jewellery => "jewellery",
+            AntiqueType.Coin => "coins",
+            AntiqueType.Book => "books",
             AntiqueType.Textile => "textiles",
-            AntiqueType.Ceramic => "ceramics",
-            _ => type.ToString().ToLowerInvariant() + "s"
+            AntiqueType.Ceramics => "ceramics",
+            AntiqueType.Arms => "arms",
+            _ => "other pieces"
         };
 
         public static string Prose(AntiqueType type) => Chip(type);

@@ -26,7 +26,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: -1
+  AllowedSeasons: 15
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
@@ -36,19 +36,19 @@ MonoBehaviour:
   CreateLeak: 0
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277140
-  - rid: 1280112227729277141
-  - rid: 1280112227729277142
-  - rid: 1280112227729277143
+  - rid: 1280112333518012797
+  - rid: 1280112333518012798
+  - rid: 1280112333518012799
+  - rid: 1280112333518012800
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277140
+    - rid: 1280112333518012797
       type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
         MaxCount: 2
-        AntiqueType: 15
+        AntiqueType: 10
         Century: 0
         Country: 13
         Condition: 0
@@ -56,12 +56,12 @@ MonoBehaviour:
         RandomizeShippingZone: 0
         ShippingZone: 0
         AddSupplyPressure: 0
-    - rid: 1280112227729277141
+    - rid: 1280112333518012798
       type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
         MaxCount: 2
-        AntiqueType: 6
+        AntiqueType: 5
         Century: 0
         Country: 13
         Condition: 0
@@ -69,12 +69,12 @@ MonoBehaviour:
         RandomizeShippingZone: 0
         ShippingZone: 0
         AddSupplyPressure: 0
-    - rid: 1280112227729277142
+    - rid: 1280112333518012799
       type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
         MaxCount: 2
-        AntiqueType: 9
+        AntiqueType: 8
         Century: 0
         Country: 13
         Condition: 0
@@ -82,7 +82,7 @@ MonoBehaviour:
         RandomizeShippingZone: 0
         ShippingZone: 0
         AddSupplyPressure: 0
-    - rid: 1280112227729277143
+    - rid: 1280112333518012800
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1

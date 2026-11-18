@@ -17,8 +17,8 @@ MonoBehaviour:
   EventType: 1
   Description: A grand duke {is marrying|will marry} a foreign princess, and the
     Russian court {is ordering|will order} gifts on a scale not seen in years. Jewellers
-    and silversmiths {are selling|will sell} out their old stock, and the court's
-    agents {have come|are coming} west with open purses.
+    and goldsmiths {are selling|will sell} out their old stock, and the court's agents
+    {have come|are coming} west with open purses.
   DurationWeeks: 4
   MinLeadWeeks: 3
   MaxLeadWeeks: 8
@@ -26,7 +26,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: -1
+  AllowedSeasons: 15
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
@@ -36,23 +36,22 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277043
-  - rid: 1280112227729277044
-  - rid: 1280112227729277045
-  - rid: 1280112227729277046
+  - rid: 1280112333518012707
+  - rid: 1280112333518012708
+  - rid: 1280112333518012709
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277043
+    - rid: 1280112333518012707
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 6
+        AntiqueType: 5
         Country: 0
         Century: 0
         tempDemandChange: 2
         permDemandChange: 0
-    - rid: 1280112227729277044
+    - rid: 1280112333518012708
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -61,22 +60,13 @@ MonoBehaviour:
         Century: 0
         tempDemandChange: 1
         permDemandChange: 0
-    - rid: 1280112227729277045
-      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
-      data:
-        Scope: 0
-        AntiqueType: 10
-        Country: 0
-        Century: 0
-        tempDemandChange: 0.75
-        permDemandChange: 0
-    - rid: 1280112227729277046
+    - rid: 1280112333518012709
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
         MaxCount: 1
         Scope: 1
-        AntiqueType: 6
+        AntiqueType: 5
         Century: 0
         Country: 0
         Quantity: 0

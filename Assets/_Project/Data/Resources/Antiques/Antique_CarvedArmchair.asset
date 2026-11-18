@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: furniture_002
   DisplayName: Carved armchair
-  Type: 3
+  Type: 2
   Century: 17
   Country: 3
   BasePrice: 8
   EditionSize: 0
-  Description: 'A walnut armchair with carved scrolls and the remains of its original velvet.'
+  Description: A walnut armchair with carved scrolls and the remains of its original
+    velvet.
+  Artwork: {fileID: 0}

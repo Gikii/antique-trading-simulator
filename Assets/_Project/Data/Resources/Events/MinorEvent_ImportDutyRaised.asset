@@ -21,11 +21,11 @@ MonoBehaviour:
   DurationWeeks: 6
   MinLeadWeeks: 3
   MaxLeadWeeks: 8
-  PlayerSelectsLeadTime: 0
+  PlayerSelectsLeadTime: 1
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: -1
+  AllowedSeasons: 15
   FailureChance: 0.15
   CanBeFakeNews: 1
   CreateOfficialNews: 1
@@ -35,15 +35,15 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.85
   Effects:
-  - rid: 1280112227729277176
-  - rid: 1280112227729277177
-  - rid: 1280112227729277178
-  - rid: 1280112227729277179
-  - rid: 1280112227729277180
+  - rid: 1280112333518012829
+  - rid: 1280112333518012830
+  - rid: 1280112333518012831
+  - rid: 1280112333518012832
+  - rid: 1280112333518012833
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277176
+    - rid: 1280112333518012829
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -52,7 +52,7 @@ MonoBehaviour:
         Century: 0
         tempSupplyChange: -1
         permSupplyChange: 0
-    - rid: 1280112227729277177
+    - rid: 1280112333518012830
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -61,7 +61,7 @@ MonoBehaviour:
         Century: 0
         tempSupplyChange: -1
         permSupplyChange: 0
-    - rid: 1280112227729277178
+    - rid: 1280112333518012831
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -70,7 +70,7 @@ MonoBehaviour:
         Century: 0
         tempSupplyChange: -0.75
         permSupplyChange: 0
-    - rid: 1280112227729277179
+    - rid: 1280112333518012832
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -79,7 +79,7 @@ MonoBehaviour:
         Century: 0
         tempDemandChange: -0.5
         permDemandChange: 0
-    - rid: 1280112227729277180
+    - rid: 1280112333518012833
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1

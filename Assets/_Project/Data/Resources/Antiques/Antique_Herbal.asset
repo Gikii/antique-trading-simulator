@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41a53d3725ac21544a2eb4a0a49f1d9d, type: 3}
+  m_Name: Antique_Herbal
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
+  Id: book_005
+  DisplayName: Herbal
+  Type: 7
+  Century: 16
+  Country: 1
+  BasePrice: 22
+  EditionSize: 0
+  Description: A folio herbal with a woodcut of every plant and a note of its virtues,
+    thumbed black at the useful pages by some long-dead apothecary.
+  Artwork: {fileID: 0}

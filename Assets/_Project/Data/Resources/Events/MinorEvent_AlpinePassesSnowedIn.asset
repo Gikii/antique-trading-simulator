@@ -35,18 +35,18 @@ MonoBehaviour:
   CreateLeak: 0
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277189
-  - rid: 1280112227729277190
+  - rid: 1280112333518012841
+  - rid: 1280112333518012842
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277189
+    - rid: 1280112333518012841
       type: {class: TransportDelayEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Zone: 2
         NewShipmentDelayWeeks: 1
         InTransitDelayWeeks: 1
-    - rid: 1280112227729277190
+    - rid: 1280112333518012842
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1

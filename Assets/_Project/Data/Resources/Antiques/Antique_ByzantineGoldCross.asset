@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41a53d3725ac21544a2eb4a0a49f1d9d, type: 3}
+  m_Name: Antique_ByzantineGoldCross
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
+  Id: jewellery_010
+  DisplayName: Byzantine gold cross
+  Type: 5
+  Century: 12
+  Country: 13
+  BasePrice: 45
+  EditionSize: 0
+  Description: A gold pectoral cross with a device in low relief and a loop for a
+    cord, found in the ground near Constantinople.
+  Artwork: {fileID: 0}

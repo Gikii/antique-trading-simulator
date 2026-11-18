@@ -16,7 +16,7 @@ MonoBehaviour:
   DisplayName: A Spanish Convent Sells Its Treasury
   EventType: 1
   Description: A poor convent in Castile {has been|will be} given leave to sell its
-    treasury to repair the roof. Altar silver and old vestments {are offered|will
+    treasury to repair the roof. Carved saints and old vestments {are offered|will
     be offered} to the trade, and the sale {is drawing|will draw} fresh attention
     to Spanish work of the period.
   DurationWeeks: 4
@@ -36,32 +36,32 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277129
-  - rid: 1280112227729277130
-  - rid: 1280112227729277131
-  - rid: 1280112227729277132
+  - rid: 1280112333518012786
+  - rid: 1280112333518012787
+  - rid: 1280112333518012788
+  - rid: 1280112333518012789
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277129
+    - rid: 1280112333518012786
       type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 2
         MaxCount: 3
-        AntiqueType: 10
-        Century: 17
+        AntiqueType: 4
+        Century: 15
         Country: 5
         Condition: 0
         PriceFactor: 0
         RandomizeShippingZone: 0
         ShippingZone: 2
         AddSupplyPressure: 0
-    - rid: 1280112227729277130
+    - rid: 1280112333518012787
       type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
         MaxCount: 2
-        AntiqueType: 17
+        AntiqueType: 8
         Century: 0
         Country: 5
         Condition: 0
@@ -69,7 +69,7 @@ MonoBehaviour:
         RandomizeShippingZone: 0
         ShippingZone: 2
         AddSupplyPressure: 0
-    - rid: 1280112227729277131
+    - rid: 1280112333518012788
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -78,7 +78,7 @@ MonoBehaviour:
         Century: 0
         tempSupplyChange: 1
         permSupplyChange: 0
-    - rid: 1280112227729277132
+    - rid: 1280112333518012789
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1

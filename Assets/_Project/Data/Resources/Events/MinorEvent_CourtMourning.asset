@@ -17,8 +17,8 @@ MonoBehaviour:
   EventType: 1
   Description: The court {has gone|will go} into mourning for a royal prince, and
     society {has put|will put} away its colours for the season. Balls {are cancelled|will
-    be cancelled}, and collectors {put off|will put off} buying jewels, old silks
-    and plate until the court is out of black.
+    be cancelled}, and collectors {put off|will put off} buying jewels and old silks
+    until the court is out of black.
   DurationWeeks: 4
   MinLeadWeeks: 1
   MaxLeadWeeks: 3
@@ -26,7 +26,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: -1
+  AllowedSeasons: 15
   FailureChance: 0
   CanBeFakeNews: 0
   CreateOfficialNews: 1
@@ -36,36 +36,26 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277162
-  - rid: 1280112227729277163
-  - rid: 1280112227729277164
+  - rid: 1280112333518012816
+  - rid: 1280112333518012817
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277162
+    - rid: 1280112333518012816
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 6
+        AntiqueType: 5
         Country: 0
         Century: 0
         tempDemandChange: -1.25
         permDemandChange: 0
-    - rid: 1280112227729277163
+    - rid: 1280112333518012817
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 17
+        AntiqueType: 8
         Country: 0
         Century: 0
         tempDemandChange: -1
-        permDemandChange: 0
-    - rid: 1280112227729277164
-      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
-      data:
-        Scope: 0
-        AntiqueType: 10
-        Country: 0
-        Century: 0
-        tempDemandChange: -0.5
         permDemandChange: 0

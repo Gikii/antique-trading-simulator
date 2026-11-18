@@ -16,8 +16,8 @@ MonoBehaviour:
   DisplayName: A Coronation in London
   EventType: 1
   Description: The coronation {has been|will be} held at Westminster, and the capital
-    {is full|will be full} of peers and foreign princes. Plate, jewels and anything
-    English with a noble provenance {fetch|will fetch} coronation prices.
+    {is full|will be full} of peers and foreign princes. Jewels and anything English
+    with a noble provenance {fetch|will fetch} coronation prices.
   DurationWeeks: 5
   MinLeadWeeks: 4
   MaxLeadWeeks: 9
@@ -35,14 +35,13 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.95
   Effects:
-  - rid: 1280112227729277039
-  - rid: 1280112227729277040
-  - rid: 1280112227729277041
-  - rid: 1280112227729277042
+  - rid: 1280112333518012704
+  - rid: 1280112333518012705
+  - rid: 1280112333518012706
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277039
+    - rid: 1280112333518012704
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -51,35 +50,27 @@ MonoBehaviour:
         Century: 0
         tempDemandChange: 1.5
         permDemandChange: 0
-    - rid: 1280112227729277040
+    - rid: 1280112333518012705
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 10
+        AntiqueType: 5
         Country: 0
         Century: 0
-        tempDemandChange: 1
+        tempDemandChange: 1.5
         permDemandChange: 0
-    - rid: 1280112227729277041
-      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
-      data:
-        Scope: 0
-        AntiqueType: 6
-        Country: 0
-        Century: 0
-        tempDemandChange: 0.75
-        permDemandChange: 0
-    - rid: 1280112227729277042
+    - rid: 1280112333518012706
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
         MaxCount: 2
         Scope: 1
-        AntiqueType: 10
+        AntiqueType: 5
         Century: 0
         Country: 0
         Quantity: 0
         MinCondition: 0
+        MinValue: 0
         DurationWeeks: 4
         RewardPerUnit: 0
         Type: 1

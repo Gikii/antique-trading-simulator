@@ -140,7 +140,7 @@ namespace AntiqueTradingSimulator.Seasons
             {
                 new TypeDemand(AntiqueType.Painting, 1.15f),
                 new TypeDemand(AntiqueType.Sculpture, 1.15f),
-                new TypeDemand(AntiqueType.Porcelain, 0.95f)
+                new TypeDemand(AntiqueType.Ceramics, 0.95f)
             }
         };
 
@@ -159,7 +159,7 @@ namespace AntiqueTradingSimulator.Seasons
             Demand = new List<TypeDemand>
             {
                 new TypeDemand(AntiqueType.Coin, 1.10f),
-                new TypeDemand(AntiqueType.Clock, 1.05f),
+                new TypeDemand(AntiqueType.Timepiece, 1.05f),
                 new TypeDemand(AntiqueType.Painting, 0.95f)
             }
         };
@@ -178,8 +178,8 @@ namespace AntiqueTradingSimulator.Seasons
             NewListings = 0.8f,
             Demand = new List<TypeDemand>
             {
-                new TypeDemand(AntiqueType.Porcelain, 1.20f),
-                new TypeDemand(AntiqueType.Clock, 1.15f),
+                new TypeDemand(AntiqueType.Ceramics, 1.20f),
+                new TypeDemand(AntiqueType.Timepiece, 1.15f),
                 new TypeDemand(AntiqueType.Furniture, 0.95f),
                 new TypeDemand(AntiqueType.Sculpture, 0.85f)
             }

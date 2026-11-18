@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: furniture_001
   DisplayName: Writing desk
-  Type: 3
+  Type: 2
   Century: 18
   Country: 2
   BasePrice: 35
   EditionSize: 0
-  Description: 'A marquetry writing desk with a fall front and hidden drawers, veneered in tulipwood.'
+  Description: A marquetry writing desk with a fall front and hidden drawers, veneered
+    in tulipwood.
+  Artwork: {fileID: 0}
