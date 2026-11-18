@@ -205,7 +205,7 @@ namespace AntiqueTradingSimulator.Rumours
             if (item == null) return false;
 
             // Sells from the week after it spreads, once the believers' purchases have moved the price.
-            npc.BeginRumourExit(quote.Effects, quote.SpreadWeek + 1, quote.ClaimWeek);
+            npc.BeginRumourExit(quote.Effects, quote.PlantWeek, quote.ClaimWeek, quote.ExpectedPumpMultiple);
             return true;
         }
 

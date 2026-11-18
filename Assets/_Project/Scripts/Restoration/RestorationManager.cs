@@ -16,7 +16,7 @@ namespace AntiqueTradingSimulator.Restoration
     /// and it is available again. While away it stays in the collection and keeps its warehouse
     /// slot, but can't be sold, listed or handed in.
     ///
-    /// Player-only for now: NPCs don't restore. The Conservators upgrade lowers the fee and the
+    /// The Conservators upgrade lowers the fee and the
     /// time (TraderInventory.Modifiers); better workshops need reputation (RestorationOption).
     /// </summary>
     public class RestorationManager : MonoBehaviour
@@ -84,10 +84,7 @@ namespace AntiqueTradingSimulator.Restoration
 
         // ---------------------------------------------------------------- player context
 
-        private TraderInventory PlayerInventory => playerTrader != null ? playerTrader.Inventory : null;
-
-        private int PlayerReputation =>
-            playerTrader != null && playerTrader.Company != null ? playerTrader.Company.Reputation.Reputation : 0;
+        private IRestorationClient PlayerClient => playerTrader;
 
         /// <summary>Tier name for a reputation requirement ("Known Dealer"), empty if unknown.</summary>
         public string TierNameFor(int reputation) =>
@@ -99,9 +96,11 @@ namespace AntiqueTradingSimulator.Restoration
         /// Why this antique can't go to any workshop right now (in transit, listed, ...), or null.
         /// Workshop-specific reasons (reputation, cash, condition) are in each quote's BlockReason.
         /// </summary>
-        public string ItemBlockReason(Antique antique)
+        public string ItemBlockReason(Antique antique) => ItemBlockReason(PlayerClient, antique);
+
+        public string ItemBlockReason(IRestorationClient client, Antique antique)
         {
-            var inventory = PlayerInventory;
+            var inventory = client != null ? client.Inventory : null;
             if (antique == null || inventory == null || !inventory.Owns(antique.Id))
                 return "You don't own this antique.";
             if (antique.IsInRestoration)
@@ -129,11 +128,25 @@ namespace AntiqueTradingSimulator.Restoration
         /// Fee, time, possible results and expected profit of restoring this antique at this
         /// workshop, for the player. Pure — changes nothing. Null if there is no antique or option.
         /// </summary>
-        public RestorationQuote Quote(Antique antique, RestorationOption option)
+        public RestorationQuote Quote(Antique antique, RestorationOption option) =>
+            Quote(PlayerClient, antique, option);
+
+        /// <summary>The same quote for any client, from its own cash, modifiers and reputation.</summary>
+        public RestorationQuote Quote(IRestorationClient client, Antique antique, RestorationOption option) =>
+            BuildQuote(client, antique, option, owned: true);
+
+        /// <summary>
+        /// A quote for an antique the client does not own.
+        /// </summary>
+        public RestorationQuote QuoteProspective(IRestorationClient client, Antique antique, RestorationOption option) =>
+            BuildQuote(client, antique, option, owned: false);
+
+        private RestorationQuote BuildQuote(IRestorationClient client, Antique antique, RestorationOption option, bool owned)
         {
             if (antique == null || option == null) return null;
 
-            var inventory = PlayerInventory;
+            var inventory = client != null ? client.Inventory : null;
+            int reputation = client != null ? client.Reputation : 0;
             var modifiers = inventory?.Modifiers;
 
             float start = antique.Condition;
@@ -155,10 +168,10 @@ namespace AntiqueTradingSimulator.Restoration
                 weeks = Mathf.RoundToInt(weeks * (1f - modifiers.RestorationTimeReduction));
             weeks = Mathf.Max(1, weeks);
 
-            string reason = ItemBlockReason(antique);
+            string reason = owned ? ItemBlockReason(client, antique) : null;
             if (reason == null && gain <= ConditionEpsilon)
                 reason = "This workshop can't improve it any further.";
-            if (reason == null && option.RequiredReputation > PlayerReputation)
+            if (reason == null && option.RequiredReputation > reputation)
             {
                 string tier = TierNameFor(option.RequiredReputation);
                 reason = $"Requires {option.RequiredReputation} reputation" + (string.IsNullOrEmpty(tier) ? "." : $" ({tier}).");
@@ -171,23 +184,30 @@ namespace AntiqueTradingSimulator.Restoration
 
         public RestorationQuote Quote(Antique antique, string optionId) => Quote(antique, Settings.Get(optionId));
 
+        public RestorationQuote Quote(IRestorationClient client, Antique antique, string optionId) =>
+            Quote(client, antique, Settings.Get(optionId));
+
         // ---------------------------------------------------------------- starting
 
         /// <summary>
-        /// Sends the player's antique to the workshop: pays the fee (ledger: Restoration, also added
+        /// Sends the trader's antique to the workshop: pays the fee (ledger: Restoration, also added
         /// to the antique's cost basis), rolls the outcome and marks the antique InRestoration.
         /// </summary>
-        public bool StartRestoration(Antique antique, string optionId)
+        public bool StartRestoration(Antique antique, string optionId) =>
+            StartRestoration(PlayerClient, antique, optionId);
+
+        /// <summary>The same for any client; the fee is taken from that client's cash.</summary>
+        public bool StartRestoration(IRestorationClient client, Antique antique, string optionId)
         {
             var option = Settings.Get(optionId);
-            var quote = Quote(antique, option);
+            var quote = Quote(client, antique, option);
             if (quote == null || !quote.CanStart)
             {
                 Debug.Log($"RestorationManager: can't restore {antique?.Name} at {option?.DisplayName ?? optionId} — {quote?.BlockReason ?? "unknown workshop"}");
                 return false;
             }
 
-            var inventory = PlayerInventory;
+            var inventory = client.Inventory;
             int thisWeek = CurrentWeek;
 
             var (outcome, result) = RollOutcome(quote);
@@ -272,6 +292,7 @@ namespace AntiqueTradingSimulator.Restoration
 
             var record = new RestorationRecord
             {
+                OwnerId = job.Owner != null ? job.Owner.OwnerId : null,
                 AntiqueId = job.AntiqueId,
                 AntiqueName = job.AntiqueName,
                 OptionName = job.OptionName,
@@ -316,6 +337,17 @@ namespace AntiqueTradingSimulator.Restoration
         /// <summary>Restorations finished on or after the given day, newest first.</summary>
         public IEnumerable<RestorationRecord> GetCompletedSince(int sinceWeek) =>
             _completed.Where(r => r.Week >= sinceWeek).Reverse();
+
+        public IEnumerable<RestorationRecord> GetCompletedSince(int sinceWeek, TraderInventory owner)
+        {
+            string ownerId = owner != null ? owner.OwnerId : null;
+            bool isPlayer = playerTrader != null && ReferenceEquals(owner, playerTrader.Inventory);
+
+            return _completed
+                .Where(r => r.Week >= sinceWeek)
+                .Where(r => r.OwnerId == ownerId || (isPlayer && string.IsNullOrEmpty(r.OwnerId)))
+                .Reverse();
+        }
 
         // ---------------------------------------------------------------- save / load
 

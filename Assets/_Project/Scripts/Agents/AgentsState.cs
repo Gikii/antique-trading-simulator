@@ -16,7 +16,7 @@ namespace AntiqueTradingSimulator.Agents
         public string ProfileId;
         public string TraderName;
 
-        public List<AcquisitionState> Acquisitions = new List<AcquisitionState>();
+        public List<PlanState> Acquisitions = new List<PlanState>();
 
         public List<PendingReactionState> PendingReactions = new List<PendingReactionState>();
 
@@ -33,10 +33,13 @@ namespace AntiqueTradingSimulator.Agents
 
         public float ContractReserve;
 
+        public float PlanReserve;
+
         public int ContractSlotsUsed;
 
         public int RumourExitWeek;
         public int RumourClaimWeek;
+        public int RumourDumpWeek;
         public List<NewsEventData> RumourExitScope;
     }
 
@@ -45,6 +48,20 @@ namespace AntiqueTradingSimulator.Agents
         public string ListingId;
         public float PurchasePrice;
         public int Week;
+    }
+    public class PlanState
+    {
+        public string ListingId;
+        public float PurchasePrice;
+        public int Week;
+
+        public PlanPurpose Purpose;
+        public string ContractId;
+        public string RestorationOptionId;
+        public int StartRestoreByWeek;
+        public float AssumedFee;
+        public float ExitAskingPrice;
+        public int DumpAfterWeek;
     }
 
     public class PendingReactionState

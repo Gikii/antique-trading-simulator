@@ -42,6 +42,12 @@ namespace AntiqueTradingSimulator.Rumours
         /// <summary>Expected number of NPCs that act on it.</summary>
         public float ExpectedReactors;
 
+        /// <summary>
+        /// What the planter expects the rumour to do to the named antiques' prices: 1.3 = +30%.
+        /// Set by NpcRumourPlanner; an NPC prices its exit listings from it.
+        /// </summary>
+        public float ExpectedPumpMultiple = 1f;
+
         public float TraceChance;
 
         public bool Rising => Claim != null && Claim.Rising;

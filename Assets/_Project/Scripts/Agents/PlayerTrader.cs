@@ -14,7 +14,7 @@ namespace AntiqueTradingSimulator.Agents
     /// (button onClick handlers, etc.) calls the inherited BuyListing/SellListing
     /// directly with the Id of whatever listing was clicked.
     /// </summary>
-    public class PlayerTrader : TraderAgent
+    public class PlayerTrader : TraderAgent, Restoration.IRestorationClient
     {
         [SerializeField] private ContractManager contractManager;
 
@@ -44,6 +44,8 @@ namespace AntiqueTradingSimulator.Agents
 
         /// <summary>The player's company (reputation, upgrades, statistics). Added automatically if missing.</summary>
         public CompanyManager Company { get; private set; }
+
+        public int Reputation => Company != null ? Company.Reputation.Reputation : 0;
 
         public override void ReceiveNews(News.NewsItem news, int deliveryWeek)
         {

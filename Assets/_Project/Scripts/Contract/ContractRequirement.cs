@@ -147,6 +147,24 @@ namespace AntiqueTradingSimulator.Contracts
         }
 
         /// <summary>
+        /// Whether this antique would meet the requirement at a condition it does not have yet.
+        /// </summary>
+        public bool IsSatisfiedAt(Antique antique, float condition)
+        {
+            if (antique == null) return false;
+            if (condition + 0.0005f < MinCondition) return false;
+
+            if (HasMinValue)
+            {
+                float perfectValue = antique.Condition > 0f ? antique.CurrentPrice / antique.Condition : 0f;
+                float value = Core.Money.RoundToShilling(perfectValue * condition);
+                if (value + Core.Money.DisplayTolerance(MinAcceptedValue) < MinAcceptedValue) return false;
+            }
+
+            return MatchesAttributes(antique.Type, antique.Country, antique.Century);
+        }
+
+        /// <summary>
         /// Market value (CurrentPrice, never an asking price) against the value floor, with the slack of
         /// the display rounding so an antique shown as "£4 12s" meets a "£4 12s" requirement.
         /// </summary>

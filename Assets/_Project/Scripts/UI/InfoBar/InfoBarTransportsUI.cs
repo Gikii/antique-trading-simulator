@@ -121,7 +121,7 @@ namespace AntiqueTradingSimulator.UI
                 });
             }
 
-            foreach (var record in restorationManager.GetCompletedSince(sinceWeek))
+            foreach (var record in restorationManager.GetCompletedSince(sinceWeek, inventory))
             {
                 string when = record.Week == thisWeek ? "this week" : UIFormat.GameDate(record.Week);
                 string change = $"{UIFormat.ConditionLabel(record.StartCondition)} → {UIFormat.ConditionLabel(record.ResultCondition)} " +
