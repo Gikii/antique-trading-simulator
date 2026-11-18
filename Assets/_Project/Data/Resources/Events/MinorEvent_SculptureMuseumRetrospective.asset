@@ -15,16 +15,20 @@ MonoBehaviour:
   id: 818ecd19afed4b15b36a4cca577eee72
   DisplayName: Major Sculpture Retrospective Opens
   EventType: 1
-  Description: A landmark retrospective {has opened|opens} to long queues and glowing reviews. Private collectors {are chasing|will chase} anything carved or cast.
-  DurationDays: 8
-  MinLeadDays: 3
-  MaxLeadDays: 9
+  Description: A landmark retrospective {has opened|opens} to long queues and glowing
+    reviews. Private collectors {are chasing|will chase} anything carved or cast.
+  DurationWeeks: 8
+  MinLeadWeeks: 3
+  MaxLeadWeeks: 9
   PlayerSelectsLeadTime: 0
+  Annual: 0
+  AnnualMonth: 12
+  AnnualDay: 1
   AllowedSeasons: 3
   FailureChance: 0
   CanBeFakeNews: 0
   CreateOfficialNews: 1
-  OfficialAnnouncementDaysBefore: 2
+  OfficialAnnouncementWeeksBefore: 2
   CreateRumour: 0
   RumorCredibility: 0.5
   CreateLeak: 1
@@ -38,7 +42,7 @@ MonoBehaviour:
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 5
+        AntiqueType: 4
         Country: 0
         Century: 0
         tempDemandChange: 2

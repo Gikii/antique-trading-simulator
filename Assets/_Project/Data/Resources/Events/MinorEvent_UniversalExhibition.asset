@@ -46,7 +46,7 @@ MonoBehaviour:
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 4
+        AntiqueType: 3
         Country: 0
         Century: 0
         tempDemandChange: 1.5
@@ -55,7 +55,7 @@ MonoBehaviour:
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 5
+        AntiqueType: 4
         Country: 0
         Century: 0
         tempDemandChange: 1
