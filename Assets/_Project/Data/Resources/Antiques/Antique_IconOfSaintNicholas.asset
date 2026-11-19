@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41a53d3725ac21544a2eb4a0a49f1d9d, type: 3}
+  m_Name: Antique_IconOfSaintNicholas
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
+  Id: painting_007
+  DisplayName: Russian icon
+  Type: 3
+  Century: 16
+  Country: 9
+  BasePrice: 34
+  EditionSize: 0
+  Description: An egg tempera icon on a lime panel, its gilding worn away where generations
+    have kissed it.
+  Artwork: {fileID: 0}

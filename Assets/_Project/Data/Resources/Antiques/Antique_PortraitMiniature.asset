@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: painting_003
   DisplayName: Portrait miniature
-  Type: 4
+  Type: 3
   Century: 19
   Country: 1
   BasePrice: 12
   EditionSize: 0
-  Description: 'A watercolour portrait on vellum in a small gilt frame, once carried as a keepsake.'
+  Description: A watercolour portrait on vellum in a small gilt frame, once carried
+    as a keepsake.
+  Artwork: {fileID: 0}

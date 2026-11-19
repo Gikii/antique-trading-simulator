@@ -35,61 +35,42 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277095
-  - rid: 1280112227729277096
-  - rid: 1280112227729277097
-  - rid: 1280112227729277098
-  - rid: 1280112227729277099
+  - rid: 1280112333518012754
+  - rid: 1280112333518012755
+  - rid: 1280112333518012756
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277095
+    - rid: 1280112333518012754
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 3
+        AntiqueType: 2
         Country: 0
         Century: 0
-        tempDemandChange: 1
+        tempDemandChange: 2
         permDemandChange: 0
-    - rid: 1280112227729277096
+    - rid: 1280112333518012755
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 13
-        Country: 0
-        Century: 0
-        tempDemandChange: 1
-        permDemandChange: 0
-    - rid: 1280112227729277097
-      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
-      data:
-        Scope: 0
-        AntiqueType: 14
+        AntiqueType: 8
         Country: 0
         Century: 0
         tempDemandChange: 0.75
         permDemandChange: 0
-    - rid: 1280112227729277098
-      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
-      data:
-        Scope: 0
-        AntiqueType: 9
-        Country: 0
-        Century: 0
-        tempDemandChange: 0.75
-        permDemandChange: 0
-    - rid: 1280112227729277099
+    - rid: 1280112333518012756
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 2
         MaxCount: 3
         Scope: 1
-        AntiqueType: 3
+        AntiqueType: 2
         Century: 0
         Country: 0
         Quantity: 4
         MinCondition: 0
+        MinValue: 0
         DurationWeeks: 5
         RewardPerUnit: 0
         Type: 1

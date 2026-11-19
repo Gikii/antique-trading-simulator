@@ -23,171 +23,87 @@ MonoBehaviour:
   - Enabled: 1
     From:
       Kind: 0
-      Value: 4
+      Value: 3
     To:
       Kind: 0
-      Value: 13
-    Strength: 0.65
-    Symmetry: 1
-    ReverseFactor: 0.6
-    ActivationThreshold: 0.5
-    DecayPerDay: 0.2
-  - Enabled: 1
-    From:
-      Kind: 0
       Value: 4
-    To:
-      Kind: 0
-      Value: 5
     Strength: 0.3
     Symmetry: 0
     ReverseFactor: 1
     ActivationThreshold: 0.5
-    DecayPerDay: 0.2
+    DecayPerWeek: 0.2
   - Enabled: 1
     From:
       Kind: 0
-      Value: 4
+      Value: 3
     To:
       Kind: 0
-      Value: 8
+      Value: 7
     Strength: 0.15
     Symmetry: 0
     ReverseFactor: 1
     ActivationThreshold: 0.5
-    DecayPerDay: 0.2
+    DecayPerWeek: 0.2
   - Enabled: 1
     From:
       Kind: 0
-      Value: 4
+      Value: 3
     To:
       Kind: 0
-      Value: 3
+      Value: 2
     Strength: -0.2
     Symmetry: 0
-    ReverseFactor: 0.5
-    ActivationThreshold: 1
-    DecayPerDay: 0.25
-  - Enabled: 1
-    From:
-      Kind: 0
-      Value: 3
-    To:
-      Kind: 0
-      Value: 14
-    Strength: 0.6
-    Symmetry: 0
     ReverseFactor: 1
     ActivationThreshold: 0.5
-    DecayPerDay: 0.2
+    DecayPerWeek: 0.2
   - Enabled: 1
     From:
       Kind: 0
-      Value: 3
+      Value: 2
     To:
       Kind: 0
-      Value: 9
+      Value: 8
     Strength: 0.55
     Symmetry: 0
-    ReverseFactor: 1
-    ActivationThreshold: 0.5
-    DecayPerDay: 0.2
-  - Enabled: 1
-    From:
-      Kind: 0
-      Value: 3
-    To:
-      Kind: 0
-      Value: 13
-    Strength: 0.45
-    Symmetry: 0
-    ReverseFactor: 1
-    ActivationThreshold: 0.5
-    DecayPerDay: 0.2
-  - Enabled: 1
-    From:
-      Kind: 0
-      Value: 3
-    To:
-      Kind: 0
-      Value: 12
-    Strength: -0.15
-    Symmetry: 0
     ReverseFactor: 0.5
     ActivationThreshold: 1
-    DecayPerDay: 0.25
+    DecayPerWeek: 0.2
   - Enabled: 1
     From:
       Kind: 0
-      Value: 7
+      Value: 2
     To:
-      Kind: 0
-      Value: 10
-    Strength: 0.35
-    Symmetry: 0
-    ReverseFactor: 1
-    ActivationThreshold: 0.5
-    DecayPerDay: 0.2
-  - Enabled: 1
-    From:
-      Kind: 0
-      Value: 7
-    To:
-      Kind: 0
-      Value: 6
-    Strength: -0.1
-    Symmetry: 0
-    ReverseFactor: 0.5
-    ActivationThreshold: 1
-    DecayPerDay: 0.25
-  - Enabled: 1
-    From:
-      Kind: 0
-      Value: 6
-    To:
-      Kind: 0
-      Value: 10
-    Strength: 0.4
-    Symmetry: 0
-    ReverseFactor: 1
-    ActivationThreshold: 0.5
-    DecayPerDay: 0.2
-  - Enabled: 1
-    From:
-      Kind: 0
-      Value: 11
-    To:
-      Kind: 0
-      Value: 12
-    Strength: 0.7
-    Symmetry: 0
-    ReverseFactor: 1
-    ActivationThreshold: 0.5
-    DecayPerDay: 0.2
-  - Enabled: 1
-    From:
-      Kind: 0
-      Value: 1
-    To:
-      Kind: 0
-      Value: 16
-    Strength: 0.25
-    Symmetry: 0
-    ReverseFactor: 1
-    ActivationThreshold: 0.5
-    DecayPerDay: 0.2
-  - Enabled: 1
-    From:
       Kind: 0
       Value: 9
+    Strength: -0.15
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerWeek: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 6
+    To:
+      Kind: 0
+      Value: 5
+    Strength: -0.1
+    Symmetry: 0
+    ReverseFactor: 1
+    ActivationThreshold: 0.5
+    DecayPerWeek: 0.2
+  - Enabled: 1
+    From:
+      Kind: 0
+      Value: 8
     To:
       Kind: 2
       Value: 13
     Strength: 0.1
-    Symmetry: 1
-    ReverseFactor: 0.4
+    Symmetry: 0
+    ReverseFactor: 0.5
     ActivationThreshold: 1
-    DecayPerDay: 0.2
+    DecayPerWeek: 0.25
   AutoRules:
   - Enabled: 1
     Dimension: 1
@@ -195,18 +111,18 @@ MonoBehaviour:
     Kind: 2
     Strength: 0.06
     ActivationThreshold: 1.5
-    DecayPerDay: 0.2
+    DecayPerWeek: 0.2
   - Enabled: 1
     Dimension: 2
     SameValueOnly: 1
     Kind: 3
-    Strength: 0.03
+    Strength: 0.07
     ActivationThreshold: 1.5
-    DecayPerDay: 0.25
+    DecayPerWeek: 0.2
   - Enabled: 1
     Dimension: 0
     SameValueOnly: 1
     Kind: 1
-    Strength: 0.03
+    Strength: 0.07
     ActivationThreshold: 1.5
-    DecayPerDay: 0.3
+    DecayPerWeek: 0.2

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: coin_001
   DisplayName: Silver thaler
-  Type: 7
+  Type: 6
   Century: 18
   Country: 4
   BasePrice: 0.75

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: painting_001
   DisplayName: Landscape oil painting
-  Type: 4
+  Type: 3
   Century: 18
   Country: 2
   BasePrice: 45

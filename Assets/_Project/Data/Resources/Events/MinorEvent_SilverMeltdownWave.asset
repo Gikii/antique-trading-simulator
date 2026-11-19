@@ -43,7 +43,7 @@ MonoBehaviour:
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 7
+        AntiqueType: 6
         Country: 0
         Century: 0
         tempSupplyChange: -1

@@ -17,29 +17,47 @@ MonoBehaviour:
   TraderNames:
   - Royal Museum of Decorative Arts
   StartingCash: 270
-  AccessLevel: 4
-  PreferredTypes: 040000000c000000
+  PreferredTypes: 0300000009000000
   PreferredCountries: 
   PreferredCenturies: 
+  ActionsPerPeriod: 5
+  ContractSlotShare: 0.8
+  MinBargainScore: 0.08
+  AccessLevel: 4
   RumorTrust: 0.1
   LeakTrust: 0.4
-  MinReactionDelayDays: 2
-  MaxReactionDelayDays: 5
-  DailyBudgetFraction: 0.12
+  MinReactionDelayWeeks: 2
+  MaxReactionDelayWeeks: 5
+  RumourPlantChance: 0
+  WeeklyBudgetFraction: 0.12
   MaxPriceMultiplierWillingToPay: 1.15
   RiskTolerance: 0.2
   MinConditionToBuy: 0.7
   ConditionPremium: 0.6
   NeverSells: 1
   ProfitTargetMultiplier: 3
-  MinHoldingDaysBeforeSell: 30
-  PatientSellAfterDays: 0
+  MinHoldingWeeksBeforeSell: 30
+  PatientSellAfterWeeks: 0
   PatientProfitMultiplier: 1
   StopLossMultiplier: 0
   ListsOnMarket: 0
   ListingMarkup: 1.15
-  RelistAfterDays: 5
+  RelistAfterWeeks: 5
+  SeasonalForesight: 0.3
+  SeasonalHorizonWeeks: 8
   TakesContracts: 0
+  ContractPanicWeeks: 2
+  Restores: 1
+  RestorationHurdle: 1.25
+  MaxRestorationWeeks: 6
+  MaxRestorationShareOfCash: 0.25
+  MaxConcurrentRestorations: 1
+  RestoresForContracts: 1
+  BuysToRestore: 1
+  ListsIntoOwnRumour: 1
+  ExitTargetRatio: 1.2
+  ExitDumpLeadWeeks: 1
+  ExitPumpConfidence: 0.7
   AuctionAttendance: 0.9
   AuctionValueMultiplier: 1.3
   AuctionBudgetShare: 0.7
@@ -47,5 +65,3 @@ MonoBehaviour:
   AuctionFeverChance: 0
   AuctionFeverRaise: 0.1
   AuctionHesitation: 0.2
-  SeasonalForesight: 0.3
-  SeasonalHorizonDays: 8

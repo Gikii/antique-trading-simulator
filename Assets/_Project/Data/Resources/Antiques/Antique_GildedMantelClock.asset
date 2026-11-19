@@ -19,4 +19,6 @@ MonoBehaviour:
   Country: 2
   BasePrice: 30
   EditionSize: 0
-  Description: 'A fire-gilt bronze mantel clock crowned with an allegorical figure, typical of the Parisian workshops.'
+  Description: A fire-gilt bronze mantel clock crowned with an allegorical figure,
+    typical of the Parisian workshops.
+  Artwork: {fileID: 0}

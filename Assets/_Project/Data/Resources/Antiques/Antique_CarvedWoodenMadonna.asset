@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: sculpture_001
   DisplayName: Carved wooden Madonna
-  Type: 5
+  Type: 4
   Century: 15
   Country: 4
   BasePrice: 50
   EditionSize: 0
-  Description: 'A late Gothic limewood Madonna with traces of its original polychrome, carved for a village church.'
+  Description: A late Gothic limewood Madonna with traces of its original polychrome,
+    carved for a village church.
+  Artwork: {fileID: 0}

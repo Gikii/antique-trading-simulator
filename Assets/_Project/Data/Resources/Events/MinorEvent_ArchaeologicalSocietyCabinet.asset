@@ -27,7 +27,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: -1
+  AllowedSeasons: 15
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
@@ -37,14 +37,14 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277070
-  - rid: 1280112227729277071
-  - rid: 1280112227729277072
-  - rid: 1280112227729277073
+  - rid: 1280112333518012730
+  - rid: 1280112333518012731
+  - rid: 1280112333518012732
+  - rid: 1280112333518012733
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277070
+    - rid: 1280112333518012730
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 2
@@ -53,7 +53,7 @@ MonoBehaviour:
         Century: 12
         tempDemandChange: 1.5
         permDemandChange: 0.25
-    - rid: 1280112227729277071
+    - rid: 1280112333518012731
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 2
@@ -62,7 +62,7 @@ MonoBehaviour:
         Century: 13
         tempDemandChange: 0.5
         permDemandChange: 0
-    - rid: 1280112227729277072
+    - rid: 1280112333518012732
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
@@ -80,7 +80,7 @@ MonoBehaviour:
         Penalty: -1
         ClassName: Prestige
         RequiredReputation: -1
-    - rid: 1280112227729277073
+    - rid: 1280112333518012733
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1

@@ -36,22 +36,22 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.85
   Effects:
-  - rid: 1280112227729277151
-  - rid: 1280112227729277152
-  - rid: 1280112227729277153
+  - rid: 1280112333518012808
+  - rid: 1280112333518012809
+  - rid: 1280112333518012810
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277151
+    - rid: 1280112333518012808
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 12
+        AntiqueType: 9
         Country: 0
         Century: 0
         tempDemandChange: -1.5
         permDemandChange: -0.25
-    - rid: 1280112227729277152
+    - rid: 1280112333518012809
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -60,11 +60,11 @@ MonoBehaviour:
         Century: 0
         tempDemandChange: -0.5
         permDemandChange: 0
-    - rid: 1280112227729277153
+    - rid: 1280112333518012810
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 12
+        AntiqueType: 9
         Country: 0
         Century: 0
         tempSupplyChange: 0.75

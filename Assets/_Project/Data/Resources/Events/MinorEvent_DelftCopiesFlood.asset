@@ -25,7 +25,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: -1
+  AllowedSeasons: 15
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
@@ -35,21 +35,21 @@ MonoBehaviour:
   CreateLeak: 0
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277157
-  - rid: 1280112227729277158
+  - rid: 1280112333518012814
+  - rid: 1280112333518012815
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277157
+    - rid: 1280112333518012814
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 11
+        AntiqueType: 9
         Country: 0
         Century: 0
         tempDemandChange: -1
         permDemandChange: -0.25
-    - rid: 1280112227729277158
+    - rid: 1280112333518012815
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1

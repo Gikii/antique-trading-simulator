@@ -36,18 +36,31 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277125
-  - rid: 1280112227729277126
-  - rid: 1280112227729277127
-  - rid: 1280112227729277128
+  - rid: 1280112333518012782
+  - rid: 1280112333518012783
+  - rid: 1280112333518012784
+  - rid: 1280112333518012785
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277125
+    - rid: 1280112333518012782
       type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 3
         MaxCount: 4
+        AntiqueType: 2
+        Century: 0
+        Country: 1
+        Condition: 0
+        PriceFactor: 0
+        RandomizeShippingZone: 0
+        ShippingZone: 1
+        AddSupplyPressure: 0
+    - rid: 1280112333518012783
+      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
+      data:
+        MinCount: 1
+        MaxCount: 2
         AntiqueType: 3
         Century: 0
         Country: 1
@@ -56,20 +69,7 @@ MonoBehaviour:
         RandomizeShippingZone: 0
         ShippingZone: 1
         AddSupplyPressure: 0
-    - rid: 1280112227729277126
-      type: {class: CreateAntiqueOnMarketEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
-      data:
-        MinCount: 1
-        MaxCount: 2
-        AntiqueType: 4
-        Century: 0
-        Country: 1
-        Condition: 0
-        PriceFactor: 0
-        RandomizeShippingZone: 0
-        ShippingZone: 1
-        AddSupplyPressure: 0
-    - rid: 1280112227729277127
+    - rid: 1280112333518012784
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -78,11 +78,11 @@ MonoBehaviour:
         Century: 0
         tempSupplyChange: 1
         permSupplyChange: 0
-    - rid: 1280112227729277128
+    - rid: 1280112333518012785
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 3
+        AntiqueType: 2
         Country: 0
         Century: 0
         tempDemandChange: -0.25

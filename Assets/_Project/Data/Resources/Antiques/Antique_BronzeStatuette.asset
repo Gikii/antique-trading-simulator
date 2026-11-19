@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41a53d3725ac21544a2eb4a0a49f1d9d, type: 3}
+  m_Name: Antique_BronzeStatuette
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
+  Id: sculpture_007
+  DisplayName: Bronze statuette
+  Type: 4
+  Century: 16
+  Country: 3
+  BasePrice: 150
+  EditionSize: 2
+  Description: A bronze statuette of a classical figure, cast in Florence and finished
+    with the cold chisel. Attributions to the great Mannerists are argued over at
+    every sale it passes through.
+  Artwork: {fileID: 0}

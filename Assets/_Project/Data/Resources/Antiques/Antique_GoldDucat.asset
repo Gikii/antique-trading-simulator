@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: coin_002
   DisplayName: Gold ducat
-  Type: 7
+  Type: 6
   Century: 17
   Country: 15
   BasePrice: 1.25
   EditionSize: 0
-  Description: 'A gold ducat bearing the royal portrait, struck at the Crown mint.'
+  Description: A gold ducat bearing the royal portrait, struck at the Crown mint.
+  Artwork: {fileID: 0}

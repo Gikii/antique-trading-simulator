@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: vase_001
   DisplayName: Chinese vase
-  Type: 12
+  Type: 9
   Century: 18
   Country: 10
   BasePrice: 25
   EditionSize: 0
-  Description: 'A blue-and-white porcelain vase decorated with scrolling lotus, made for the export trade.'
+  Description: A blue-and-white porcelain vase decorated with scrolling lotus, made
+    for the export trade.
+  Artwork: {fileID: 0}

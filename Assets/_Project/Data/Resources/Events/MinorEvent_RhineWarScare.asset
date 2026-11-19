@@ -37,15 +37,15 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.8
   Effects:
-  - rid: 1280112227729277184
-  - rid: 1280112227729277185
-  - rid: 1280112227729277186
-  - rid: 1280112227729277187
-  - rid: 1280112227729277188
+  - rid: 1280112333518012836
+  - rid: 1280112333518012837
+  - rid: 1280112333518012838
+  - rid: 1280112333518012839
+  - rid: 1280112333518012840
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277184
+    - rid: 1280112333518012836
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -54,7 +54,7 @@ MonoBehaviour:
         Century: 0
         tempSupplyChange: 1
         permSupplyChange: 0
-    - rid: 1280112227729277185
+    - rid: 1280112333518012837
       type: {class: ChangeSupplyEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -63,7 +63,7 @@ MonoBehaviour:
         Century: 0
         tempSupplyChange: 1
         permSupplyChange: 0
-    - rid: 1280112227729277186
+    - rid: 1280112333518012838
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -72,7 +72,7 @@ MonoBehaviour:
         Century: 0
         tempDemandChange: -0.75
         permDemandChange: 0
-    - rid: 1280112227729277187
+    - rid: 1280112333518012839
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
@@ -81,7 +81,7 @@ MonoBehaviour:
         Century: 0
         tempDemandChange: -0.75
         permDemandChange: 0
-    - rid: 1280112227729277188
+    - rid: 1280112333518012840
       type: {class: TransportDelayEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Zone: 2

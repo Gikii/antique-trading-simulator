@@ -15,10 +15,12 @@ MonoBehaviour:
   id: 246ce9e98cb44414b67098f59f7175bb
   DisplayName: Christmas Markets
   EventType: 1
-  Description: Christmas markets {fill|will fill} the squares through December. Shoppers {look|will look} for gifts, and porcelain, clocks and jewellery {sell|will sell} briskly.
-  DurationDays: 4
-  MinLeadDays: 1
-  MaxLeadDays: 3
+  Description: Christmas markets {fill|will fill} the squares through December. Shoppers
+    {look|will look} for gifts, and porcelain, clocks and jewellery {sell|will sell}
+    briskly.
+  DurationWeeks: 4
+  MinLeadWeeks: 1
+  MaxLeadWeeks: 3
   PlayerSelectsLeadTime: 0
   Annual: 1
   AnnualMonth: 12
@@ -27,7 +29,7 @@ MonoBehaviour:
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
-  OfficialAnnouncementDaysBefore: 1
+  OfficialAnnouncementWeeksBefore: 1
   CreateRumour: 1
   RumorCredibility: 0.5
   CreateLeak: 0
@@ -43,7 +45,7 @@ MonoBehaviour:
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 12
+        AntiqueType: 9
         Country: 0
         Century: 0
         tempDemandChange: 1.5
@@ -61,7 +63,7 @@ MonoBehaviour:
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 6
+        AntiqueType: 5
         Country: 0
         Century: 0
         tempDemandChange: 0.75

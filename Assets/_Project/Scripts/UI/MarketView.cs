@@ -1,12 +1,13 @@
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
-using TMPro;
-using UnityEngine.UI;
-using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Agents;
 using AntiqueTradingSimulator.Core;
+using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Market;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 using static AntiqueTradingSimulator.Market.AntiqueEnums;
 
 namespace AntiqueTradingSimulator.UI
@@ -45,13 +46,16 @@ namespace AntiqueTradingSimulator.UI
 
         [SerializeField] private AntiqueDetailsUI antiqueDetailsUI;
 
+        private static readonly AntiqueType[] TypeOptions =
+            (AntiqueType[])Enum.GetValues(typeof(AntiqueType));
+
         // Century's enum values equal the century number (XII=12 ... XX=20),
         // not 0..N, so the Century dropdown's option index -> enum needs an
         // explicit lookup table (dropdown option order matches this array).
         private static readonly Century[] CenturyOptions =
         {
             Century.XII, Century.XIII, Century.XIV, Century.XV, Century.XVI,
-            Century.XVII, Century.XVIII, Century.XIX, Century.XX
+            Century.XVII, Century.XVIII, Century.XIX
         };
 
         // Quality buckets, expressed as an inclusive [min, max] Condition range
@@ -97,7 +101,11 @@ namespace AntiqueTradingSimulator.UI
             if (playerTrader == null) playerTrader = FindFirstObjectByType<PlayerTrader>();
             if (timeManager == null) timeManager = FindFirstObjectByType<TimeManager>();
 
-            if (typeFilterDropdown != null) typeFilterDropdown.onSelectionChanged.AddListener(OnTypeFilterChanged);
+            if (typeFilterDropdown != null)
+            {
+                typeFilterDropdown.SetOptions(TypeOptions.Select(t => t.ToDisplayString()), "All Types");
+                typeFilterDropdown.onSelectionChanged.AddListener(OnTypeFilterChanged);
+            }
             if (centuryFilterDropdown != null) centuryFilterDropdown.onSelectionChanged.AddListener(OnCenturyFilterChanged);
             if (countryFilterDropdown != null) countryFilterDropdown.onSelectionChanged.AddListener(OnCountryFilterChanged);
             if (qualityFilterDropdown != null) qualityFilterDropdown.onSelectionChanged.AddListener(OnQualityFilterChanged);

@@ -17,8 +17,8 @@ MonoBehaviour:
   EventType: 1
   Description: The court {has announced|will announce} the birth of an heir, and
     the royal nursery {is being|will be} furnished in the old manner. Ladies of fashion
-    {follow|will follow} the example, and antique dolls, rocking horses and painted
-    toys {are bought|will be bought} up as keepsakes.
+    {follow|will follow} the example, and painted chests, cradles and small chairs
+    {are bought|will be bought} up wherever they can be found.
   DurationWeeks: 4
   MinLeadWeeks: 2
   MaxLeadWeeks: 6
@@ -36,36 +36,26 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.9
   Effects:
-  - rid: 1280112227729277088
-  - rid: 1280112227729277089
-  - rid: 1280112227729277090
+  - rid: 1280112333518012748
+  - rid: 1280112333518012749
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277088
+    - rid: 1280112333518012748
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0
-        AntiqueType: 18
+        AntiqueType: 2
         Country: 0
         Century: 0
         tempDemandChange: 1.5
         permDemandChange: 0
-    - rid: 1280112227729277089
+    - rid: 1280112333518012749
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 1
         AntiqueType: 0
         Country: 4
-        Century: 0
-        tempDemandChange: 0.5
-        permDemandChange: 0
-    - rid: 1280112227729277090
-      type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
-      data:
-        Scope: 0
-        AntiqueType: 3
-        Country: 0
         Century: 0
         tempDemandChange: 0.5
         permDemandChange: 0

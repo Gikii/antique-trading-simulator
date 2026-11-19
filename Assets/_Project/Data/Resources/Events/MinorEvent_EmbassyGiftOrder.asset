@@ -26,7 +26,7 @@ MonoBehaviour:
   Annual: 0
   AnnualMonth: 12
   AnnualDay: 1
-  AllowedSeasons: -1
+  AllowedSeasons: 15
   FailureChance: 0
   CanBeFakeNews: 1
   CreateOfficialNews: 1
@@ -36,13 +36,13 @@ MonoBehaviour:
   CreateLeak: 1
   LeakCredibility: 0.85
   Effects:
-  - rid: 1280112227729277113
-  - rid: 1280112227729277114
-  - rid: 1280112227729277115
+  - rid: 1280112333518012770
+  - rid: 1280112333518012771
+  - rid: 1280112333518012772
   references:
     version: 2
     RefIds:
-    - rid: 1280112227729277113
+    - rid: 1280112333518012770
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
@@ -60,7 +60,7 @@ MonoBehaviour:
         Penalty: -1
         ClassName: Premium
         RequiredReputation: -1
-    - rid: 1280112227729277114
+    - rid: 1280112333518012771
       type: {class: CreateContractEventEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         MinCount: 1
@@ -78,7 +78,7 @@ MonoBehaviour:
         Penalty: -1
         ClassName: Premium
         RequiredReputation: -1
-    - rid: 1280112227729277115
+    - rid: 1280112333518012772
       type: {class: ChangeDemandEffect, ns: AntiqueTradingSimulator.Events, asm: Assembly-CSharp}
       data:
         Scope: 0

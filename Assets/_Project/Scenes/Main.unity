@@ -45354,6 +45354,7 @@ MonoBehaviour:
   newsManager: {fileID: 398503188}
   contractManager: {fileID: 398503187}
   transportManager: {fileID: 0}
+  restorationManager: {fileID: 0}
   initialProfileIds:
   - museum
   - speculator
@@ -57382,7 +57383,6 @@ MonoBehaviour:
   nextEffectText: {fileID: 2130562656}
   costText: {fileID: 1350247115}
   upgradeButton: {fileID: 357116108}
-  upgradeButtonText: {fileID: 476936679}
   normalColor: {r: 0.09019608, g: 0.07450981, b: 0.047058824, a: 1}
   selectedColor: {r: 0.2901961, g: 0.20784314, b: 0.09411765, a: 1}
 --- !u!224 &485166166

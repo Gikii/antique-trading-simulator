@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.Market.AntiqueDefinition
   Id: painting_002
   DisplayName: Still life with flowers
-  Type: 4
+  Type: 3
   Century: 17
   Country: 7
   BasePrice: 90
   EditionSize: 0
-  Description: 'A dense bouquet on a dark ground, painted with the botanical precision of the Dutch Golden Age.'
+  Description: A dense bouquet on a dark ground, painted with the botanical precision
+    of the Dutch Golden Age.
+  Artwork: {fileID: 0}

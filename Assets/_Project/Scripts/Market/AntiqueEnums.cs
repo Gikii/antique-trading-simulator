@@ -9,24 +9,16 @@ namespace AntiqueTradingSimulator.Market
         public enum AntiqueType
         {
             Other = 0,
-            Clock,
-            Vase,
+            Timepiece,
             Furniture,
             Painting,
             Sculpture,
-            Jewelry,
+            Jewellery,
             Coin,
             Book,
-            Rug,
-            Silverware,
-            Ceramic,
-            Porcelain,
-            Mirror,
-            Lamp,
-            Weapon,
-            Instrument,
             Textile,
-            Toy
+            Ceramics,
+            Arms,
         }
 
         // Explicit int values equal to the century number, so a Century can be
