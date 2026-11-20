@@ -66,6 +66,9 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>Weeks after an antique arrives that a planned resale restoration stays worth starting.</summary>
         private const int RestorationLegGraceWeeks = 4;
 
+        /// <summary>Weeks of buying allowance an NPC may save up when its profile does not say.</summary>
+        private const int DefaultBudgetAccrualWeeks = 4;
+
         public float ActivityScale { get; set; } = 1f;
 
         private struct PendingReaction
@@ -123,6 +126,7 @@ namespace AntiqueTradingSimulator.Agents
         private int _planWeek = -1;
         private readonly List<int> _slotTicks = new();
         private float _weekBudget;
+        private int _budgetWeek = -1;
         private float _contractReserve;
         private float _planReserve;
         private int _contractSlotsUsed;
@@ -251,9 +255,27 @@ namespace AntiqueTradingSimulator.Agents
 
             _contractReserve = CalculateContractReserve();
             _planReserve = CalculatePlanReserve();
-            _weekBudget = Mathf.Max(0f, Inventory.Cash - _contractReserve - _planReserve) * profile.WeeklyBudgetFraction;
+            GrantWeekBudget(week, profile);
 
             RollSlotTicks(fromTick, profile);
+        }
+
+        private void GrantWeekBudget(int week, NpcBehaviorProfile profile)
+        {
+            int accrualWeeks = profile.BudgetAccrualWeeks > 0
+                ? profile.BudgetAccrualWeeks
+                : DefaultBudgetAccrualWeeks;
+
+            float spendable = Mathf.Max(0f, Inventory.Cash - _contractReserve - _planReserve);
+            float allowance = spendable * profile.WeeklyBudgetFraction;
+            float ceiling = Mathf.Min(spendable, allowance * accrualWeeks);
+
+            float granted = _budgetWeek == week
+                ? Mathf.Max(_weekBudget, allowance)
+                : Mathf.Max(0f, _weekBudget) + allowance;
+
+            _weekBudget = Mathf.Min(ceiling, granted);
+            _budgetWeek = week;
         }
 
         private void RollSlotTicks(int fromTick, NpcBehaviorProfile profile)
@@ -2228,6 +2250,7 @@ namespace AntiqueTradingSimulator.Agents
                 CommittedContractIds = new List<string>(Inventory.CommittedContractIds),
                 Record = Record.CaptureState(),
                 PlanWeek = _planWeek,
+                BudgetWeek = _budgetWeek,
                 SlotTicks = new List<int>(_slotTicks),
                 WeekBudget = _weekBudget,
                 ContractReserve = _contractReserve,
@@ -2324,6 +2347,7 @@ namespace AntiqueTradingSimulator.Agents
             _rumourClaimWeek = state.RumourClaimWeek;
             _planWeek = state.PlanWeek > 0 ? state.PlanWeek : -1;
             _weekBudget = state.WeekBudget;
+            _budgetWeek = state.BudgetWeek > 0 ? state.BudgetWeek : _planWeek;
             _contractReserve = state.ContractReserve;
             _planReserve = state.PlanReserve;
             _contractSlotsUsed = state.ContractSlotsUsed;

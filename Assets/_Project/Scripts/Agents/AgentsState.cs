@@ -31,6 +31,8 @@ namespace AntiqueTradingSimulator.Agents
 
         public float WeekBudget;
 
+        public int BudgetWeek;
+
         public float ContractReserve;
 
         public float PlanReserve;

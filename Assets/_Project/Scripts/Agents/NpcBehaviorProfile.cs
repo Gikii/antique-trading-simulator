@@ -70,6 +70,9 @@ namespace AntiqueTradingSimulator.Agents
         public float MaxPriceMultiplierWillingToPay = 1.3f;
         [Range(0f, 1f)] public float RiskTolerance = 0.5f;
 
+        [Tooltip("The number of weeks of unspent budget that gets saved between weeeks. 1 means no saving.")]
+        [Range(1, 12)] public int BudgetAccrualWeeks = 4;
+
         [Tooltip("Doesn't buy antiques in worse condition than this (contracts set their own minimum).")]
         [Range(0f, 1f)] public float MinConditionToBuy;
 
