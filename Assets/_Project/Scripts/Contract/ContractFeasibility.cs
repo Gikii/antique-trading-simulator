@@ -128,5 +128,139 @@ namespace AntiqueTradingSimulator.Contracts
 
         private static float Lerp(System.Random rng, float min, float max) =>
             min + (float)rng.NextDouble() * (max - min);
+        /// <summary>Shipping zones listings come from, weighted as in Market.PickShippingZone.</summary>
+        private static readonly ShippingZone[] Zones =
+        {
+            ShippingZone.Local, ShippingZone.Domestic, ShippingZone.International
+        };
+
+        /// <summary>Every transport service, in no particular order.</summary>
+        private static readonly TransportOption[] Services =
+        {
+            TransportOption.Economy, TransportOption.Standard, TransportOption.Express
+        };
+
+        private static float ZoneWeight(ShippingZone zone) => zone switch
+        {
+            ShippingZone.Local => AntiqueTradingSimulator.Market.Market.LocalListingWeight,
+            ShippingZone.Domestic => AntiqueTradingSimulator.Market.Market.DomesticListingWeight,
+            ShippingZone.International => AntiqueTradingSimulator.Market.Market.InternationalListingWeight,
+            _ => 0f
+        };
+
+        /// <summary>Weeks of transit this duration allows a buyer acting the week the contract appears.</summary>
+        public static int TransitWeeksAvailable(int durationWeeks) => durationWeeks - 1;
+
+        /// <summary>
+        /// Cheapest service delivering from <paramref name="zone"/> within <paramref name="transitWeeks"/>,
+        /// and its cost for an item at this price; false when no service is fast enough.
+        /// </summary>
+        public static bool TryCheapestServiceWithin(TransportSettings settings, ShippingZone zone,
+            int transitWeeks, float itemPrice, out TransportOption option, out float cost)
+        {
+            option = TransportOption.Standard;
+            cost = 0f;
+            if (settings == null || transitWeeks < 1) return false;
+
+            bool found = false;
+            for (int i = 0; i < Services.Length; i++)
+            {
+                var candidate = Services[i];
+                if (settings.GetBaseDurationWeeks(zone, candidate) > transitWeeks) continue;
+
+                float candidateCost = settings.GetCost(itemPrice, zone, candidate);
+                if (found && candidateCost >= cost) continue;
+
+                option = candidate;
+                cost = candidateCost;
+                found = true;
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Cost of delivering one piece: per zone, the cheapest service that meets the deadline, weighted
+        /// by zone frequency, with zones nothing reaches in time left out of the average.
+        /// </summary>
+        /// <param name="safetyWeeks">Slack required of the service, given up on zones too tight for it.</param>
+        public static float ExpectedShippingCost(TransportSettings settings, float itemPrice,
+            int durationWeeks, int safetyWeeks)
+        {
+            if (settings == null || itemPrice <= 0f) return 0f;
+
+            int transit = TransitWeeksAvailable(durationWeeks);
+            if (transit < 1) return 0f;
+
+            int relaxed = Mathf.Max(1, transit - Mathf.Max(0, safetyWeeks));
+
+            float weighted = 0f;
+            float total = 0f;
+
+            for (int i = 0; i < Zones.Length; i++)
+            {
+                var zone = Zones[i];
+                float weight = ZoneWeight(zone);
+                if (weight <= 0f) continue;
+
+                bool reachable = TryCheapestServiceWithin(settings, zone, relaxed, itemPrice, out _, out float cost);
+                if (!reachable)
+                    reachable = TryCheapestServiceWithin(settings, zone, transit, itemPrice, out _, out cost);
+                if (!reachable) continue;
+
+                weighted += weight * cost;
+                total += weight;
+            }
+
+            return total > 0f ? weighted / total : 0f;
+        }
+
+        /// <summary>Share of listings, by zone weight, that Standard delivery reaches within this deadline.</summary>
+        public static float StandardDeliveryReach(TransportSettings settings, int durationWeeks)
+        {
+            if (settings == null) return 1f;
+
+            int transit = TransitWeeksAvailable(durationWeeks);
+            if (transit < 1) return 0f;
+
+            float reached = 0f;
+            float total = 0f;
+
+            for (int i = 0; i < Zones.Length; i++)
+            {
+                var zone = Zones[i];
+                float weight = ZoneWeight(zone);
+                if (weight <= 0f) continue;
+
+                total += weight;
+                if (settings.GetBaseDurationWeeks(zone, TransportOption.Standard) <= transit) reached += weight;
+            }
+
+            return total > 0f ? reached / total : 1f;
+        }
+
+        /// <summary>
+        /// Sale price of the cheapest qualifying listing able to arrive by <paramref name="latestArrival"/>
+        /// </summary>
+        public static float CheapestQualifyingSalePrice(ContractRequirement requirement, Market.Market market,
+            int currentWeek, int latestArrival, Func<ShippingZone, int> expressWeeks)
+        {
+            if (requirement == null || market == null || expressWeeks == null) return 0f;
+
+            float cheapest = 0f;
+            var listings = market.Listings;
+
+            for (int i = 0; i < listings.Count; i++)
+            {
+                var listing = listings[i];
+                if (listing == null || listing.OwnerId == Antique.PlayerOwnerId) continue;
+                if (currentWeek + expressWeeks(listing.ShippingZone) > latestArrival) continue;
+                if (!requirement.IsSatisfiedBy(listing)) continue;
+
+                if (cheapest <= 0f || listing.SalePrice < cheapest) cheapest = listing.SalePrice;
+            }
+
+            return cheapest;
+        }
     }
 }

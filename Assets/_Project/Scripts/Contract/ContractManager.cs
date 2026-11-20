@@ -125,7 +125,7 @@ namespace AntiqueTradingSimulator.Contracts
         [SerializeField] private int maxQuantity = 5;
 
         [FormerlySerializedAs("minDurationDays")]
-        [SerializeField] private int minDurationWeeks = 1;
+        [SerializeField] private int minDurationWeeks = 3;
         [FormerlySerializedAs("maxDurationDays")]
         [SerializeField] private int maxDurationWeeks = 10;
 
@@ -143,6 +143,11 @@ namespace AntiqueTradingSimulator.Contracts
         [Tooltip("Rolls tried before giving up on generating a contract this time (e.g. when the market is nearly empty).")]
         [Min(1)] [SerializeField] private int maxGenerationAttempts = 8;
 
+        [Tooltip("Most the cheapest qualifying listing may cost above the value floor before the roll is " +
+                 "dropped and another tried. 0 = no limit.")]
+        [Min(0f)][SerializeField] private float maxCostOverValueFloor = 2f;
+
+
         [Header("Client demand")]
         [Tooltip("Demand an open contract adds per antique it still asks for, spread evenly over the antique types " +
                  "that can satisfy it (base demand of a type is 5, so 0.25 on one type ≈ +5% price).")]
@@ -155,6 +160,12 @@ namespace AntiqueTradingSimulator.Contracts
         [SerializeField] private float minRewardMultiplier = 1.1f;
         [SerializeField] private float maxRewardMultiplier = 1.6f;
         [SerializeField] private float maxUrgencyBonusMultiplier = 1.5f;
+
+        [Tooltip("Weeks of slack the delivery allowance is priced with. 0 = the tightest service that meets the deadline.")]
+        [Min(0)][SerializeField] private int deliverySafetyWeeks = 1;
+
+        [Tooltip("Price the reward from the cheapest qualifying listing rather than the requirement's value floor.")]
+        [SerializeField] private bool priceRewardFromMarketStock = true;
 
         [Header("Condition required")]
         [Tooltip("Range the minimum condition of a standard contract is rolled from. Rewards are based on the value of an antique in exactly that condition.")]
@@ -454,20 +465,21 @@ namespace AntiqueTradingSimulator.Contracts
                 if (!candidate.HasMinValue) continue;
 
                 int candidateDuration = overrides?.DurationWeeks is int fixedDuration
-                    ? Mathf.Max(1, fixedDuration)
+                    ? ClampDuration(fixedDuration)
                     : UnityEngine.Random.Range(shortestDuration, Mathf.Max(shortestDuration, maxDurationWeeks) + 1);
 
                 float expected = ContractFeasibility.ExpectedSupply(candidate, market, currentWeek,
                     currentWeek + candidateDuration, economyManager.ExpectedNewListingsPerWeek, ExpressWeeks);
                 float candidateSupportable = expected * supplyShareForContract;
 
-                if (candidateSupportable >= neededQuantity)
+                if (candidateSupportable >= neededQuantity && IsAffordablyPriced(candidate, market, currentWeek, candidateDuration))
                 {
                     requirement = candidate;
                     duration = candidateDuration;
                     supportable = candidateSupportable;
                     break;
                 }
+
 
                 if (fallback == null)
                 {
@@ -507,10 +519,13 @@ namespace AntiqueTradingSimulator.Contracts
             // so the multiplier really is the client's premium over the market. A dearer antique is the
             // supplier's choice; a cheaper one doesn't count.
             float baseMultiplier = UnityEngine.Random.Range(minMultiplier, maxMultiplier);
+            float itemCost = ExpectedItemCost(requirement, market, currentWeek, duration);
+            float deliveryCost = ContractFeasibility.ExpectedShippingCost(
+                TransportSettingsOrNull, itemCost, duration, deliverySafetyWeeks);
             float urgencyFactor = UrgencyFactor(duration);
             float rewardPerUnit = overrides?.RewardPerUnit is float fixedReward
                 ? Mathf.Max(0f, fixedReward)
-                : requirement.MinValue * baseMultiplier * urgencyFactor;
+                : (itemCost + deliveryCost) * baseMultiplier * urgencyFactor;
 
             ContractType type = overrides?.Type
                 ?? (UnityEngine.Random.value < exclusiveContractChance ? ContractType.Exclusive : ContractType.Open);
@@ -780,17 +795,63 @@ namespace AntiqueTradingSimulator.Contracts
         private static float RoundDownToNice(float value) => Core.Money.RoundDownToNice(value);
 
         /// <summary>
-        /// Full bonus for the shortest deadline a purchase can still make, none for the longest. Measured
-        /// from the shortest feasible deadline, not from 1 week: a deadline nobody can meet by buying
-        /// isn't "urgent", it's impossible — and is no longer generated.
+        /// Cost of one qualifying piece before delivery: the cheapest qualifying listing, or the
+        /// requirement's value floor when the market has none.
+        /// </summary>
+        private float ExpectedItemCost(ContractRequirement requirement, Market.Market market, int currentWeek, int duration)
+        {
+            float floor = requirement != null ? requirement.MinValue : 0f;
+            if (!priceRewardFromMarketStock) return floor;
+
+            float cheapest = ContractFeasibility.CheapestQualifyingSalePrice(
+                requirement, market, currentWeek, currentWeek + duration - 1, ExpressWeeks);
+
+            return Mathf.Max(floor, cheapest);
+        }
+
+        /// <summary>Whether the cheapest qualifying listing is within maxCostOverValueFloor of the value floor.</summary>
+        private bool IsAffordablyPriced(ContractRequirement requirement, Market.Market market, int currentWeek, int duration)
+        {
+            if (!priceRewardFromMarketStock || maxCostOverValueFloor <= 0f) return true;
+
+            float floor = requirement != null ? requirement.MinValue : 0f;
+            if (floor <= 0f) return true;
+
+            float cheapest = ContractFeasibility.CheapestQualifyingSalePrice(
+                requirement, market, currentWeek, currentWeek + duration - 1, ExpressWeeks);
+
+            // Nothing listed: ExpectedSupply covers whether new listings will arrive.
+            return cheapest <= 0f || cheapest <= floor * maxCostOverValueFloor;
+        }
+
+        /// <summary>
+        /// Premium for a deadline that forces a faster service, reaching 1 once Standard covers the whole
+        /// market; ramps on duration alone when transport is not set up.
         /// </summary>
         private float UrgencyFactor(int duration)
         {
-            int shortest = Mathf.Max(minDurationWeeks, ShortestFeasibleDuration);
+            var settings = TransportSettingsOrNull;
+            if (settings != null)
+                return Mathf.Lerp(maxUrgencyBonusMultiplier, 1f,
+                    ContractFeasibility.StandardDeliveryReach(settings, duration));
+
+            int shortest = minDurationWeeks;
             int span = Mathf.Max(1, maxDurationWeeks - shortest);
             float t = Mathf.Clamp01((float)(duration - shortest) / span);
             return Mathf.Lerp(maxUrgencyBonusMultiplier, 1f, t);
         }
+
+        /// <summary>A requested deadline, held to ShortestFeasibleDuration.</summary>
+        private int ClampDuration(int weeks)
+        {
+            int floor = ShortestFeasibleDuration;
+            if (weeks >= floor) return weeks;
+
+            Debug.LogWarning($"ContractManager: a {weeks} week deadline was requested, but {floor} weeks is the shortest a bought antique can be delivered in. Using {floor}.");
+            return floor;
+        }
+        private Logistics.TransportSettings TransportSettingsOrNull =>
+            transportManager != null ? transportManager.Settings : null;
 
         /// <summary>Base Express transit time from a zone, in weeks (1 week if transport isn't set up).</summary>
         private int ExpressWeeks(Logistics.ShippingZone zone) =>
@@ -802,7 +863,8 @@ namespace AntiqueTradingSimulator.Contracts
         /// The shortest deadline a contract can have and still be met by buying: an item bought on the
         /// first week must arrive (local Express) before the week the contract expires.
         /// </summary>
-        public int ShortestFeasibleDuration => ExpressWeeks(Logistics.ShippingZone.Local) + 1;
+        public int ShortestFeasibleDuration =>
+            Mathf.Max(minDurationWeeks, ExpressWeeks(Logistics.ShippingZone.Local) + 1);
 
         public Contract GetById(string contractId)
         {
