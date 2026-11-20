@@ -976,20 +976,48 @@ namespace AntiqueTradingSimulator.Agents
         }
 
         // ---------------------------------------------------------------- tick action priority ladder
-
         private void RunOneBudgetedAction(int week, NpcBehaviorProfile profile)
         {
-            if (TierContractRescue(week, profile)) return;
-            if (TierExecutePlans(week, profile)) return;
-            if (TierRumourExit(week, profile)) return;
-            if (TierDamageControl(week, profile)) return;
-            if (TierNewsBuy(week, profile)) return;
-            if (TierContractWork(week, profile)) return;
-            if (TierReviewHoldings(week, profile)) return;
-            if (TierTakeContract(week, profile)) return;
-            if (TierPlantRumour(week, profile)) return;
-            if (TierRestoreStock(week, profile)) return;
-            if (TierBrowseMarket(week, profile)) return;
+            Diagnostics.Telemetry.NpcActionBegin(this);
+            string tier = RunOneBudgetedActionCore(week, profile);
+            Diagnostics.Telemetry.NpcActionEnd(this, week, tier);
+        }
+        private string RunOneBudgetedActionCore(int week, NpcBehaviorProfile profile)
+        {
+            if (TierContractRescue(week, profile)) return nameof(TierContractRescue);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierContractRescue));
+
+            if (TierExecutePlans(week, profile)) return nameof(TierExecutePlans);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierExecutePlans));
+
+            if (TierRumourExit(week, profile)) return nameof(TierRumourExit);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierRumourExit));
+
+            if (TierDamageControl(week, profile)) return nameof(TierDamageControl);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierDamageControl));
+
+            if (TierNewsBuy(week, profile)) return nameof(TierNewsBuy);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierNewsBuy));
+
+            if (TierContractWork(week, profile)) return nameof(TierContractWork);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierContractWork));
+
+            if (TierReviewHoldings(week, profile)) return nameof(TierReviewHoldings);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierReviewHoldings));
+
+            if (TierTakeContract(week, profile)) return nameof(TierTakeContract);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierTakeContract));
+
+            if (TierPlantRumour(week, profile)) return nameof(TierPlantRumour);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierPlantRumour));
+
+            if (TierRestoreStock(week, profile)) return nameof(TierRestoreStock);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierRestoreStock));
+
+            if (TierBrowseMarket(week, profile)) return nameof(TierBrowseMarket);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierBrowseMarket));
+
+            return null;
         }
 
         private int ContractSlotsAllowed(NpcBehaviorProfile profile)
@@ -1939,28 +1967,40 @@ namespace AntiqueTradingSimulator.Agents
             var profile = Profile;
             if (profile == null || _economyManager == null || _economyManager.TimeManager == null) return;
 
-            // Nothing to trade on (e.g. a weather forecast) — no reaction to plan.
             if (news?.NewsData == null || news.NewsData.Count == 0) return;
 
-            float trust = news.Type switch
+            float baseTrust = news.Type switch
             {
                 NewsType.Official => 1f,
                 NewsType.Leak => profile.LeakTrust,
-                NewsType.Rumor or NewsType.Fake => profile.RumorTrust * (1f - RumourMill.CurrentSkepticism),
+                NewsType.Rumor or NewsType.Fake => profile.RumorTrust,
             };
 
-            if (news.Type == NewsType.Fake && AccessLevel >= InfoAccessLevel.Expert &&
-                UnityEngine.Random.value < FakeRumourSettings.Active.ExpertDetection * (1f - news.Credibility))
+            float trust = news.Type is NewsType.Rumor or NewsType.Fake
+                ? baseTrust * (1f - RumourMill.CurrentSkepticism)
+                : baseTrust;
+
+            float expertChance = float.NaN;
+            if (news.Type == NewsType.Fake && AccessLevel >= InfoAccessLevel.Expert)
             {
-                Debug.Log($"Trader {TraderName} spotted the fake rumour '{news.OfficialName}'.");
-                return;
+                expertChance = FakeRumourSettings.Active.ExpertDetection * (1f - news.Credibility);
+                if (UnityEngine.Random.value < expertChance)
+                {
+                    Debug.Log($"Trader {TraderName} spotted the fake rumour '{news.OfficialName}'.");
+                    Diagnostics.Telemetry.NewsReception(this, news, deliveryWeek, "DetectedFake",
+                        baseTrust, trust, float.NaN, float.NaN, expertChance, -1, -1);
+                    return;
+                }
             }
 
             float actionChance = trust * news.Credibility * (0.5f + profile.RiskTolerance);
+            float trustRoll = UnityEngine.Random.value;
 
-            if (UnityEngine.Random.value > actionChance)
+            if (trustRoll > actionChance)
             {
                 Debug.Log($"Trader {TraderName} dismissed the {news.Type} news from Week {news.WeekPublished} based on actionChance");
+                Diagnostics.Telemetry.NewsReception(this, news, deliveryWeek, "DismissedByTrust",
+                    baseTrust, trust, actionChance, trustRoll, expertChance, -1, -1);
                 return;
             }
 
@@ -1970,9 +2010,13 @@ namespace AntiqueTradingSimulator.Agents
             if (news.EventTriggerWeek <= reactionWeek)
             {
                 Debug.Log($"Trader {TraderName} dismissed the {news.Type} news from Week {news.WeekPublished} because the week it would react ({reactionWeek}) is later than the week the event starts ({news.EventTriggerWeek})");
+                Diagnostics.Telemetry.NewsReception(this, news, deliveryWeek, "DismissedTooLate",
+                    baseTrust, trust, actionChance, trustRoll, expertChance, delay, reactionWeek);
                 return;
             }
 
+            Diagnostics.Telemetry.NewsReception(this, news, deliveryWeek, "Queued",
+                baseTrust, trust, actionChance, trustRoll, expertChance, delay, reactionWeek);
             _pendingReactions.Add(new PendingReaction { News = news, ReactionWeek = reactionWeek });
         }
 
