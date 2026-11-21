@@ -246,6 +246,8 @@ namespace AntiqueTradingSimulator.Autoplay
             json.Value("real_seconds", _playing ? Time.realtimeSinceStartup - _startedAt : 0f);
             json.Value("long_term_demand_cap", _economy != null && _economy.Market != null ? _economy.Market.LongTermDemandCap : 0f);
             json.Value("own_trend_weight", Market.Market.OwnTrendWeight);
+            json.Value("trade_demand_impulse", _economy != null && _economy.Market != null ? _economy.Market.TradeDemandImpulse : 0f);
+            json.Value("expired_listings_restore_demand", _economy != null && _economy.Market != null && _economy.Market.ExpiredListingsRestoreDemand);
 
             json.BeginArray("overrides");
             foreach (var result in AutoplayBootstrap.OverrideResults)

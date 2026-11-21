@@ -76,7 +76,7 @@ namespace AntiqueTradingSimulator.Market
             get => _ownTrendWeight;
             set => _ownTrendWeight = Mathf.Clamp01(value);
         }
-        private static float _ownTrendWeight = 0.5f;
+        private static float _ownTrendWeight = 0.2f;
 
         // Category trends per (type, window), valid until the next weekly price record.
         private readonly Dictionary<(AntiqueType, int), float> _categoryTrendCache = new Dictionary<(AntiqueType, int), float>();
@@ -308,8 +308,12 @@ namespace AntiqueTradingSimulator.Market
         /// Withdraws anonymous listings (no owner, no asking price) that have been on the market for
         /// more than <paramref name="lifetimeDays"/> days — their sellers gave up — so the market
         /// keeps refreshing instead of filling with stale offers. Owner-set listings never expire.
-        /// The supply the offer added when it appeared is taken back out (same as cancelling a listing),
-        /// so generating and expiring offers doesn't drift prices. Returns how many were removed.
+        /// The supply the offer added when it appeared is taken back out (same as cancelling a listing).
+        /// The demand it took away is NOT given back (unless ExpiredListingsRestoreDemand): nobody bought
+        /// it, which is a sign of weak interest. That is also what makes a purchase a demand signal —
+        /// if expiring gave the demand back too, buying an offer and letting it expire would leave the
+        /// market in the same state, and trades (the player's included) could never leave a trace.
+        /// Returns how many were removed.
         /// </summary>
         public int RemoveExpiredListings(int currentWeek, int lifetimeWeeks)
         {
@@ -324,7 +328,8 @@ namespace AntiqueTradingSimulator.Market
             foreach (var listing in expired)
             {
                 _listings.Remove(listing);
-                ApplyBuyPressure(listing.DefinitionId);
+                if (ExpiredListingsRestoreDemand) ApplyBuyPressure(listing.DefinitionId);
+                else ApplyWithdrawal(listing.DefinitionId);
                 OnListingRemoved?.Invoke(listing);
             }
 
@@ -376,7 +381,7 @@ namespace AntiqueTradingSimulator.Market
             if (typeState != null)
             {
                 float demandBefore = typeState.Demand;
-                typeState.Demand += 0.1f;
+                typeState.Demand += TradeDemandImpulse;
                 ReportPressure(antique.DefinitionId, typeState.Demand - demandBefore, 0f);
                 RecalculatePricesForDefinition(antique.DefinitionId);
             }
@@ -451,6 +456,32 @@ namespace AntiqueTradingSimulator.Market
         }
 
         // Supply/demand nudges shared by every way an antique enters or leaves the market.
+        /// <summary>
+        /// How much one trade moves its type's Demand: + on a purchase (and a contract delivery),
+        /// − when a piece is put on offer. Supply always moves by one piece. Set by EconomyManager
+        /// (tradeDemandImpulse); 0.1 until it is.
+        /// </summary>
+        public float TradeDemandImpulse { get; private set; } = 0.1f;
+
+        public void SetTradeDemandImpulse(float impulse) => TradeDemandImpulse = Mathf.Max(0f, impulse);
+
+        /// <summary>
+        /// Old behaviour switch: when true an expired offer gives back the demand it took away, like a
+        /// purchase (see RemoveExpiredListings). Set by EconomyManager; false by default.
+        /// </summary>
+        public bool ExpiredListingsRestoreDemand { get; set; }
+
+        /// <summary>An offer leaves the market unsold: its piece of supply goes, demand stays where it is.</summary>
+        private void ApplyWithdrawal(string definitionId)
+        {
+            var typeState = GetTypeState(definitionId);
+            if (typeState == null) return;
+
+            float supplyBefore = typeState.Supply;
+            typeState.Supply = Mathf.Max(0f, typeState.Supply - 1f);
+            ReportPressure(definitionId, 0f, typeState.Supply - supplyBefore);
+        }
+
         private void ApplySellPressure(string definitionId) => ApplySellPressure(definitionId, report: true);
 
         private void ApplySellPressure(string definitionId, bool report)
@@ -462,7 +493,7 @@ namespace AntiqueTradingSimulator.Market
             float demandBefore = typeState.Demand;
 
             typeState.Supply += 1f;
-            typeState.Demand = Mathf.Max(0f, typeState.Demand - 0.1f);
+            typeState.Demand = Mathf.Max(0f, typeState.Demand - TradeDemandImpulse);
 
             if (report)
                 ReportPressure(definitionId, typeState.Demand - demandBefore, typeState.Supply - supplyBefore);
@@ -477,7 +508,7 @@ namespace AntiqueTradingSimulator.Market
             float demandBefore = typeState.Demand;
 
             typeState.Supply = Mathf.Max(0f, typeState.Supply - 1f);
-            typeState.Demand += 0.1f;
+            typeState.Demand += TradeDemandImpulse;
 
             ReportPressure(definitionId, typeState.Demand - demandBefore, typeState.Supply - supplyBefore);
         }

@@ -125,9 +125,9 @@ namespace AntiqueTradingSimulator.Agents
                  "holds longer while prices rise, and sells sooner (even at a loss) while they fall.")]
         [Range(0f, 2f)] public float TrendSensitivity;
         [Tooltip("How many weeks back the NPC looks to judge the trend.")]
-        [Min(1)] public int TrendWindowWeeks = 4;
+        [Min(1)] public int TrendWindowWeeks = 8;
         [Tooltip("Largest change in value the trend can make, either way. 0.25 = at most ±25%.")]
-        [Range(0f, 1f)] public float MaxTrendBoost = 0.25f;
+        [Range(0f, 1f)] public float MaxTrendBoost = 0.15f;
 
         [Header("Contracts")]
         [Tooltip("Takes delivery contracts from the board. Contracts already taken are finished either way.")]

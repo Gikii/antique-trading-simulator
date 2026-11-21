@@ -64,7 +64,9 @@ def load_plan(path: Path) -> dict:
             if parent is None:
                 raise SystemExit(f"experiments.json: {exp['name']} extends unknown '{exp['extends']}'")
             base = resolve(parent, seen + (exp["name"],))
-        merged = {**defaults, **{k: v for k, v in base.items() if k != "name"}, **exp}
+        # "manual" and "description" describe the entry itself, so they are not inherited.
+        inherited = {k: v for k, v in base.items() if k not in ("name", "manual", "description")}
+        merged = {**defaults, **inherited, **exp}
         merged["args"] = list(base.get("args", [])) + list(exp.get("args", []))
         return merged
 

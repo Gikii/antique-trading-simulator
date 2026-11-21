@@ -1,0 +1,92 @@
+{
+  "defaults": {
+    "seeds": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "experiments": [
+    {
+      "name": "base",
+      "manual": true,
+      "description": "Settings chosen so far: 6 listings/week, tuned trend. Inherited by the rest.",
+      "args": [
+        "-autoplayStrategy:idle",
+        "-set:EconomyManager.newListingsPerWeek=6",
+        "-set:speculator.TrendSensitivity=0.5",
+        "-set:novice.TrendSensitivity=0.25",
+        "-set:speculator.TrendWindowWeeks=8",
+        "-set:novice.TrendWindowWeeks=8",
+        "-set:speculator.MaxTrendBoost=0.15",
+        "-set:novice.MaxTrendBoost=0.15",
+        "-set:Market.OwnTrendWeight=0.2"
+      ]
+    },
+    {
+      "name": "idle_d01",
+      "extends": "base",
+      "description": "No player, trade demand impulse 0.1.",
+      "args": [
+        "-set:EconomyManager.tradeDemandImpulse=0.1"
+      ]
+    },
+    {
+      "name": "buyup_d01",
+      "extends": "idle_d01",
+      "description": "Paintings buy-up (weeks 20-45, £1000, dump from 70), impulse 0.1.",
+      "args": [
+        "-autoplayStrategy:buyup",
+        "-autoplayCategory:Painting",
+        "-autoplayFrom:20",
+        "-autoplayTo:45",
+        "-autoplaySell:70",
+        "-autoplayGrant:1000"
+      ]
+    },
+    {
+      "name": "idle_d02",
+      "extends": "base",
+      "description": "No player, trade demand impulse 0.2.",
+      "args": [
+        "-set:EconomyManager.tradeDemandImpulse=0.2"
+      ]
+    },
+    {
+      "name": "buyup_d02",
+      "extends": "idle_d02",
+      "description": "Paintings buy-up (weeks 20-45, £1000, dump from 70), impulse 0.2.",
+      "args": [
+        "-autoplayStrategy:buyup",
+        "-autoplayCategory:Painting",
+        "-autoplayFrom:20",
+        "-autoplayTo:45",
+        "-autoplaySell:70",
+        "-autoplayGrant:1000"
+      ]
+    },
+    {
+      "name": "idle_d03",
+      "extends": "base",
+      "description": "No player, trade demand impulse 0.3.",
+      "args": [
+        "-set:EconomyManager.tradeDemandImpulse=0.3"
+      ]
+    },
+    {
+      "name": "buyup_d03",
+      "extends": "idle_d03",
+      "description": "Paintings buy-up (weeks 20-45, £1000, dump from 70), impulse 0.3.",
+      "args": [
+        "-autoplayStrategy:buyup",
+        "-autoplayCategory:Painting",
+        "-autoplayFrom:20",
+        "-autoplayTo:45",
+        "-autoplaySell:70",
+        "-autoplayGrant:1000"
+      ]
+    }
+  ]
+}
