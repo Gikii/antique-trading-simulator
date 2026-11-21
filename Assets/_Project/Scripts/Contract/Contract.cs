@@ -50,7 +50,7 @@ namespace AntiqueTradingSimulator.Contracts
         public Contract(ContractType type, ContractRequirement requirement, int createdWeek, int durationWeeks, int maxDurationWeeks, float rewardPerUnit, float penalty,
             int requiredReputation = 0, string className = "")
         {
-            ContractId = Guid.NewGuid().ToString("N");
+            ContractId = Core.IdFactory.NewId();
             Type = type;
             Requirement = requirement;
             CreatedWeek = createdWeek;

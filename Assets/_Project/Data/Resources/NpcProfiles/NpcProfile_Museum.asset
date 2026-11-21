@@ -45,6 +45,9 @@ MonoBehaviour:
   RelistAfterWeeks: 5
   SeasonalForesight: 0.3
   SeasonalHorizonWeeks: 8
+  TrendSensitivity: 0
+  TrendWindowWeeks: 4
+  MaxTrendBoost: 0.25
   TakesContracts: 0
   ContractPanicWeeks: 2
   Restores: 1

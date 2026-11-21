@@ -119,6 +119,16 @@ namespace AntiqueTradingSimulator.Agents
         [FormerlySerializedAs("SeasonalHorizonDays")]
         [Min(0)] public int SeasonalHorizonWeeks = 8;
 
+        [Header("Trend following")]
+        [Tooltip("How much of the recent price trend (seasons removed) the NPC expects to continue: 0 = ignores it " +
+                 "(a fundamentalist), 1 = expects the last weeks' change to repeat. A trend follower pays more and " +
+                 "holds longer while prices rise, and sells sooner (even at a loss) while they fall.")]
+        [Range(0f, 2f)] public float TrendSensitivity;
+        [Tooltip("How many weeks back the NPC looks to judge the trend.")]
+        [Min(1)] public int TrendWindowWeeks = 4;
+        [Tooltip("Largest change in value the trend can make, either way. 0.25 = at most ±25%.")]
+        [Range(0f, 1f)] public float MaxTrendBoost = 0.25f;
+
         [Header("Contracts")]
         [Tooltip("Takes delivery contracts from the board. Contracts already taken are finished either way.")]
         public bool TakesContracts = true;

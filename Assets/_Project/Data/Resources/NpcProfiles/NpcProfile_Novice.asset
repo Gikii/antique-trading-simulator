@@ -49,3 +49,6 @@ MonoBehaviour:
   AuctionHesitation: 0.4
   SeasonalForesight: 0
   SeasonalHorizonDays: 8
+  TrendSensitivity: 0.5
+  TrendWindowWeeks: 4
+  MaxTrendBoost: 0.25

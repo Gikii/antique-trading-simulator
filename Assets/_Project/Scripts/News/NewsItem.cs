@@ -43,7 +43,7 @@ namespace AntiqueTradingSimulator.News
 
         public NewsItem(List<NewsEventData> newsData, string officialName, string eventDescription, NewsType type, float credibility, int weekPublished, int eventTriggerWeek, bool guaranteedDelivery = false, int playerDeliveryWeek = NotDelivered, string id = null)
         {
-            Id = string.IsNullOrEmpty(id) ? System.Guid.NewGuid().ToString("N") : id;
+            Id = string.IsNullOrEmpty(id) ? Core.IdFactory.NewId() : id;
             NewsData = newsData;
             OfficialName = officialName;
             EventDescription = eventDescription;

@@ -11,6 +11,17 @@ namespace AntiqueTradingSimulator.Market
         public int Week;
         public float Price;
 
+        /// <summary>
+        /// The same reference price without the season's effect on demand — what NPC trend followers
+        /// read, so a coming or passing season isn't taken for a trend. 0 in saves from before it
+        /// existed: use <see cref="TrendValue"/>, which falls back to Price.
+        /// </summary>
+        public float TrendPrice;
+
+        /// <summary>TrendPrice, or Price for points recorded before TrendPrice existed.</summary>
+        public float TrendValue => TrendPrice > 0f ? TrendPrice : Price;
+
+        // Kept as the only constructor: the save loader (Newtonsoft) builds points through it.
         public PricePoint(int week, float price)
         {
             Week = week;
@@ -47,6 +58,19 @@ namespace AntiqueTradingSimulator.Market
         /// </summary>
         public float ContractDemandMod;
 
+        /// <summary>
+        /// Slow, bounded memory of lasting interest in this type. Follows the gap between Demand and
+        /// the level it is pulled back to (BaselineDemand + this), decays slowly and is capped at a
+        /// fraction of BaselineDemand — see UpdateLongTermDemand. Demand is pulled back toward
+        /// BaselineDemand + LongTermDemandMod, so long-running buying or selling leaves a trace that
+        /// short spikes don't, while values can't run away (BaselineDemand itself never moves).
+        /// Permanent event changes (ChangeDemandEffect.permDemandChange) are added here as well.
+        /// </summary>
+        public float LongTermDemandMod;
+
+        /// <summary>The level Demand is pulled back to every week: baseline plus the long-term memory.</summary>
+        public float DemandAnchor => BaselineDemand + LongTermDemandMod;
+
         /// <summary>The demand prices, collectors and the UI work with: own + temporary (events, dependencies) + seasonal + open contracts.</summary>
         public float EffectiveDemand => Demand + TempDemandMod + SeasonalDemandMod + ContractDemandMod;
 
@@ -72,7 +96,32 @@ namespace AntiqueTradingSimulator.Market
         public void ApplyMeanReversion(float supplyRate, float demandRate)
         {
             Supply = RevertToward(Supply, BaselineSupply, supplyRate);
-            Demand = RevertToward(Demand, BaselineDemand, demandRate);
+            Demand = RevertToward(Demand, DemandAnchor, demandRate);
+        }
+
+        /// <summary>
+        /// One weekly step of the long-term memory, run after ApplyMeanReversion:
+        /// it moves toward the remaining gap between Demand and DemandAnchor by <paramref name="rate"/>,
+        /// shrinks by <paramref name="decay"/> and is clamped to ±<paramref name="cap"/> × BaselineDemand.
+        /// </summary>
+        public void UpdateLongTermDemand(float rate, float decay, float cap)
+        {
+            LongTermDemandMod += (Demand - DemandAnchor) * Mathf.Clamp01(rate);
+            LongTermDemandMod *= 1f - Mathf.Clamp01(decay);
+            ClampLongTermDemand(cap);
+        }
+
+        /// <summary>Adds a lasting change (e.g. an event's permanent demand change) to the memory, within the cap.</summary>
+        public void AddLongTermDemand(float amount, float cap)
+        {
+            LongTermDemandMod += amount;
+            ClampLongTermDemand(cap);
+        }
+
+        private void ClampLongTermDemand(float cap)
+        {
+            float limit = Mathf.Max(0f, cap) * Mathf.Max(0f, BaselineDemand);
+            LongTermDemandMod = Mathf.Clamp(LongTermDemandMod, -limit, limit);
         }
 
         private static float RevertToward(float value, float baseline, float rate)
@@ -82,11 +131,36 @@ namespace AntiqueTradingSimulator.Market
         }
 
 
-        public void RecordPrice(int week, float price)
+        public void RecordPrice(int week, float price, float trendPrice)
         {
-            PriceHistory.Add(new PricePoint(week, price));
+            PriceHistory.Add(new PricePoint(week, price) { TrendPrice = trendPrice });
             if (PriceHistory.Count > MaxHistoryWeeks)
                 PriceHistory.RemoveAt(0);
+        }
+
+        /// <summary>
+        /// Relative change of the season-free reference price (PricePoint.TrendValue) from
+        /// <paramref name="windowWeeks"/> weeks before the last recorded week to the last recorded week:
+        /// 0.1 = up 10%. Reads only weekly records, so a trade shows up in the trend a week later.
+        /// 0 while the history is too short.
+        /// </summary>
+        public float PriceTrend(int windowWeeks)
+        {
+            if (windowWeeks <= 0 || PriceHistory.Count < 2) return 0f;
+
+            var last = PriceHistory[PriceHistory.Count - 1];
+            int fromWeek = last.Week - windowWeeks;
+
+            for (int i = PriceHistory.Count - 2; i >= 0; i--)
+            {
+                var point = PriceHistory[i];
+                if (point.Week > fromWeek) continue;
+
+                float then = point.TrendValue;
+                return then > 0f ? last.TrendValue / then - 1f : 0f;
+            }
+
+            return 0f;
         }
     }
 }

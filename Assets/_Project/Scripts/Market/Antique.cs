@@ -189,7 +189,7 @@ namespace AntiqueTradingSimulator.Market
 
         public Antique(string definitionId, float condition, float priceFactor, string history = "", int editionNumber = 0, string ownerId = "")
         {
-            ListingId = Guid.NewGuid().ToString("N");
+            ListingId = Core.IdFactory.NewId();
             DefinitionId = definitionId;
             Condition = Mathf.Clamp(condition, MinCondition, MaxCondition);
             PriceFactor = Mathf.Clamp(priceFactor, MinPriceFactor, MaxPriceFactor);

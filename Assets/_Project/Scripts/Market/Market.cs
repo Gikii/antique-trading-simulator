@@ -50,6 +50,74 @@ namespace AntiqueTradingSimulator.Market
         public IReadOnlyDictionary<string, AntiqueMarketState> TypeStates => _typeStates;
 
         public MarketFeed Feed { get; } = new MarketFeed();
+
+        /// <summary>
+        /// Long-term demand memory parameters (AntiqueMarketState.UpdateLongTermDemand), set by
+        /// EconomyManager. Cap 0 turns the memory off: Demand then reverts to BaselineDemand as before.
+        /// </summary>
+        public float LongTermDemandRate { get; private set; }
+        public float LongTermDemandDecay { get; private set; }
+        public float LongTermDemandCap { get; private set; }
+
+        public void SetLongTermDemand(float rate, float decay, float cap)
+        {
+            LongTermDemandRate = Mathf.Clamp01(rate);
+            LongTermDemandDecay = Mathf.Clamp01(decay);
+            LongTermDemandCap = Mathf.Max(0f, cap);
+        }
+
+        /// <summary>
+        /// Weight of the antique's own price trend in <see cref="PriceTrend"/>; the rest is the trend of
+        /// its whole category (AntiqueType). One trade moves a single type's price a lot, so the
+        /// category part smooths that out and lets a buy-up of a category spread to its other types.
+        /// </summary>
+        public static float OwnTrendWeight
+        {
+            get => _ownTrendWeight;
+            set => _ownTrendWeight = Mathf.Clamp01(value);
+        }
+        private static float _ownTrendWeight = 0.5f;
+
+        // Category trends per (type, window), valid until the next weekly price record.
+        private readonly Dictionary<(AntiqueType, int), float> _categoryTrendCache = new Dictionary<(AntiqueType, int), float>();
+
+        /// <summary>
+        /// Recent price trend for an antique type, seasons removed: OwnTrendWeight × its own trend +
+        /// the rest × the average trend of its category, over <paramref name="windowWeeks"/> weeks.
+        /// 0.1 = prices up 10%. Read by trend-following NPCs.
+        /// </summary>
+        public float PriceTrend(string definitionId, int windowWeeks)
+        {
+            var typeState = GetTypeState(definitionId);
+            var definition = AntiqueDatabase.GetById(definitionId);
+            if (typeState == null || definition == null || windowWeeks <= 0) return 0f;
+
+            return OwnTrendWeight * typeState.PriceTrend(windowWeeks) +
+                   (1f - OwnTrendWeight) * CategoryTrend(definition.Type, windowWeeks);
+        }
+
+        /// <summary>Average PriceTrend of every registered antique type in a category.</summary>
+        public float CategoryTrend(AntiqueType type, int windowWeeks)
+        {
+            if (windowWeeks <= 0) return 0f;
+            if (_categoryTrendCache.TryGetValue((type, windowWeeks), out float cached)) return cached;
+
+            float sum = 0f;
+            int count = 0;
+            foreach (var definition in AntiqueDatabase.GetByType(type))
+            {
+                var typeState = definition != null ? GetTypeState(definition.Id) : null;
+                if (typeState == null) continue;
+
+                sum += typeState.PriceTrend(windowWeeks);
+                count++;
+            }
+
+            float trend = count > 0 ? sum / count : 0f;
+            _categoryTrendCache[(type, windowWeeks)] = trend;
+            return trend;
+        }
+
         public Market(IReadOnlyList<TraderInventory> inventories = null)
         {
             _inventories = inventories ?? new List<TraderInventory>();
@@ -525,7 +593,10 @@ namespace AntiqueTradingSimulator.Market
         public void ApplyMeanReversion(float supplyRate, float demandRate)
         {
             foreach (var typeState in _typeStates.Values)
+            {
                 typeState.ApplyMeanReversion(supplyRate, demandRate);
+                typeState.UpdateLongTermDemand(LongTermDemandRate, LongTermDemandDecay, LongTermDemandCap);
+            }
 
             RecalculateAllPrices();
         }
@@ -562,8 +633,13 @@ namespace AntiqueTradingSimulator.Market
                 var definition = AntiqueDatabase.GetById(typeState.DefinitionId);
                 float basePrice = definition != null ? definition.BasePrice : 0f;
                 float referencePrice = PriceEngine.CalculateReferencePrice(basePrice, typeState);
-                typeState.RecordPrice(week, referencePrice);
+                // The same price as if the season didn't move demand: what trend followers compare.
+                float trendPrice = referencePrice *
+                    PriceEngine.PriceRatioForDemand(typeState, typeState.EffectiveDemand - typeState.SeasonalDemandMod);
+                typeState.RecordPrice(week, referencePrice, trendPrice);
             }
+
+            _categoryTrendCache.Clear();
 
             foreach (var inventory in _inventories)
                 inventory.RecordValue(week);
@@ -612,6 +688,7 @@ namespace AntiqueTradingSimulator.Market
             if (state == null) return;
 
             _typeStates.Clear();
+            _categoryTrendCache.Clear();
             if (state.TypeStates != null)
             {
                 foreach (var typeStateData in state.TypeStates)

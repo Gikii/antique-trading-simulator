@@ -30,6 +30,7 @@ namespace AntiqueTradingSimulator.Diagnostics
             public float TempDemand;
             public float Seasonal;
             public float ContractDemand;
+            public float LongTermDemand;
             public float Reference;
         }
 
@@ -89,6 +90,7 @@ namespace AntiqueTradingSimulator.Diagnostics
             TempDemand = state.TempDemandMod,
             Seasonal = state.SeasonalDemandMod,
             ContractDemand = state.ContractDemandMod,
+            LongTermDemand = state.LongTermDemandMod,
             Reference = ReferencePrice(state)
         };
 
@@ -322,6 +324,7 @@ namespace AntiqueTradingSimulator.Diagnostics
             !Mathf.Approximately(a.TempDemand, b.TempDemand) ||
             !Mathf.Approximately(a.Seasonal, b.Seasonal) ||
             !Mathf.Approximately(a.ContractDemand, b.ContractDemand) ||
+            !Mathf.Approximately(a.LongTermDemand, b.LongTermDemand) ||
             !Mathf.Approximately(a.Reference, b.Reference);
 
         private void WriteTypeState(CsvTable table, AntiqueMarketState state, TypeSnapshot now,
@@ -386,8 +389,15 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .F(dependency)
                 .F(HasActiveRumourOn(state.DefinitionId) ? residual : (float?)null)
                 .S(ClampState(multiplier))
+                .F(state.LongTermDemandMod)
+                .F(state.DemandAnchor)
+                .F(state.PriceHistory.Count > 0 ? state.PriceHistory[state.PriceHistory.Count - 1].TrendValue : (float?)null)
+                .F(market.PriceTrend(state.DefinitionId, TrendWindowWeeks))
                 .End();
         }
+
+        /// <summary>Window of the price_trend_4w column (the default NpcBehaviorProfile.TrendWindowWeeks).</summary>
+        private const int TrendWindowWeeks = 4;
 
         private static string ClampState(float multiplier)
         {

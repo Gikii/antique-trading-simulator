@@ -35,6 +35,8 @@ namespace AntiqueTradingSimulator.Market
         public float TempSupplyMod;
         public float TempDemandMod;
         public float SeasonalDemandMod;
+        /// <summary>Long-term demand memory. Saves from before it existed load as 0 (no memory yet).</summary>
+        public float LongTermDemandMod;
 
         public List<PricePoint> PriceHistory = new List<PricePoint>();
 
@@ -55,6 +57,7 @@ namespace AntiqueTradingSimulator.Market
                 TempSupplyMod = typeState.TempSupplyMod,
                 TempDemandMod = typeState.TempDemandMod,
                 SeasonalDemandMod = typeState.SeasonalDemandMod,
+                LongTermDemandMod = typeState.LongTermDemandMod,
                 PriceHistory = new List<PricePoint>(typeState.PriceHistory),
                 LastAuctionPrice = typeState.LastAuctionPrice,
                 LastAuctionWeek = typeState.LastAuctionWeek
@@ -70,6 +73,7 @@ namespace AntiqueTradingSimulator.Market
                 TempSupplyMod = this.TempSupplyMod,
                 TempDemandMod = this.TempDemandMod,
                 SeasonalDemandMod = this.SeasonalDemandMod,
+                LongTermDemandMod = this.LongTermDemandMod,
                 PriceHistory = new List<PricePoint>(this.PriceHistory ?? new List<PricePoint>()),
                 LastAuctionPrice = this.LastAuctionPrice,
                 LastAuctionWeek = this.LastAuctionWeek

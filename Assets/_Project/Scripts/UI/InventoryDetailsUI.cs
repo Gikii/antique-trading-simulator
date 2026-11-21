@@ -298,7 +298,8 @@ namespace AntiqueTradingSimulator.UI
 
                 // For an owner, high demand is good news and high supply is bad news.
                 SetText(demandText, $"Demand: {LevelLabel(demand, typeState.BaselineDemand, higherIsGood: true)}" +
-                                    SeasonalDemandNote(typeState) + ContractDemandNote(typeState));
+                                    LongTermDemandNote(typeState) + SeasonalDemandNote(typeState) +
+                                    ContractDemandNote(typeState));
                 SetText(supplyText, $"Supply: {LevelLabel(supply, typeState.BaselineSupply, higherIsGood: false)}");
 
                 float referencePrice = PriceEngine.CalculateReferencePrice(antique.BasePrice, typeState);
@@ -313,6 +314,21 @@ namespace AntiqueTradingSimulator.UI
             }
 
             SetText(relatedNewsText, BuildRelatedNews(antique));
+        }
+
+        /// <summary>
+        /// " · lasting +12%" when the long-term memory (months of buying or selling, lasting events)
+        /// holds this type's demand at least 1% away from its baseline, otherwise "".
+        /// </summary>
+        private static string LongTermDemandNote(AntiqueTradingSimulator.Market.AntiqueMarketState typeState)
+        {
+            if (typeState.BaselineDemand <= 0f) return "";
+
+            int percent = Mathf.RoundToInt(typeState.LongTermDemandMod / typeState.BaselineDemand * 100f);
+            if (percent == 0) return "";
+
+            string text = percent > 0 ? $"lasting +{percent}%" : $"lasting {percent}%";
+            return " " + UIFormat.Colorize($"· {text}", UIFormat.MutedColor);
         }
 
         /// <summary>" · season +15%" when the season moves this type's demand by at least 1%, otherwise "".</summary>

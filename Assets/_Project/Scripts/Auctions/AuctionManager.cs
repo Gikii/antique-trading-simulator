@@ -190,6 +190,20 @@ namespace AntiqueTradingSimulator.Auctions
             return true;
         }
 
+        /// <summary>
+        /// Turns down the auction whose join window is open: it is played out at once without the player,
+        /// as when the countdown runs out. Used by autoplay, which can't wait for real-time countdowns.
+        /// </summary>
+        public bool DeclineAuction()
+        {
+            var auction = JoinWindowAuction;
+            if (auction == null || _liveSession != null) return false;
+
+            CloseJoinWindow(auction, joined: false);
+            RunWithoutPlayer(auction);
+            return true;
+        }
+
         /// <summary>Leaves the room — the remaining lots are played out at once without the player.</summary>
         public void LeaveAuction()
         {
@@ -480,7 +494,7 @@ namespace AntiqueTradingSimulator.Auctions
 
             var auction = new Auction
             {
-                Id = Guid.NewGuid().ToString("N"),
+                Id = Core.IdFactory.NewId(),
                 Number = index + 1,
                 Week = auctionWeek,
                 StartTick = Mathf.Clamp(Settings.StartTick, 0, ticks - 1),

@@ -151,7 +151,7 @@ namespace AntiqueTradingSimulator.Agents
             ContractManager contractManager = null, TransportManager transportManager = null,
             ReputationSettings reputationSettings = null, RestorationManager restorationManager = null)
         {
-            Id = Guid.NewGuid().ToString("N");
+            Id = Core.IdFactory.NewId();
             TraderName = traderName;
             ProfileId = profileId;
             Inventory = new TraderInventory(startingCash);
@@ -827,7 +827,9 @@ namespace AntiqueTradingSimulator.Agents
                 if (holding.IsInTransit || holding.IsInRestoration) continue;
                 if (!_plans.TryGetValue(holding.Id, out var plan)) continue;
                 if (plan.Purpose != PlanPurpose.Resale || plan.HasRestorationLeg) continue;
-                if (holding.CurrentPrice >= plan.CostBasis * profile.StopLossMultiplier) continue;
+                // A trend follower judges the value it expects once a falling trend has run on: panic spreads.
+                float expected = holding.CurrentPrice * (1f + Mathf.Min(0f, TrendOutlook(holding.DefinitionId, profile)));
+                if (expected >= plan.CostBasis * profile.StopLossMultiplier) continue;
 
                 victim = holding.Id;
                 paid = plan.CostBasis;
@@ -1311,7 +1313,7 @@ namespace AntiqueTradingSimulator.Agents
                     if (!CanConsider(listing, profile)) continue;
 
                     float cost = EstimateTotalCost(listing, NpcTransportOption);
-                    if (cost > _weekBudget || !IsAcceptablePrice(listing, profile)) continue;
+                    if (cost > _weekBudget || !IsAcceptableSpeculativePrice(listing, profile)) continue;
                     if (!PassesCashFloor(cost)) continue;
 
                     if (!TryBuyForStock(listing, week, cost)) continue;
@@ -1379,6 +1381,12 @@ namespace AntiqueTradingSimulator.Agents
                 if (seasonal >= SeasonalHoldThreshold && !patient) continue;
                 if (seasonal <= -SeasonalHoldThreshold)
                     target = Mathf.Min(target, profile.PatientProfitMultiplier);
+
+                // A trend follower lets profits run while prices rise (unless it has run out of patience)
+                // and settles for less — down to selling at a loss — while they fall.
+                float trend = TrendOutlook(holding.DefinitionId, profile);
+                if (trend < 0f || !patient)
+                    target *= 1f + trend;
 
                 if (value < plan.CostBasis * target) continue;
 
@@ -1475,7 +1483,7 @@ namespace AntiqueTradingSimulator.Agents
                 var listing = listings[i];
                 if (listing == null || Inventory.Owns(listing.Id)) continue;
                 if (!IsInterestedIn(listing.Definition, profile)) continue;
-                if (!IsAcceptablePrice(listing, profile)) continue;
+                if (!IsAcceptableSpeculativePrice(listing, profile)) continue;
 
                 float cost = EstimateTotalCost(listing, NpcTransportOption);
                 if (cost <= 0f || !Core.Money.Covers(_weekBudget, cost)) continue;
@@ -1543,7 +1551,7 @@ namespace AntiqueTradingSimulator.Agents
         {
             if (totalCost <= 0f) return 0f;
 
-            float fair = FairValue(listing, profile);
+            float fair = ExpectedValue(listing, profile);
             int holdPeriods = profile.PatientSellAfterWeeks > 0
                 ? profile.PatientSellAfterWeeks
                 : Mathf.Max(1, profile.MinHoldingWeeksBeforeSell);
@@ -1594,8 +1602,28 @@ namespace AntiqueTradingSimulator.Agents
             float ratio = _economyManager.SeasonalPriceOutlook(definitionId, profile.SeasonalHorizonWeeks);
             return profile.SeasonalForesight * (ratio - 1f);
         }
+        /// <summary>
+        /// The trend this trader extrapolates for a type (TraderHelper.TrendOutlook): 0.1 = expects +10%.
+        /// 0 for profiles without TrendSensitivity.
+        /// </summary>
+        private float TrendOutlook(string definitionId, NpcBehaviorProfile profile) =>
+            TraderHelper.TrendOutlook(_economyManager?.Market, definitionId, profile);
+
+        /// <summary>
+        /// What the trader expects to resell the antique for: its fair value with the recent trend
+        /// extrapolated. Used for buying stock to resell (market, news, auctions) — never for contract
+        /// purchases, which need the piece whatever the trend.
+        /// </summary>
+        private float ExpectedValue(Antique listing, NpcBehaviorProfile profile) =>
+            FairValue(listing, profile) * (1f + TrendOutlook(listing.DefinitionId, profile));
+
+        /// <summary>Price gate for contract purchases: fair value only, so a falling market can't stall a delivery.</summary>
         private bool IsAcceptablePrice(Antique listing, NpcBehaviorProfile profile) =>
             listing.SalePrice <= FairValue(listing, profile) * profile.MaxPriceMultiplierWillingToPay;
+
+        /// <summary>Price gate for stock bought to resell: the expected value, trend included.</summary>
+        private bool IsAcceptableSpeculativePrice(Antique listing, NpcBehaviorProfile profile) =>
+            listing.SalePrice <= ExpectedValue(listing, profile) * profile.MaxPriceMultiplierWillingToPay;
 
         /// <summary>A regular purchase may never eat into the cash a taken contract needs.</summary>
         private bool PassesCashFloor(float cost) =>
@@ -2181,7 +2209,7 @@ namespace AntiqueTradingSimulator.Agents
             if (cap <= 0f) return null;
 
             float jitter = rng != null ? 0.9f + 0.2f * (float)rng.NextDouble() : 1f;
-            float value = FairValue(antique, profile)
+            float value = ExpectedValue(antique, profile)
                           * profile.AuctionValueMultiplier
                           * (1f + Mathf.Max(0f, valuePremium))
                           * (1f + AuctionNewsBias(antique, profile))

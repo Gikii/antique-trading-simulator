@@ -25,7 +25,8 @@ namespace AntiqueTradingSimulator.Events
 
         [Tooltip("Temporarily added to Demand for every matching antique type. Use a negative value to lower demand.")]
         public float tempDemandChange = 1f;
-        [Tooltip("Permamently added to Demand for every matching antique type.")]
+        [Tooltip("Lasting change: added to Demand and to the type's long-term demand memory, so it stays " +
+                 "(capped, fading very slowly) instead of reverting to the baseline within months.")]
         public float permDemandChange = 0f;
 
         public override void Apply(EventContext context)
@@ -41,7 +42,11 @@ namespace AntiqueTradingSimulator.Events
                 
                 float demandBefore = typeState.Demand;
 
+                // A lasting change moves Demand now and its anchor with it (the long-term memory), so mean
+                // reversion keeps it instead of erasing it within a few months. The memory is capped and
+                // fades very slowly (EconomyManager → Long-term demand memory).
                 typeState.Demand = Mathf.Max(0f, typeState.Demand + permDemandChange);
+                typeState.AddLongTermDemand(permDemandChange, market.LongTermDemandCap);
                 typeState.TempDemandMod += tempDemandChange;
                 RecalculatePricesForDefinition(market, definitionId);
 
