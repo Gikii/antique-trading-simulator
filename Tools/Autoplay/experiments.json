@@ -1,0 +1,72 @@
+{
+  "defaults": {
+    "seeds": [1, 2, 3]
+  },
+  "experiments": [
+    {
+      "name": "quick",
+      "manual": true,
+      "description": "Smoke test: 12 weeks of the trader bot. Run with --only quick.",
+      "seeds": [1],
+      "weeks": 12,
+      "args": ["-autoplayStrategy:trader"]
+    },
+    {
+      "name": "idle",
+      "description": "Control: the player does nothing; memory and trend following on.",
+      "args": ["-autoplayStrategy:idle"]
+    },
+    {
+      "name": "idle_old_model",
+      "extends": "idle",
+      "description": "Control on the old model: no demand memory, no trend followers. Shows what the new mechanics do with no player at all.",
+      "args": [
+        "-set:EconomyManager.longTermDemandCap=0",
+        "-set:speculator.TrendSensitivity=0",
+        "-set:novice.TrendSensitivity=0"
+      ]
+    },
+    {
+      "name": "trader",
+      "description": "A plain sensible player (buys below worth, lists at worth): balance of a normal game.",
+      "args": ["-autoplayStrategy:trader"]
+    },
+    {
+      "name": "buyup",
+      "description": "Buys up paintings weeks 20-45 with a £400 grant, dumps them from week 70. Memory and trend on.",
+      "args": [
+        "-autoplayStrategy:buyup",
+        "-autoplayCategory:Painting",
+        "-autoplayFrom:20",
+        "-autoplayTo:45",
+        "-autoplaySell:70",
+        "-autoplayGrant:400"
+      ]
+    },
+    {
+      "name": "buyup_no_memory",
+      "extends": "buyup",
+      "description": "Same buy-up without long-term demand memory.",
+      "args": ["-set:EconomyManager.longTermDemandCap=0"]
+    },
+    {
+      "name": "buyup_no_trend",
+      "extends": "buyup",
+      "description": "Same buy-up without trend followers.",
+      "args": [
+        "-set:speculator.TrendSensitivity=0",
+        "-set:novice.TrendSensitivity=0"
+      ]
+    },
+    {
+      "name": "buyup_old_model",
+      "extends": "buyup",
+      "description": "Same buy-up on the old model: neither memory nor trend followers.",
+      "args": [
+        "-set:EconomyManager.longTermDemandCap=0",
+        "-set:speculator.TrendSensitivity=0",
+        "-set:novice.TrendSensitivity=0"
+      ]
+    }
+  ]
+}

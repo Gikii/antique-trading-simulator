@@ -32,7 +32,8 @@ namespace AntiqueTradingSimulator.Diagnostics
             "exit_target_ratio,exit_dump_lead_weeks,seasonal_foresight,seasonal_horizon_weeks," +
             "auction_budget_share,auction_value_multiplier,auction_fever_chance,auction_fever_raise," +
             "auction_hesitation,auction_news_premium,leak_trust,rumor_trust,min_reaction_delay_weeks," +
-            "max_reaction_delay_weeks,preferred_types,preferred_countries,preferred_centuries";
+            "max_reaction_delay_weeks,preferred_types,preferred_countries,preferred_centuries," +
+            "trend_sensitivity,trend_window_weeks,max_trend_boost";
 
         public const string DimAntiqueDefinitionName = "dim_antique_definition";
         public const string DimAntiqueDefinitionHeader =
@@ -85,7 +86,8 @@ namespace AntiqueTradingSimulator.Diagnostics
             "baseline_supply,baseline_demand,supply_demand_multiplier,reference_price,last_auction_price," +
             "last_auction_week,listing_count,listing_price_min,listing_price_avg,listing_price_max,held_count," +
             "delta_supply,delta_effective_demand,delta_reference_price,dependency_demand_mod," +
-            "rumour_demand_mod,multiplier_clamped";
+            "rumour_demand_mod,multiplier_clamped,long_term_demand_mod,demand_anchor,trend_reference_price," +
+            "price_trend_4w";
 
         public const string FactPressureName = "fact_pressure";
         public const string FactPressureHeader =

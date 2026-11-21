@@ -251,13 +251,17 @@ namespace AntiqueTradingSimulator.Diagnostics
             return profile.SeasonalForesight * (ratio - 1f);
         }
 
+        // Mirrors NPCTrader.ExpectedValue: browsing buys stock to resell, so the trend counts.
+        private float ExpectedValue(Antique listing, NpcBehaviorProfile profile) =>
+            FairValue(listing, profile) * (1f + TraderHelper.TrendOutlook(_host.Market, listing.DefinitionId, profile));
+
         private bool IsAcceptablePrice(Antique listing, NpcBehaviorProfile profile) =>
-            listing.SalePrice <= FairValue(listing, profile) * profile.MaxPriceMultiplierWillingToPay;
+            listing.SalePrice <= ExpectedValue(listing, profile) * profile.MaxPriceMultiplierWillingToPay;
 
         private float BargainScore(Antique listing, float totalCost, NpcBehaviorProfile profile)
         {
             if (totalCost <= 0f) return 0f;
-            return (FairValue(listing, profile) - totalCost) / totalCost;
+            return (ExpectedValue(listing, profile) - totalCost) / totalCost;
         }
 
         private float EstimateTotalCost(Antique listing, TraderInventory buyer) =>

@@ -57,6 +57,21 @@ namespace AntiqueTradingSimulator.Agents
             return success;
         }
 
+        /// <summary>
+        /// The price change a trend-following NPC expects from the recent trend of this antique type and
+        /// its category: profile.TrendSensitivity × Market.PriceTrend, clamped to ±profile.MaxTrendBoost.
+        /// 0.1 = expects (and prices in) +10%. 0 for profiles that ignore trends. Shared by NPCTrader and
+        /// the telemetry mirrors so both judge a listing the same way.
+        /// </summary>
+        public static float TrendOutlook(Market.Market market, string definitionId, NpcBehaviorProfile profile)
+        {
+            if (market == null || profile == null || profile.TrendSensitivity <= 0f || profile.MaxTrendBoost <= 0f)
+                return 0f;
+
+            float trend = market.PriceTrend(definitionId, profile.TrendWindowWeeks);
+            return Mathf.Clamp(profile.TrendSensitivity * trend, -profile.MaxTrendBoost, profile.MaxTrendBoost);
+        }
+
         private static bool HasMarket(Market.Market market, string traderName)
         {
             if (market != null) return true;

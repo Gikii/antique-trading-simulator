@@ -36,7 +36,7 @@ namespace AntiqueTradingSimulator.Logistics
 
         public Shipment(string antiqueId, string antiqueName, TraderInventory recipient, string recipientName, TransportQuote quote)
         {
-            ShipmentId = Guid.NewGuid().ToString("N");
+            ShipmentId = Core.IdFactory.NewId();
             AntiqueId = antiqueId;
             AntiqueName = antiqueName;
             Recipient = recipient;

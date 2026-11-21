@@ -1,0 +1,68 @@
+{
+  "defaults": {
+    "seeds": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "experiments": [
+    {
+      "name": "idle",
+      "description": "No player. New expiry (unsold offers don't give demand back). Settings from the assets.",
+      "args": [
+        "-autoplayStrategy:idle"
+      ]
+    },
+    {
+      "name": "idle_old_expiry",
+      "extends": "idle",
+      "description": "No player, old expiry (expired offers give demand back).",
+      "args": [
+        "-set:EconomyManager.expiredListingsRestoreDemand=true"
+      ]
+    },
+    {
+      "name": "hold",
+      "description": "Buys up paintings weeks 20-45 (£1000) and keeps them to the end. New expiry.",
+      "args": [
+        "-autoplayStrategy:buyup",
+        "-autoplayCategory:Painting",
+        "-autoplayFrom:20",
+        "-autoplayTo:45",
+        "-autoplayGrant:1000",
+        "-autoplaySell:-1"
+      ]
+    },
+    {
+      "name": "hold_old_expiry",
+      "extends": "hold",
+      "description": "Same buy-and-hold, old expiry.",
+      "args": [
+        "-set:EconomyManager.expiredListingsRestoreDemand=true"
+      ]
+    },
+    {
+      "name": "dump",
+      "description": "Buys up paintings weeks 20-45 (£1000), dumps them from week 70. New expiry.",
+      "args": [
+        "-autoplayStrategy:buyup",
+        "-autoplayCategory:Painting",
+        "-autoplayFrom:20",
+        "-autoplayTo:45",
+        "-autoplayGrant:1000",
+        "-autoplaySell:70"
+      ]
+    },
+    {
+      "name": "dump_old_expiry",
+      "extends": "dump",
+      "description": "Same buy-and-dump, old expiry.",
+      "args": [
+        "-set:EconomyManager.expiredListingsRestoreDemand=true"
+      ]
+    }
+  ]
+}

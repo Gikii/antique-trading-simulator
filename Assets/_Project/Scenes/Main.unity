@@ -45197,7 +45197,7 @@ MonoBehaviour:
   supplyReversionRate: 0.05
   demandReversionRate: 0.05
   initialListingCount: 12
-  newListingsPerWeek: 2
+  newListingsPerWeek: 6
   anonymousListingLifetimeWeeks: 14
   collectorSettings: {fileID: 0}
 --- !u!114 &398503184

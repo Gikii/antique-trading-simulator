@@ -29,6 +29,29 @@ namespace AntiqueTradingSimulator.Economy
         [Range(0f, 1f)]
         [SerializeField] private float demandReversionRate = 0.05f;
 
+        [Header("Long-term demand memory")]
+        [Tooltip("Share of the remaining gap between Demand and its anchor (baseline + memory) the memory " +
+                 "takes over each week. 0 = trading leaves no lasting trace (lasting events still do; cap 0 turns the memory off).")]
+        [Range(0f, 1f)]
+        [SerializeField] private float longTermDemandRate = 0.02f;
+        [Tooltip("Share of the memory forgotten each week. 0.005 ≈ half-life of 2.7 years.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float longTermDemandDecay = 0.005f;
+        [Tooltip("Largest memory as a fraction of BaselineDemand, either way. 0.3 = demand can settle at most 30% above or below its baseline.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float longTermDemandCap = 0.3f;
+
+        [Header("Trade pressure")]
+        [Tooltip("How much one trade moves its type's demand: + on a purchase or contract delivery, − when a piece " +
+                 "is put on offer. Supply moves by one piece either way. Larger = trades leave more of a lasting " +
+                 "trace (through the long-term memory), but the market also gets noisier.")]
+        [Min(0f)]
+        [SerializeField] private float tradeDemandImpulse = 0.1f;
+        [Tooltip("Old behaviour: an anonymous offer that expires unsold gives back the demand it took when it " +
+                 "appeared, so buying it and letting it expire end the same. Off: expiring only removes its " +
+                 "supply, and unsold offers count as weak interest.")]
+        [SerializeField] private bool expiredListingsRestoreDemand = false;
+
 
         [Header("Listing spawning")]
         [SerializeField] private int initialListingCount = 6;
@@ -178,6 +201,9 @@ namespace AntiqueTradingSimulator.Economy
         private void InitializeMarket()
         {
             Market = new Market.Market(_inventories);
+            Market.SetLongTermDemand(longTermDemandRate, longTermDemandDecay, longTermDemandCap);
+            Market.SetTradeDemandImpulse(tradeDemandImpulse);
+            Market.ExpiredListingsRestoreDemand = expiredListingsRestoreDemand;
             // The market history stamps entries with the game week; read lazily (time may start later).
             Market.Feed.WeekProvider = () => _timeManager != null ? _timeManager.CurrentWeek : 1;
 
@@ -207,6 +233,10 @@ namespace AntiqueTradingSimulator.Economy
 
             // Seasonal demand first, so this week's revaluation (in ApplyMeanReversion) already includes it.
             Market.ApplySeasonalDemand(season.DemandMultiplier);
+            // Re-read every week so values tuned in the inspector during play take effect.
+            Market.SetLongTermDemand(longTermDemandRate, longTermDemandDecay, longTermDemandCap);
+            Market.SetTradeDemandImpulse(tradeDemandImpulse);
+            Market.ExpiredListingsRestoreDemand = expiredListingsRestoreDemand;
             Market.ApplyMeanReversion(supplyReversionRate, demandReversionRate);
             Market.RecordWeeklyPrices(newWeek);
 

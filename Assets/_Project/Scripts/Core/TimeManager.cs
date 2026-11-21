@@ -208,6 +208,25 @@ namespace AntiqueTradingSimulator.Core
             FastForwardWeek();
         }
 
+        /// <summary>
+        /// Moves time on by exactly one tick (the last tick of a week rolls over into the next week),
+        /// independent of real time. Used by autoplay, which pauses the clock and steps it itself so a
+        /// run plays out the same at any frame rate.
+        /// </summary>
+        public void StepTick()
+        {
+            if (CurrentTick < TicksPerPeriod - 1)
+            {
+                IncrementTick();
+                // Keep the real-time timer in step, so resuming the clock carries on from this tick.
+                _timer = (float)CurrentTick / TicksPerPeriod * secondsPerWeek;
+            }
+            else
+            {
+                AdvanceWeek();
+            }
+        }
+
         public void Pause() => SetRunning(false);
 
         public void Resume() => SetRunning(true);

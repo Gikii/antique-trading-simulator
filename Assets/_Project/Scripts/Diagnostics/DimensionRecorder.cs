@@ -116,7 +116,7 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .N()                                   // profile_name
                 .F(player.Inventory != null ? player.Inventory.Cash : 0f)
                 .E(player.AccessLevel)
-                .N(46)                                 // the profile columns: the player has none
+                .N(49)                                 // the profile columns: the player has none
                 .End();
         }
 
@@ -137,7 +137,7 @@ namespace AntiqueTradingSimulator.Diagnostics
 
             if (profile == null)
             {
-                r.N(46).End();
+                r.N(49).End();
                 return;
             }
 
@@ -187,6 +187,9 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .S(TelemetryRun.Join(profile.PreferredTypes, t => t.ToString()))
                 .S(TelemetryRun.Join(profile.PreferredCountries, c => c.ToString()))
                 .S(TelemetryRun.Join(profile.PreferredCenturies, c => c.ToString()))
+                .F(profile.TrendSensitivity)
+                .I(profile.TrendWindowWeeks)
+                .F(profile.MaxTrendBoost)
                 .End();
         }
 

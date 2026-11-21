@@ -23,6 +23,8 @@ namespace AntiqueTradingSimulator.Diagnostics
 
             Seed = seed;
             UnityEngine.Random.InitState(seed);
+            // Runtime ids feed NPC and auction rolls, so they must repeat too (see Core.IdFactory).
+            Core.IdFactory.Seed(seed);
             Applied = true;
             Debug.Log($"Telemetry: UnityEngine.Random seeded with {seed} (requested explicitly).");
         }
