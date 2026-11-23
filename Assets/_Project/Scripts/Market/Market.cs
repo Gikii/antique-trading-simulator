@@ -441,6 +441,16 @@ namespace AntiqueTradingSimulator.Market
             return true;
         }
 
+        /// <summary> Changes the asking price on a listing already on the market</summary>
+        public bool RepriceListing(Antique antique, float askingPrice)
+        {
+            if (antique == null || askingPrice <= 0f) return false;
+            if (!antique.IsListedForSale) return false;
+
+            antique.AskingPrice = Core.Money.RoundToShilling(askingPrice);
+            return true;
+        }
+
         /// <summary>Withdraws an owner-set listing. Free of charge; reverses its supply pressure.</summary>
         public bool CancelListing(Antique antique)
         {

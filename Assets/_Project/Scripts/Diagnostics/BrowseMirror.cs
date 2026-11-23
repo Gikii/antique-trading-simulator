@@ -232,24 +232,10 @@ namespace AntiqueTradingSimulator.Diagnostics
             return typeOk && countryOk && periodOk;
         }
 
-        private float FairValue(Antique listing, NpcBehaviorProfile profile)
-        {
-            var market = _host.Market;
-            var typeState = market != null ? market.GetTypeState(listing.DefinitionId) : null;
-            float baseValue = PriceEngine.CalculateReferencePrice(listing.BasePrice, typeState) * listing.Condition;
-
-            return baseValue
-                   * (1f + profile.ConditionPremium * Mathf.Max(0f, listing.Condition - 0.5f))
-                   * (1f + SeasonalOutlook(listing.DefinitionId, profile));
-        }
-
-        private float SeasonalOutlook(string definitionId, NpcBehaviorProfile profile)
-        {
-            if (profile.SeasonalForesight <= 0f || profile.SeasonalHorizonWeeks <= 0 || _host.Economy == null) return 0f;
-
-            float ratio = _host.Economy.SeasonalPriceOutlook(definitionId, profile.SeasonalHorizonWeeks);
-            return profile.SeasonalForesight * (ratio - 1f);
-        }
+        // Mirrors NPCTrader.FairValue and NPCTrader.SeasonalOutlook. Both live in ContractMath so
+        // this mirror and the eligibility pass cannot drift apart from each other.
+        private float FairValue(Antique listing, NpcBehaviorProfile profile) =>
+            ContractMath.FairValue(_host, listing, profile);
 
         // Mirrors NPCTrader.ExpectedValue: browsing buys stock to resell, so the trend counts.
         private float ExpectedValue(Antique listing, NpcBehaviorProfile profile) =>
@@ -309,7 +295,7 @@ namespace AntiqueTradingSimulator.Diagnostics
         private float ValueAt(Antique listing, float perfectValue, float condition, NpcBehaviorProfile profile) =>
             Core.Money.RoundToShilling(perfectValue * condition
                 * (1f + profile.ConditionPremium * Mathf.Max(0f, condition - 0.5f))
-                * (1f + SeasonalOutlook(listing.DefinitionId, profile)));
+                * (1f + ContractMath.SeasonalOutlook(_host, listing.DefinitionId, profile)));
 
         private bool HasActiveCommitments(NPCTrader npc)
         {

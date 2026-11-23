@@ -71,7 +71,7 @@ namespace AntiqueTradingSimulator.Contracts
         [Min(0f)] public float Weight = 1f;
 
         [Min(0f)] public float MinRewardMultiplier = 1.1f;
-        [Min(0f)] public float MaxRewardMultiplier = 1.6f;
+        [Min(0f)] public float MaxRewardMultiplier = 1.35f;
 
         [Min(1)] public int MinQuantity = 1;
         [Min(1)] public int MaxQuantity = 5;
@@ -117,8 +117,8 @@ namespace AntiqueTradingSimulator.Contracts
 
         [Header("Generation")]
         [FormerlySerializedAs("contractsGeneratedPerDay")]
-        [SerializeField] private int contractsGeneratedPerWeek = 1;
-        [SerializeField] private int maxActiveContracts = 15;
+        [SerializeField] private int contractsGeneratedPerWeek = 2;
+        [SerializeField] private int maxActiveContracts = 10;
         [SerializeField] private int initialContractCount = 5;
 
         [SerializeField] private int minQuantity = 1;
@@ -138,7 +138,7 @@ namespace AntiqueTradingSimulator.Contracts
 
         [Tooltip("Share of the market's expected qualifying supply before the deadline that a contract may ask for. " +
                  "The estimate assumes nobody else buys and everything ships by Express, so keep it well below 1.")]
-        [Range(0.1f, 1f)] [SerializeField] private float supplyShareForContract = 0.5f;
+        [Range(0.1f, 1f)] [SerializeField] private float supplyShareForContract = 0.7f;
 
         [Tooltip("Rolls tried before giving up on generating a contract this time (e.g. when the market is nearly empty).")]
         [Min(1)] [SerializeField] private int maxGenerationAttempts = 8;
@@ -165,7 +165,7 @@ namespace AntiqueTradingSimulator.Contracts
         [Min(0)][SerializeField] private int deliverySafetyWeeks = 1;
 
         [Tooltip("Price the reward from the cheapest qualifying listing rather than the requirement's value floor.")]
-        [SerializeField] private bool priceRewardFromMarketStock = true;
+        [SerializeField] private bool priceRewardFromMarketStock = false;
 
         [Header("Condition required")]
         [Tooltip("Range the minimum condition of a standard contract is rolled from. Rewards are based on the value of an antique in exactly that condition.")]
@@ -180,7 +180,7 @@ namespace AntiqueTradingSimulator.Contracts
 
         [Header("Exclusive contracts")]
         [Range(0f, 1f)]
-        [SerializeField] private float exclusiveContractChance = 0.35f;
+        [SerializeField] private float exclusiveContractChance = 0.45f;
         [SerializeField] private float exclusivePenaltyFraction = 0.5f;
 
         [Header("Reputation-gated contract classes")]

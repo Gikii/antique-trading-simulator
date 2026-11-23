@@ -51,7 +51,13 @@ namespace AntiqueTradingSimulator.Agents
         private const float ExclusiveMinProfitShare = 0.15f;
 
         /// <summary>Share of cash an NPC may tie up in contract purchases at once.</summary>
-        private const float ContractCashShare = 0.5f;
+        private const float ContractCashShareBase = 0.40f;
+
+        /// <summary>How much of its cash RiskTolerance 1 adds to ContractCashShareBase.</summary>
+        private const float ContractCashShareRiskSpan = 0.35f;
+
+        /// <summary> /// How far RiskTolerance 1 lifts the price ceiling when buying to fill a contract </summary>
+        private const float ContractRiskPremium = 0.35f;
 
         /// <summary>A discretionary purchase may not take cash below the contract reserve times this variable.</summary>
         private const float ReserveSafetyMargin = 1.25f;
@@ -651,7 +657,7 @@ namespace AntiqueTradingSimulator.Agents
             DropUnfullfillableOpenContracts(week, profile);
             FulfillReadyContracts(week);
             RunStopLoss(profile);
-            WithdrawStaleListings(week, profile);
+            ReviseStaleListings(week, profile);
         }
 
         private void DropInactiveContracts()
@@ -863,6 +869,43 @@ namespace AntiqueTradingSimulator.Agents
             if (stale != null) Inventory.CancelListing(_economyManager.Market, stale);
         }
 
+        private void ReviseStaleListings(int week, NpcBehaviorProfile profile)
+        {
+            if (!profile.ListsOnMarket) return;
+
+            float cut = Mathf.Clamp01(profile.ListingPriceCutPerWeek);
+            int relistAfter = Mathf.Max(1, profile.RelistAfterWeeks);
+
+            string stale = null;
+            foreach (var pair in Inventory.Holdings)
+            {
+                var holding = pair.Value;
+                if (!holding.IsListedForSale) continue;
+                if (holding.MarketListedOnWeek < 0) continue;
+                if (week - holding.MarketListedOnWeek < 1) continue;
+
+                if (cut > 0f)
+                {
+                    float floor = holding.CurrentPrice * Mathf.Max(1f, profile.MinListingMultiplier);
+                    float marked = Core.Money.RoundToShilling(Mathf.Max(floor, holding.AskingPrice * (1f - cut)));
+
+                    if (marked < holding.AskingPrice - 0.01f)
+                    {
+                        if (Inventory.RepriceListing(_economyManager.Market, holding.Id, marked))
+                        {
+                            Debug.Log($"{TraderName} marked {holding.Name} down to {Core.Money.Format(marked)} " +
+                                      $"(value {Core.Money.Format(holding.CurrentPrice)}), listed {week - holding.MarketListedOnWeek} weeks.");
+                            return;
+                        }
+                    }
+                }
+
+                if (stale == null && week - holding.MarketListedOnWeek >= relistAfter) stale = holding.Id;
+            }
+
+            if (stale != null) Inventory.CancelListing(_economyManager.Market, stale);
+        }
+
         // ---------------------------------------------------------------- plan tick actions
 
         /// <summary>
@@ -1017,20 +1060,20 @@ namespace AntiqueTradingSimulator.Agents
             if (TierRumourExit(week, profile)) return nameof(TierRumourExit);
             Diagnostics.Telemetry.TierDeclined(this, nameof(TierRumourExit));
 
+            if (TierContractWork(week, profile)) return nameof(TierContractWork);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierContractWork));
+
+            if (TierTakeContract(week, profile)) return nameof(TierTakeContract);
+            Diagnostics.Telemetry.TierDeclined(this, nameof(TierTakeContract));
+
             if (TierDamageControl(week, profile)) return nameof(TierDamageControl);
             Diagnostics.Telemetry.TierDeclined(this, nameof(TierDamageControl));
 
             if (TierNewsBuy(week, profile)) return nameof(TierNewsBuy);
             Diagnostics.Telemetry.TierDeclined(this, nameof(TierNewsBuy));
 
-            if (TierContractWork(week, profile)) return nameof(TierContractWork);
-            Diagnostics.Telemetry.TierDeclined(this, nameof(TierContractWork));
-
             if (TierReviewHoldings(week, profile)) return nameof(TierReviewHoldings);
             Diagnostics.Telemetry.TierDeclined(this, nameof(TierReviewHoldings));
-
-            if (TierTakeContract(week, profile)) return nameof(TierTakeContract);
-            Diagnostics.Telemetry.TierDeclined(this, nameof(TierTakeContract));
 
             if (TierPlantRumour(week, profile)) return nameof(TierPlantRumour);
             Diagnostics.Telemetry.TierDeclined(this, nameof(TierPlantRumour));
@@ -1399,7 +1442,7 @@ namespace AntiqueTradingSimulator.Agents
 
             if (chosen == null) return false;
 
-            if (profile.ListsOnMarket)
+            if (profile.ListsOnMarket && UnityEngine.Random.value < ListingChanceOf(profile))
             {
                 if (!Inventory.ListForSale(_economyManager.Market, chosen, askingPrice, week)) return false;
 
@@ -1412,6 +1455,9 @@ namespace AntiqueTradingSimulator.Agents
             _plans.Remove(chosen);
             return true;
         }
+
+        private static float ListingChanceOf(NpcBehaviorProfile profile) =>
+            profile.ListingChance > 0f ? Mathf.Clamp01(profile.ListingChance) : 1f;
 
         // ---------------------------------------------------------------- buy from market tick actions
 
@@ -1625,9 +1671,20 @@ namespace AntiqueTradingSimulator.Agents
         private bool IsAcceptableSpeculativePrice(Antique listing, NpcBehaviorProfile profile) =>
             listing.SalePrice <= ExpectedValue(listing, profile) * profile.MaxPriceMultiplierWillingToPay;
 
+        /// <summary> Price gate for stock bought to fill a contract. The ordinary ceiling is widened by RiskTolerance.</summary>
+        private bool IsAcceptableContractPrice(Antique listing, NpcBehaviorProfile profile) =>
+            listing.SalePrice <= FairValue(listing, profile)
+                * profile.MaxPriceMultiplierWillingToPay
+                * (1f + Mathf.Clamp01(profile.RiskTolerance) * ContractRiskPremium);
+
         /// <summary>A regular purchase may never eat into the cash a taken contract needs.</summary>
         private bool PassesCashFloor(float cost) =>
             Core.Money.Covers(Inventory.Cash - (_contractReserve + _planReserve) * ReserveSafetyMargin, cost);
+
+        /// <summary> Share of its cash this NPC may tie up in contract purchases at once. Scales with RiskTolerance. /// </summary>
+        private float ContractCashShareFor(NpcBehaviorProfile profile) =>
+            Mathf.Clamp01(ContractCashShareBase
+                + ContractCashShareRiskSpan * Mathf.Clamp01(profile.RiskTolerance));
 
         private bool HasActiveCommitments()
         {
@@ -1787,7 +1844,7 @@ namespace AntiqueTradingSimulator.Agents
             {
                 var listing = listings[i];
                 if (Inventory.Owns(listing.Id)) continue;
-                if (!IsAcceptablePrice(listing, profile)) continue;
+                if (!IsAcceptableContractPrice(listing, profile)) continue;
 
                 var option = TransportOptionFor(listing, contract, urgency);
                 var quote = QuoteFor(listing, option);
@@ -1882,7 +1939,7 @@ namespace AntiqueTradingSimulator.Agents
                 var listing = listings[i];
                 if (Inventory.Owns(listing.Id)) continue;
                 if (!contract.Requirement.IsSatisfiedBy(listing)) continue;
-                if (!IsAcceptablePrice(listing, profile)) continue;
+                if (!IsAcceptableContractPrice(listing, profile)) continue;
 
                 var option = TransportOptionFor(listing, contract, urgency);
                 var quote = QuoteFor(listing, option);
@@ -1916,7 +1973,7 @@ namespace AntiqueTradingSimulator.Agents
 
             if (candidates.Count == 0) return false;
 
-            float cashLimit = Inventory.Cash * ContractCashShare - _contractReserve;
+            float cashLimit = Inventory.Cash * ContractCashShareFor(profile) - _contractReserve;
             if (cashLimit <= 0f) return false;
 
             Contract chosen = null;

@@ -18,15 +18,30 @@ namespace AntiqueTradingSimulator.Diagnostics
             "TierContractRescue",
             "TierExecutePlans",
             "TierRumourExit",
+            "TierContractWork",
+            "TierTakeContract",
             "TierDamageControl",
             "TierNewsBuy",
-            "TierContractWork",
             "TierReviewHoldings",
-            "TierTakeContract",
             "TierPlantRumour",
             "TierRestoreStock",
             "TierBrowseMarket"
         };
+
+        private static readonly int IxContractRescue = RankOf("TierContractRescue");
+        private static readonly int IxExecutePlans = RankOf("TierExecutePlans");
+        private static readonly int IxRumourExit = RankOf("TierRumourExit");
+        private static readonly int IxContractWork = RankOf("TierContractWork");
+        private static readonly int IxTakeContract = RankOf("TierTakeContract");
+        private static readonly int IxDamageControl = RankOf("TierDamageControl");
+        private static readonly int IxNewsBuy = RankOf("TierNewsBuy");
+        private static readonly int IxReviewHoldings = RankOf("TierReviewHoldings");
+        private static readonly int IxPlantRumour = RankOf("TierPlantRumour");
+        private static readonly int IxRestoreStock = RankOf("TierRestoreStock");
+        private static readonly int IxBrowseMarket = RankOf("TierBrowseMarket");
+
+        /// <summary>The two rungs that share the contract work queue, by resolved index.</summary>
+        private static readonly int[] ContractWorkRungs = { IxContractRescue, IxContractWork };
 
         /// <summary>NPCTrader.CommittedBargainPenalty, mirrored.</summary>
         private const float CommittedBargainPenalty = 2f;
@@ -79,8 +94,8 @@ namespace AntiqueTradingSimulator.Diagnostics
             int contractWork = CommittedWithMissingPieces(inventory);
             int reactionsDue = ReactionsDue(state, week);
 
-            // 0 TierContractRescue, 5 TierContractWork — same gate, same work queue.
-            foreach (int index in new[] { 0, 5 })
+            // TierContractRescue and TierContractWork — same gate, same work queue.
+            foreach (int index in ContractWorkRungs)
             {
                 _allowed[index] = profile.TakesContracts;
                 if (!profile.TakesContracts) _detail[index] = "profile does not take contracts";
@@ -90,7 +105,7 @@ namespace AntiqueTradingSimulator.Diagnostics
                 _candidates[index] = profile.TakesContracts && slotsLeft ? contractWork : 0;
             }
 
-            // 1 TierExecutePlans — a plan with a restoration leg to start, or a rumour exit to run.
+            // TierExecutePlans — a plan with a restoration leg to start, or a rumour exit to run.
             int planWork = 0;
             if (state.Acquisitions != null)
             {
@@ -101,65 +116,65 @@ namespace AntiqueTradingSimulator.Diagnostics
                     if (hasLeg || plan.Purpose == PlanPurpose.RumourExit) planWork++;
                 }
             }
-            _candidates[1] = planWork;
-            if (planWork == 0) _detail[1] = "no plan has a restoration leg or a rumour exit";
+            _candidates[IxExecutePlans] = planWork;
+            if (planWork == 0) _detail[IxExecutePlans] = "no plan has a restoration leg or a rumour exit";
 
-            // 2 TierRumourExit — inside its own planted rumour's dump window, holding something in scope.
+            // TierRumourExit — inside its own planted rumour's dump window, holding something in scope.
             bool exitWindow = state.RumourExitWeek >= 0
                               && week >= state.RumourDumpWeek
                               && week < state.RumourClaimWeek;
-            _allowed[2] = !profile.NeverSells;
-            if (profile.NeverSells) _detail[2] = "profile never sells";
-            else if (!exitWindow) _detail[2] = state.RumourExitWeek < 0
+            _allowed[IxRumourExit] = !profile.NeverSells;
+            if (profile.NeverSells) _detail[IxRumourExit] = "profile never sells";
+            else if (!exitWindow) _detail[IxRumourExit] = state.RumourExitWeek < 0
                 ? "no rumour of its own is running"
                 : $"outside the dump window (weeks {state.RumourDumpWeek}-{state.RumourClaimWeek})";
-            _candidates[2] = !profile.NeverSells && exitWindow ? HoldingsInScope(inventory, state) : 0;
+            _candidates[IxRumourExit] = !profile.NeverSells && exitWindow ? HoldingsInScope(inventory, state) : 0;
 
-            // 3 TierDamageControl, 4 TierNewsBuy — both driven by reactions whose week has come.
-            _allowed[3] = !profile.NeverSells;
-            if (profile.NeverSells) _detail[3] = "profile never sells";
-            else if (reactionsDue == 0) _detail[3] = "no news reaction is due";
-            _candidates[3] = !profile.NeverSells ? reactionsDue : 0;
+            // TierDamageControl, TierNewsBuy — both driven by reactions whose week has come.
+            _allowed[IxDamageControl] = !profile.NeverSells;
+            if (profile.NeverSells) _detail[IxDamageControl] = "profile never sells";
+            else if (reactionsDue == 0) _detail[IxDamageControl] = "no news reaction is due";
+            _candidates[IxDamageControl] = !profile.NeverSells ? reactionsDue : 0;
 
-            _candidates[4] = reactionsDue;
-            if (reactionsDue == 0) _detail[4] = "no news reaction is due";
+            _candidates[IxNewsBuy] = reactionsDue;
+            if (reactionsDue == 0) _detail[IxNewsBuy] = "no news reaction is due";
 
-            // 6 TierReviewHoldings — a resale holding, unencumbered, past its minimum hold.
-            _allowed[6] = !profile.NeverSells;
+            // TierReviewHoldings — a resale holding, unencumbered, past its minimum hold.
+            _allowed[IxReviewHoldings] = !profile.NeverSells;
             int reviewable = profile.NeverSells ? 0 : Reviewable(inventory, state, profile, week);
-            _candidates[6] = reviewable;
-            if (profile.NeverSells) _detail[6] = "profile never sells";
-            else if (reviewable == 0) _detail[6] = "no unencumbered resale holding is past its minimum hold";
+            _candidates[IxReviewHoldings] = reviewable;
+            if (profile.NeverSells) _detail[IxReviewHoldings] = "profile never sells";
+            else if (reviewable == 0) _detail[IxReviewHoldings] = "no unencumbered resale holding is past its minimum hold";
 
-            // 7 TierTakeContract — reputation-eligible contracts not already taken.
-            _allowed[7] = profile.TakesContracts;
+            // TierTakeContract — reputation-eligible contracts not already taken.
+            _allowed[IxTakeContract] = profile.TakesContracts;
             int takeable = profile.TakesContracts ? EligibleContracts(npc, inventory) : 0;
-            _candidates[7] = takeable;
-            if (!profile.TakesContracts) _detail[7] = "profile does not take contracts";
-            else if (takeable == 0) _detail[7] = "no active contract clears its reputation gate";
+            _candidates[IxTakeContract] = takeable;
+            if (!profile.TakesContracts) _detail[IxTakeContract] = "profile does not take contracts";
+            else if (takeable == 0) _detail[IxTakeContract] = "no active contract clears its reputation gate";
 
-            // 8 TierPlantRumour — the weekly permission flag is private, so this is as far as it goes.
-            _observable[8] = false;
-            _candidates[8] = 0;
-            _detail[8] = profile.RumourPlantChance <= 0f
+            // TierPlantRumour — the weekly permission flag is private, so this is as far as it goes.
+            _observable[IxPlantRumour] = false;
+            _candidates[IxPlantRumour] = 0;
+            _detail[IxPlantRumour] = profile.RumourPlantChance <= 0f
                 ? "profile never plants rumours"
                 : $"weekly plant permission is private; budget {state.WeekBudget:0}";
-            _allowed[8] = profile.RumourPlantChance > 0f;
+            _allowed[IxPlantRumour] = profile.RumourPlantChance > 0f;
 
-            // 9 TierRestoreStock — a resale holding worth restoring, with a workshop slot free.
+            // TierRestoreStock — a resale holding worth restoring, with a workshop slot free.
             int openJobs = OpenRestorations(inventory);
             bool jobSlotFree = openJobs < profile.MaxConcurrentRestorations;
-            _allowed[9] = profile.Restores;
+            _allowed[IxRestoreStock] = profile.Restores;
             int restorable = profile.Restores && jobSlotFree ? RestorableHoldings(inventory, state) : 0;
-            _candidates[9] = restorable;
-            if (!profile.Restores) _detail[9] = "profile does not restore";
-            else if (!jobSlotFree) _detail[9] = $"workshop slots full ({openJobs}/{profile.MaxConcurrentRestorations})";
-            else if (restorable == 0) _detail[9] = "no unencumbered resale holding to restore";
+            _candidates[IxRestoreStock] = restorable;
+            if (!profile.Restores) _detail[IxRestoreStock] = "profile does not restore";
+            else if (!jobSlotFree) _detail[IxRestoreStock] = $"workshop slots full ({openJobs}/{profile.MaxConcurrentRestorations})";
+            else if (restorable == 0) _detail[IxRestoreStock] = "no unencumbered resale holding to restore";
 
-            // 10 TierBrowseMarket — the browse funnel already measures this in full.
+            // TierBrowseMarket — the browse funnel already measures this in full.
             bool hasBudget = state.WeekBudget > 0f;
-            _candidates[10] = hasBudget ? 1 : 0;
-            _detail[10] = hasBudget
+            _candidates[IxBrowseMarket] = hasBudget ? 1 : 0;
+            _detail[IxBrowseMarket] = hasBudget
                 ? "see fact_browse_funnel for the gate breakdown"
                 : "no discretionary budget left this week";
 

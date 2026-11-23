@@ -102,8 +102,17 @@ namespace AntiqueTradingSimulator.Agents
                  "(and other NPCs and collectors) can buy them.")]
         public bool ListsOnMarket;
 
+        [Tooltip("How often this trader takes the listing market rather than selling instantly, each time a holding becomes sellable.")]
+        [Range(0f, 1f)] public float ListingChance = 1f;
+
         [Tooltip("Asking price = current value × this (never below cost × the profit target in use).")]
         [Min(1f)] public float ListingMarkup = 1.15f;
+
+        [Tooltip("Fraction knocked off the asking price for each week a listing sits unsold.")]
+        [Range(0f, 0.5f)] public float ListingPriceCutPerWeek = 0.08f;
+
+        [Tooltip("Floor for a marked-down asking price, as a multiple of the antique's current market value. Must stay above 1: selling to the market outright already pays market value.")]
+        [Min(1f)] public float MinListingMultiplier = 1.05f;
 
         [Tooltip("A listing that hasn't sold after this many weeks is withdrawn and re-evaluated.")]
         [FormerlySerializedAs("RelistAfterDays")]

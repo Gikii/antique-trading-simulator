@@ -116,7 +116,7 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .N()                                   // profile_name
                 .F(player.Inventory != null ? player.Inventory.Cash : 0f)
                 .E(player.AccessLevel)
-                .N(49)                                 // the profile columns: the player has none
+                .N(52)                                 // the profile columns: the player has none
                 .End();
         }
 
@@ -137,7 +137,7 @@ namespace AntiqueTradingSimulator.Diagnostics
 
             if (profile == null)
             {
-                r.N(49).End();
+                r.N(52).End();
                 return;
             }
 
@@ -153,10 +153,13 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .I(profile.PatientSellAfterWeeks)
                 .I(profile.RelistAfterWeeks)
                 .F(profile.ListingMarkup)
+                .F(profile.ListingPriceCutPerWeek)
+                .F(profile.MinListingMultiplier)
                 .F(profile.StopLossMultiplier)
                 .F(profile.RiskTolerance)
                 .B(profile.NeverSells)
                 .B(profile.ListsOnMarket)
+                .F(profile.ListingChance)
                 .B(profile.TakesContracts)
                 .F(profile.ContractSlotShare)
                 .I(profile.ContractPanicWeeks)
