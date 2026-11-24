@@ -53,9 +53,9 @@ namespace AntiqueTradingSimulator.Company
     }
 
     /// <summary>
-    /// Levels of the player's company upgrades, buying them, and what they do. Warehouse and
-    /// Security live on the inventory's Warehouse (WarehouseSettings holds their numbers);
-    /// every other upgrade keeps its level here.
+    /// Levels of the player's company upgrades, buying them, and what they do. Warehouse lives
+    /// on the inventory's Warehouse (WarehouseSettings holds its numbers); every other upgrade
+    /// keeps its level here.
     ///
     /// Effects are the numbers in CompanyUpgradeSettings (CompanyUpgradeLevel.Effects), read
     /// through GetStat — only for upgrades marked EffectActive. The upgrade levels are the
@@ -68,8 +68,10 @@ namespace AntiqueTradingSimulator.Company
         private readonly TraderInventory _inventory;
         private readonly Dictionary<CompanyUpgradeType, int> _levels = new Dictionary<CompanyUpgradeType, int>();
 
-        public static readonly CompanyUpgradeType[] AllTypes =
-            (CompanyUpgradeType[])Enum.GetValues(typeof(CompanyUpgradeType));
+        /// <summary>Every upgrade in the game, in display order. Security is no longer one of them.</summary>
+        public static readonly CompanyUpgradeType[] AllTypes = Array.FindAll(
+            (CompanyUpgradeType[])Enum.GetValues(typeof(CompanyUpgradeType)),
+            type => type != CompanyUpgradeType.Security);
 
         /// <summary>Contract limit used when Staff gives none (or is inactive).</summary>
         public const int UnlimitedContracts = -1;
@@ -102,7 +104,7 @@ namespace AntiqueTradingSimulator.Company
         }
 
         private static bool IsWarehouseType(CompanyUpgradeType type) =>
-            type == CompanyUpgradeType.Warehouse || type == CompanyUpgradeType.Security;
+            type == CompanyUpgradeType.Warehouse;
 
         private Warehouse Warehouse => _inventory?.Warehouse;
 
@@ -113,7 +115,6 @@ namespace AntiqueTradingSimulator.Company
             switch (type)
             {
                 case CompanyUpgradeType.Warehouse: return Warehouse != null ? Warehouse.CapacityLevel : 0;
-                case CompanyUpgradeType.Security: return Warehouse != null ? Warehouse.SecurityLevel : 0;
                 default: return _levels.TryGetValue(type, out int level) ? level : 0;
             }
         }
@@ -123,7 +124,6 @@ namespace AntiqueTradingSimulator.Company
             switch (type)
             {
                 case CompanyUpgradeType.Warehouse: return Warehouse != null ? Warehouse.Settings.MaxCapacityLevel + 1 : 1;
-                case CompanyUpgradeType.Security: return Warehouse != null ? Warehouse.Settings.MaxSecurityLevel + 1 : 1;
                 default:
                     var definition = _settings.Get(type);
                     return definition != null ? Mathf.Max(1, definition.Levels.Count) : 1;
@@ -246,9 +246,7 @@ namespace AntiqueTradingSimulator.Company
             if (IsWarehouseType(type))
             {
                 if (Warehouse == null) return 0f;
-                float[] costs = type == CompanyUpgradeType.Warehouse
-                    ? Warehouse.Settings.CapacityUpgradeCost
-                    : Warehouse.Settings.SecurityUpgradeCost;
+                float[] costs = Warehouse.Settings.CapacityUpgradeCost;
                 return costs != null && level >= 0 && level < costs.Length ? costs[level] : 0f;
             }
 
@@ -256,8 +254,8 @@ namespace AntiqueTradingSimulator.Company
         }
 
         /// <summary>
-        /// Daily upkeep at a level. Warehouse: the whole warehouse bill except its security
-        /// part (base + capacity level + used slots). Security: the security part only.
+        /// Weekly upkeep at a level. Warehouse: the whole warehouse bill (base + capacity level
+        /// + used slots).
         /// </summary>
         private float Upkeep(CompanyUpgradeType type, CompanyUpgradeDefinition definition, int level)
         {
@@ -265,9 +263,7 @@ namespace AntiqueTradingSimulator.Company
             {
                 if (Warehouse == null) return 0f;
                 var ws = Warehouse.Settings;
-                return type == CompanyUpgradeType.Warehouse
-                    ? ws.BaseWeeklyUpkeep + level * ws.UpkeepPerCapacityLevel + _inventory.UsedSlots * ws.UpkeepPerUsedSlot
-                    : ws.SecurityUpkeep(level);
+                return ws.BaseWeeklyUpkeep + level * ws.UpkeepPerCapacityLevel + _inventory.UsedSlots * ws.UpkeepPerUsedSlot;
             }
 
             return LevelData(definition, level)?.WeeklyUpkeep ?? 0f;
@@ -290,9 +286,6 @@ namespace AntiqueTradingSimulator.Company
                 case CompanyUpgradeType.Warehouse:
                     success = _inventory.TryUpgradeWarehouseCapacity();
                     break;
-                case CompanyUpgradeType.Security:
-                    success = _inventory.TryUpgradeWarehouseSecurity();
-                    break;
                 default:
                     _inventory.RemoveCash(info.NextCost, LedgerCategory.Upgrade, $"Upgraded {info.Name} to level {info.DisplayLevel + 1}");
                     _levels[type] = info.Level + 1;
@@ -310,8 +303,8 @@ namespace AntiqueTradingSimulator.Company
 
         /// <summary>
         /// Drops an upgrade one level and re-applies its effects (the level's people or services are
-        /// gone). Only upgrades whose upkeep CompanyManager charges — not Warehouse or Security, whose
-        /// rent the warehouse bills itself and whose levels hold the stock. False at level 0.
+        /// gone). Only upgrades whose upkeep CompanyManager charges — not Warehouse, whose rent the
+        /// warehouse bills itself and whose level holds the stock. False at level 0.
         /// </summary>
         public bool TryDowngrade(CompanyUpgradeType type)
         {
@@ -327,8 +320,8 @@ namespace AntiqueTradingSimulator.Company
         }
 
         /// <summary>
-        /// Weekly upkeep of every upgrade except Warehouse and Security, whose upkeep the
-        /// warehouse already charges (TraderInventory.ChargeWarehouseUpkeep).
+        /// Weekly upkeep of every upgrade except Warehouse, whose upkeep the warehouse already
+        /// charges (TraderInventory.ChargeWarehouseUpkeep).
         /// </summary>
         public IEnumerable<(CompanyUpgradeType type, string name, float upkeep)> NonWarehouseUpkeep()
         {
@@ -357,7 +350,8 @@ namespace AntiqueTradingSimulator.Company
             {
                 foreach (var pair in levels)
                 {
-                    if (IsWarehouseType(pair.Key)) continue;
+                    // Warehouse lives on the Warehouse; removed upgrades (Security) are dropped.
+                    if (IsWarehouseType(pair.Key) || Array.IndexOf(AllTypes, pair.Key) < 0) continue;
 
                     int maxLevel = Mathf.Max(0, LevelCount(pair.Key) - 1);
                     int level = Mathf.Clamp(pair.Value, 0, maxLevel);

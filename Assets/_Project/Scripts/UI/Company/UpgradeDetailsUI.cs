@@ -15,6 +15,8 @@ namespace AntiqueTradingSimulator.UI
     {
         [Tooltip("Optional. Shows the upgrade's icon from UIIcons.")]
         [SerializeField] private Image icon;
+        [Tooltip("Optional. The upgrade's picture from UIIllustrations (wide banner crop).")]
+        [SerializeField] private Image illustration;
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text levelText;
         [SerializeField] private SegmentedBarUI levelBar;
@@ -68,6 +70,9 @@ namespace AntiqueTradingSimulator.UI
 
             var icons = UIIcons.Load();
             if (icons != null) UIIcons.Show(icon, icons.ForUpgrade(info.Type));
+
+            var illustrations = UIIllustrations.Load();
+            if (illustrations != null) UIIllustrations.Show(illustration, illustrations.ForUpgradeBanner(info.Type));
 
             SetText(nameText, info.Name);
             SetText(levelText, UpgradePresentation.LevelLabel(info));

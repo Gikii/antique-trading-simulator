@@ -29,6 +29,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TimeManager timeManager;
 
         [Header("Company card")]
+        [Tooltip("Optional. The company at its reputation level, from UIIllustrations.")]
+        [SerializeField] private Image companyIllustration;
         [SerializeField] private TMP_Text companyNameText;
         [SerializeField] private TMP_Text companyTitleText;
         [SerializeField] private ProgressBarUI tierProgress;
@@ -39,6 +41,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private TMP_Text dateText;
 
         [Header("Next major event")]
+        [Tooltip("Optional. Picture of the event, from UIIllustrations.")]
+        [SerializeField] private Image eventIllustration;
         [SerializeField] private TMP_Text eventTitleText;
         [SerializeField] private TMP_Text eventDescriptionText;
 
@@ -142,6 +146,12 @@ namespace AntiqueTradingSimulator.UI
             var tier = reputation.CurrentTier(ReputationKind.Reputation);
             var next = reputation.NextTier(ReputationKind.Reputation);
 
+            // The shop grows with the reputation level: Local Shop → … → Elite House.
+            var illustrations = UIIllustrations.Load();
+            if (illustrations != null)
+                UIIllustrations.Show(companyIllustration, illustrations.ForCompanyTier(
+                    reputation.TierIndex(ReputationKind.Reputation), reputation.Tiers(ReputationKind.Reputation).Count));
+
             SetText(companyNameText, _company.CompanyName);
             SetText(companyTitleText, tier?.Name ?? "");
             SetText(companyDescriptionText, tier?.Description ?? "");
@@ -160,6 +170,10 @@ namespace AntiqueTradingSimulator.UI
 
         private void RefreshNextEvent()
         {
+            var illustrations = UIIllustrations.Load();
+            if (illustrations != null)
+                UIIllustrations.Show(eventIllustration, illustrations.NextEvent);
+
             int weeks = _company.WeeksUntilCongress;
             SetText(eventTitleText, "International Collectors Congress");
             SetText(eventDescriptionText, weeks > 0
@@ -273,6 +287,7 @@ namespace AntiqueTradingSimulator.UI
             bool playerBelowCut = playerIndex >= shown;
 
             EnsureRows(shown);
+            var illustrations = UIIllustrations.Load();
             for (int i = 0; i < _rows.Count; i++)
             {
                 bool visible = i < shown;
@@ -282,7 +297,8 @@ namespace AntiqueTradingSimulator.UI
                 int index = playerBelowCut && i == shown - 1 ? playerIndex : i;
                 var entry = entries[index];
                 float value = _sort == CompetitionSort.Wealth ? entry.Wealth : entry.CollectionValue;
-                _rows[i].Set(index + 1, entry.Name, UIFormat.Money(value), entry.IsPlayer);
+                var emblem = illustrations != null ? illustrations.ForCompetitor(entry.IsPlayer, entry.ProfileId) : null;
+                _rows[i].Set(index + 1, entry.Name, UIFormat.Money(value), entry.IsPlayer, emblem);
             }
         }
 

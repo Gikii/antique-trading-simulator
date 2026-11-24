@@ -21,6 +21,9 @@ namespace AntiqueTradingSimulator.Company
         public readonly string Name;
         public readonly bool IsPlayer;
 
+        /// <summary>The NPC's behaviour profile Id (NpcBehaviorProfile.Id); empty for the player.</summary>
+        public readonly string ProfileId;
+
         /// <summary>The trader's numbers right now.</summary>
         public readonly CompanySnapshot Snapshot;
 
@@ -34,11 +37,12 @@ namespace AntiqueTradingSimulator.Company
         public float CollectionValue => Snapshot.CollectionValue;
 
         public CompetitorEntry(string id, string name, bool isPlayer, CompanySnapshot snapshot, float score,
-                               IReadOnlyList<CompanySnapshot> history)
+                               IReadOnlyList<CompanySnapshot> history, string profileId = "")
         {
             Id = id;
             Name = name;
             IsPlayer = isPlayer;
+            ProfileId = profileId ?? "";
             Snapshot = snapshot;
             Score = score;
             History = history;
@@ -437,7 +441,8 @@ namespace AntiqueTradingSimulator.Company
                         : 0f;
                     var now = npc.Record.Capture(CurrentWeek, npc.Inventory, share);
                     result.Add(new CompetitorEntry(npc.Id, npc.TraderName, false, now,
-                                                   CampaignScoring.TotalScore(scoring, now), npc.Record.History));
+                                                   CampaignScoring.TotalScore(scoring, now), npc.Record.History,
+                                                   npc.ProfileId));
                 }
             }
 

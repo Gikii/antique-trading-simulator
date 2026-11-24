@@ -138,19 +138,6 @@ namespace AntiqueTradingSimulator.Economy
             return true;
         }
 
-        public bool TryUpgradeWarehouseSecurity()
-        {
-            if (Warehouse == null || !Warehouse.CanUpgradeSecurity) return false;
-
-            float cost = Warehouse.NextSecurityUpgradeCost;
-            if (!Core.Money.Covers(Cash, cost)) return false;
-
-            RemoveCash(cost, LedgerCategory.Upgrade, $"Upgraded warehouse security to level {Warehouse.SecurityLevel + 2}");
-            Warehouse.RaiseSecurityLevel();
-            OnWarehouseChanged?.Invoke();
-            return true;
-        }
-
         /// <summary>
         /// Deducts one day of warehouse upkeep. Returns the amount that was due.
         /// Cash is clamped at 0 for now (no debt mechanic yet).
@@ -602,8 +589,7 @@ namespace AntiqueTradingSimulator.Economy
                 Warehouse = Warehouse != null
                     ? new WarehouseState
                     {
-                        CapacityLevel = Warehouse.CapacityLevel,
-                        SecurityLevel = Warehouse.SecurityLevel
+                        CapacityLevel = Warehouse.CapacityLevel
                     }
                     : null
             };

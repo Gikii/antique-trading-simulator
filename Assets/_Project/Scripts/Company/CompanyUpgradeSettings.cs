@@ -8,6 +8,8 @@ namespace AntiqueTradingSimulator.Company
     public enum CompanyUpgradeType
     {
         Warehouse,
+        // Removed from the game (no theft/damage system to protect against). The value stays so the
+        // numbers serialized for the upgrades after it (assets, saves) don't shift; nothing offers it.
         Security,
         InformationNetwork,
         Logistics,
@@ -128,8 +130,8 @@ namespace AntiqueTradingSimulator.Company
                  "bought, but has no gameplay effect and its Effects are ignored by game logic.")]
         public bool EffectActive;
 
-        [Tooltip("Index 0 = starting level. Warehouse and Security take cost, upkeep and effect " +
-                 "from WarehouseSettings; only RequiredReputation is read from here for them.")]
+        [Tooltip("Index 0 = starting level. Warehouse takes cost, upkeep and effect from " +
+                 "WarehouseSettings; only RequiredReputation is read from here for it.")]
         public List<CompanyUpgradeLevel> Levels = new List<CompanyUpgradeLevel>();
 
         public CompanyUpgradeDefinition() { }
@@ -178,14 +180,6 @@ namespace AntiqueTradingSimulator.Company
                 new CompanyUpgradeLevel(0, 0, 0, ""),
                 new CompanyUpgradeLevel(0, 0, 500, ""),
                 new CompanyUpgradeLevel(0, 0, 1000, "")),
-
-            new CompanyUpgradeDefinition(CompanyUpgradeType.Security, "Security",
-                "Improve security to reduce the risk of theft or damage.",
-                false,
-                new CompanyUpgradeLevel(0, 0, 0, "Basic protection\nTheft risk: -0%"),
-                new CompanyUpgradeLevel(0, 0, 0, "Iron safe and fire insurance\nTheft risk: -10%"),
-                new CompanyUpgradeLevel(0, 0, 500, "Strong room\nTheft risk: -25%"),
-                new CompanyUpgradeLevel(0, 0, 1000, "Strong room and a night watchman (24s a week)\nTheft risk: -40%")),
 
             new CompanyUpgradeDefinition(CompanyUpgradeType.InformationNetwork, "Information Network",
                 "Gain access to better news, rumours and market information.",

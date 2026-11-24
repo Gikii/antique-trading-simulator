@@ -12,7 +12,8 @@ namespace AntiqueTradingSimulator.UI
     /// <summary>
     /// Always-visible top bar (layout built by Tools > UI > HUD > Build Top Bar).
     /// Day, date, Cash and Wealth (cash + market value of owned antiques) come from the
-    /// player's inventory; Reputation, Credibility and Market Share from the CompanyManager.
+    /// player's inventory; Reputation, Credibility and Market Share from the CompanyManager,
+    /// as does the company name on the logo plate (top left).
     /// Labels ("Cash", "Wealth"...) live in the layout; this script writes only the values.
     /// </summary>
     public class HUD : MonoBehaviour
@@ -21,6 +22,10 @@ namespace AntiqueTradingSimulator.UI
 
         [SerializeField] private PlayerTrader playerTrader;
         [SerializeField] private TimeManager timeManager;
+
+        [Header("Company")]
+        [Tooltip("Company name on the logo plate in the top-left corner (CompanyManager.CompanyName).")]
+        [SerializeField] private TMP_Text companyNameText;
 
         [Header("Week")]
         [FormerlySerializedAs("dayText")]
@@ -76,6 +81,7 @@ namespace AntiqueTradingSimulator.UI
             }
 
             _company = playerTrader.Company;
+            UpdateCompanyName();
             _reputationTooltip = AddTooltip(reputationText);
             _credibilityTooltip = AddTooltip(credibilityText);
             _marketShareTooltip = AddTooltip(marketShareText);
@@ -164,6 +170,14 @@ namespace AntiqueTradingSimulator.UI
             SetText(cashText, UIFormat.Money(cash));
             UpdateWealth();
             UpdateMarketShare(); // the player's own trades move it
+        }
+
+        // The name comes from the company, so the plate can't drift from the ranking and the end screen.
+        // Without a company the text set in the scene stays.
+        private void UpdateCompanyName()
+        {
+            if (_company != null && !string.IsNullOrWhiteSpace(_company.CompanyName))
+                SetText(companyNameText, _company.CompanyName);
         }
 
         private void UpdateCompany()
