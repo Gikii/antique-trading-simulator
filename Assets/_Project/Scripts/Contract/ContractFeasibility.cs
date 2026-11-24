@@ -262,5 +262,40 @@ namespace AntiqueTradingSimulator.Contracts
 
             return cheapest;
         }
+
+    public static float MarginalQualifyingSalePrice(ContractRequirement requirement, Market.Market market,
+            int currentWeek, int latestArrival, Func<ShippingZone, int> expressWeeks, int quantity)
+        {
+            if (requirement == null || market == null || expressWeeks == null) return 0f;
+
+            int wanted = Mathf.Max(1, quantity);
+
+            var cheapest = new float[wanted];
+            int found = 0;
+
+            var listings = market.Listings;
+            for (int i = 0; i < listings.Count; i++)
+            {
+                var listing = listings[i];
+                if (listing == null || listing.OwnerId == Antique.PlayerOwnerId) continue;
+                if (currentWeek + expressWeeks(listing.ShippingZone) > latestArrival) continue;
+                if (!requirement.IsSatisfiedBy(listing)) continue;
+
+                float price = listing.SalePrice;
+                if (found == wanted && price >= cheapest[wanted - 1]) continue;
+
+                int at = found < wanted ? found : wanted - 1;
+                while (at > 0 && cheapest[at - 1] > price)
+                {
+                    cheapest[at] = cheapest[at - 1];
+                    at--;
+                }
+
+                cheapest[at] = price;
+                if (found < wanted) found++;
+            }
+
+            return found > 0 ? cheapest[found - 1] : 0f;
+        }
     }
 }

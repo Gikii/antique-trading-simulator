@@ -64,6 +64,7 @@ namespace AntiqueTradingSimulator.Agents
         public float AssumedFee;
         public float ExitAskingPrice;
         public int DumpAfterWeek;
+        public int OfferedSinceWeek;
     }
 
     public class PendingReactionState
