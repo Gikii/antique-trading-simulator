@@ -45196,6 +45196,11 @@ MonoBehaviour:
   defaultInitialDemand: 5
   supplyReversionRate: 0.05
   demandReversionRate: 0.05
+  longTermDemandRate: 0.02
+  longTermDemandDecay: 0.005
+  longTermDemandCap: 0.3
+  tradeDemandImpulse: 0.1
+  expiredListingsRestoreDemand: 0
   initialListingCount: 12
   newListingsPerWeek: 6
   anonymousListingLifetimeWeeks: 14
@@ -45272,8 +45277,8 @@ MonoBehaviour:
   economyManager: {fileID: 398503183}
   timeManager: {fileID: 398503184}
   transportManager: {fileID: 0}
-  contractsGeneratedPerWeek: 1
-  maxActiveContracts: 15
+  contractsGeneratedPerWeek: 2
+  maxActiveContracts: 10
   initialContractCount: 10
   minQuantity: 1
   maxQuantity: 5
@@ -45281,13 +45286,16 @@ MonoBehaviour:
   maxDurationWeeks: 10
   pairedRequirementChance: 0.35
   minTypesForPair: 2
-  supplyShareForContract: 0.5
+  supplyShareForContract: 0.7
   maxGenerationAttempts: 8
+  maxCostOverValueFloor: 2
   demandPerRequestedPiece: 0.25
   maxContractDemandPerType: 1.5
   minRewardMultiplier: 1.1
-  maxRewardMultiplier: 1.6
+  maxRewardMultiplier: 1.35
   maxUrgencyBonusMultiplier: 1.5
+  deliverySafetyWeeks: 1
+  priceRewardFromMarketStock: 0
   standardMinTier: 50
   standardMaxTier: 90
   standardMinValueRank: 0

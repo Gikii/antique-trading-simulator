@@ -32,6 +32,7 @@ MonoBehaviour:
   WeeklyBudgetFraction: 0.12
   MaxPriceMultiplierWillingToPay: 1.15
   RiskTolerance: 0.2
+  BudgetAccrualWeeks: 5
   MinConditionToBuy: 0.7
   ConditionPremium: 0.6
   NeverSells: 1
@@ -41,7 +42,10 @@ MonoBehaviour:
   PatientProfitMultiplier: 1
   StopLossMultiplier: 0
   ListsOnMarket: 0
+  ListingChance: 1
   ListingMarkup: 1.15
+  ListingPriceCutPerWeek: 0.08
+  MinListingMultiplier: 1.05
   RelistAfterWeeks: 5
   SeasonalForesight: 0.3
   SeasonalHorizonWeeks: 8
