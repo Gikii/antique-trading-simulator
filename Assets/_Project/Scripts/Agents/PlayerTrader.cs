@@ -21,7 +21,6 @@ namespace AntiqueTradingSimulator.Agents
         [Header("Warehouse")]
         [SerializeField] private WarehouseSettings warehouseSettings;
         [SerializeField] private int startingCapacityLevel = 0;
-        [SerializeField] private int startingSecurityLevel = 0;
 
         private Core.TimeManager _timeManager;
 
@@ -79,7 +78,7 @@ namespace AntiqueTradingSimulator.Agents
                 Debug.LogWarning("PlayerTrader: no WarehouseSettings assigned — using default values.");
                 warehouseSettings = ScriptableObject.CreateInstance<WarehouseSettings>();
             }
-            Inventory.AttachWarehouse(new Warehouse(warehouseSettings, startingCapacityLevel, startingSecurityLevel));
+            Inventory.AttachWarehouse(new Warehouse(warehouseSettings, startingCapacityLevel));
 
             // After the warehouse is attached: CompanyManager reads it for the upgrades.
             Company = GetComponent<CompanyManager>();
@@ -128,8 +127,6 @@ namespace AntiqueTradingSimulator.Agents
         }
 
         public bool UpgradeWarehouseCapacity() => Inventory.TryUpgradeWarehouseCapacity();
-
-        public bool UpgradeWarehouseSecurity() => Inventory.TryUpgradeWarehouseSecurity();
 
         // ---------------------------------------------------------------- contracts
 
@@ -325,7 +322,7 @@ namespace AntiqueTradingSimulator.Agents
                 return null;
             }
 
-            return new Warehouse(warehouseSettings, state.CapacityLevel, state.SecurityLevel);
+            return new Warehouse(warehouseSettings, state.CapacityLevel);
         }
 
     }

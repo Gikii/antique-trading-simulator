@@ -21,6 +21,8 @@ namespace AntiqueTradingSimulator.UI
         [SerializeField] private ReputationKind kind;
 
         [Header("Value card")]
+        [Tooltip("Optional. Picture of this measure, from UIIllustrations.")]
+        [SerializeField] private Image illustration;
         [SerializeField] private TMP_Text valueText;
         [SerializeField] private TMP_Text changeText;
         [SerializeField] private UILineChart chart;
@@ -87,6 +89,9 @@ namespace AntiqueTradingSimulator.UI
 
         private void RefreshValueCard(CompanyManager company, float value)
         {
+            var illustrations = UIIllustrations.Load();
+            if (illustrations != null) UIIllustrations.Show(illustration, illustrations.For(kind));
+
             if (valueText != null) valueText.text = FormatValue(value);
 
             float change = company.Change(Criterion, TrendWeeks);

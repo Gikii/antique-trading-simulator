@@ -5,8 +5,8 @@ using UnityEngine;
 namespace AntiqueTradingSimulator.Logistics
 {
     /// <summary>
-    /// The physical storage behind a TraderInventory: how many antiques it can hold,
-    /// how well it is secured and what it costs to run. Holds only levels — the
+    /// The physical storage behind a TraderInventory: how many antiques it can hold and
+    /// what it costs to run. Holds only levels — the
     /// numbers behind them live in WarehouseSettings, and cash is handled by the
     /// owning TraderInventory (TryUpgrade…, ChargeWarehouseUpkeep).
     ///
@@ -18,21 +18,18 @@ namespace AntiqueTradingSimulator.Logistics
     public class Warehouse
     {
         [SerializeField] private int capacityLevel;
-        [SerializeField] private int securityLevel;
 
         [NonSerialized] private WarehouseSettings _settings;
 
         public int CapacityLevel => capacityLevel;
-        public int SecurityLevel => securityLevel;
 
         [JsonIgnore]
         public WarehouseSettings Settings => _settings;
 
-        public Warehouse(WarehouseSettings settings, int startingCapacityLevel = 0, int startingSecurityLevel = 0)
+        public Warehouse(WarehouseSettings settings, int startingCapacityLevel = 0)
         {
             _settings = settings;
             capacityLevel = Mathf.Clamp(startingCapacityLevel, 0, settings.MaxCapacityLevel);
-            securityLevel = Mathf.Clamp(startingSecurityLevel, 0, settings.MaxSecurityLevel);
         }
 
         public int Capacity => _settings.CapacityPerLevel.Length > 0
@@ -50,21 +47,12 @@ namespace AntiqueTradingSimulator.Logistics
         public int NextCapacity =>
             CanUpgradeCapacity ? _settings.CapacityPerLevel[capacityLevel + 1] : Capacity;
 
-        // ---------------------------------------------------------------- security upgrades
-
-        public bool CanUpgradeSecurity => securityLevel < _settings.MaxSecurityLevel;
-
-        /// <summary>Price of the next security level, or -1 when already at max.</summary>
-        public float NextSecurityUpgradeCost =>
-            CanUpgradeSecurity ? CostAt(_settings.SecurityUpgradeCost, securityLevel + 1) : -1f;
-
         // ---------------------------------------------------------------- upkeep
 
         public float CalculateWeeklyUpkeep(int usedSlots)
         {
             return _settings.BaseWeeklyUpkeep
                    + capacityLevel * _settings.UpkeepPerCapacityLevel
-                   + _settings.SecurityUpkeep(securityLevel)
                    + Mathf.Max(0, usedSlots) * _settings.UpkeepPerUsedSlot;
         }
 
@@ -75,13 +63,6 @@ namespace AntiqueTradingSimulator.Logistics
         {
             if (!CanUpgradeCapacity) return false;
             capacityLevel++;
-            return true;
-        }
-
-        internal bool RaiseSecurityLevel()
-        {
-            if (!CanUpgradeSecurity) return false;
-            securityLevel++;
             return true;
         }
 

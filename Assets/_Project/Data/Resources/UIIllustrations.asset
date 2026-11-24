@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4732d3241f5541e18e980d36f152369c, type: 3}
+  m_Name: UIIllustrations
+  m_EditorClassIdentifier: Assembly-CSharp::AntiqueTradingSimulator.UI.UIIllustrations
+  CompanyTiers:
+  - {fileID: 21300000, guid: da2efdb2b9377ec4eb0cc969fc0af58f, type: 3}
+  - {fileID: 21300000, guid: 3c1dbdb4bee03a543b7aa75229245173, type: 3}
+  - {fileID: 21300000, guid: d1289eb0a3d503b49aeaa6c7130e1f1e, type: 3}
+  - {fileID: 21300000, guid: 0374aafb9b0dc514aa0718a1abb818f5, type: 3}
+  - {fileID: 21300000, guid: 6abe941115f7fb043a9d9a3f61b2b204, type: 3}
+  - {fileID: 21300000, guid: 264a954905e2187479652db3d5dd7572, type: 3}
+  NextEvent: {fileID: 21300000, guid: 8da032253d2238e45a14c44c896b4d7b, type: 3}
+  Reputation: {fileID: 21300000, guid: b92d854360c4a8843b058f4e90a71670, type: 3}
+  Credibility: {fileID: 21300000, guid: c3a196e9ede5ab1419f259f8839977de, type: 3}
+  Upgrades:
+  - Type: 0
+    Banner: {fileID: 21300000, guid: 0a7cb9f9777f5384eafd29dc366b9f23, type: 3}
+  - Type: 2
+    Banner: {fileID: 21300000, guid: 6062da36e25f7d54cb75bd710663df05, type: 3}
+  - Type: 3
+    Banner: {fileID: 21300000, guid: 574146c3c9db364469d39ddf5f4ca018, type: 3}
+  - Type: 4
+    Banner: {fileID: 21300000, guid: 86884ae2052fa8a469e9c78bdead1826, type: 3}
+  - Type: 5
+    Banner: {fileID: 21300000, guid: 140f49ae4c898524494d9246382c6c25, type: 3}
+  - Type: 6
+    Banner: {fileID: 21300000, guid: 2b6935d45e643a542ab2e2059521bd61, type: 3}
+  PlayerEmblem: {fileID: 21300000, guid: 4cb13bca44ca40f4e8d8fbae09d2f264, type: 3}
+  ProfileEmblems:
+  - Profile: {fileID: 11400000, guid: cbe91c227a994748b47cc38b92ad748d, type: 2}
+    Emblem: {fileID: 21300000, guid: a0ff8cfc58511944dbd2dcd39a90e123, type: 3}
+  - Profile: {fileID: 11400000, guid: 7aeb300ae24145d6b18a0ab0800aea96, type: 2}
+    Emblem: {fileID: 21300000, guid: acc98f88999a7214f89d213656d27453, type: 3}
+  - Profile: {fileID: 11400000, guid: 3dde16d1e986414c93eaf2763b5d6427, type: 2}
+    Emblem: {fileID: 21300000, guid: 896048198c97f264f9b0293362617e3a, type: 3}
+  - Profile: {fileID: 11400000, guid: bc3058dc604b46a6ab14e30d8b8d1b08, type: 2}
+    Emblem: {fileID: 21300000, guid: 227b431844a1792409b1170418752c59, type: 3}

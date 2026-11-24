@@ -83,6 +83,7 @@ namespace AntiqueTradingSimulator.Logistics
     public class WarehouseState
     {
         public int CapacityLevel;
-        public int SecurityLevel;
+        // SecurityLevel was removed with the Security upgrade; older saves still carry it and the
+        // loader ignores it (SaveSerializer: MissingMemberHandling.Ignore).
     }
 }
