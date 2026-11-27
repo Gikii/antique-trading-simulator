@@ -7,6 +7,9 @@ using AntiqueTradingSimulator.Economy;
 using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Restoration;
 using AntiqueTradingSimulator.News;
+using AntiqueTradingSimulator.Events;
+using AntiqueTradingSimulator.Dependency;
+
 
 namespace AntiqueTradingSimulator.Agents
 {
@@ -31,6 +34,9 @@ namespace AntiqueTradingSimulator.Agents
         [Header("Reputation (taken from the player's CompanyManager if empty)")]
         [Tooltip("Leave empty so NPCs and the player earn and lose reputation by the same rules.")]
         [SerializeField] private ReputationSettings reputationSettings;
+        [SerializeField] private WarehouseSettings warehouseSettings;
+        [SerializeField] private EventManager eventManager;
+        [SerializeField] private DependencyManager dependencyManager;
 
         private readonly List<NPCTrader> _npcs = new();
         private readonly Dictionary<string, NPCTrader> _npcsById = new();
@@ -51,6 +57,13 @@ namespace AntiqueTradingSimulator.Agents
             {
                 var company = FindFirstObjectByType<CompanyManager>();
                 if (company != null) reputationSettings = company.ReputationSettings;
+            }
+            if (eventManager == null) eventManager = FindFirstObjectByType<Events.EventManager>();
+            if (dependencyManager == null) dependencyManager = FindFirstObjectByType<Dependency.DependencyManager>();
+            if (warehouseSettings == null)
+            {
+                var player = FindFirstObjectByType<PlayerTrader>();
+                if (player != null) warehouseSettings = player.WarehouseSettings;
             }
 
             SpawnInitialNPCs();
@@ -140,8 +153,6 @@ namespace AntiqueTradingSimulator.Agents
             foreach (var npc in _npcs)
                 npc.FlushRemainingSlots(); ;
 
-            // Yesterday's sales become reputation, then today's numbers are written down —
-            // the same end-of-day steps the player's company takes.
             foreach (var npc in _npcs)
                 npc.Record.FlushSales(newWeek - 1);
             RecordSnapshots(newWeek);
@@ -175,6 +186,7 @@ namespace AntiqueTradingSimulator.Agents
         public NPCTrader SpawnNPC(string traderName, string profileId, float? startingCash = null)
         {
             var npc = new NPCTrader(traderName, profileId, startingCash ?? defaultStartingCash, economyManager, contractManager, transportManager, reputationSettings, restorationManager);
+            AttachEnvironment(npc);
             RegisterNPC(npc);
             Debug.Log("Created NPC Trader " + traderName);
             return npc;
@@ -198,6 +210,13 @@ namespace AntiqueTradingSimulator.Agents
         {
             _npcsById.TryGetValue(npcId, out var npc);
             return npc;
+        }
+
+        private void AttachEnvironment(NPCTrader npc)
+        {
+            var profile = npc.Profile;
+            int level = profile != null ? profile.StartingWarehouseLevel : 0;
+            npc.AttachEnvironment(warehouseSettings, level, eventManager, dependencyManager);
         }
 
         private void RegisterNPC(NPCTrader npc)
@@ -241,6 +260,7 @@ namespace AntiqueTradingSimulator.Agents
                 // Starting cash is set to 0. Restoring inventory sets it to the saved value.
                 var npc = new NPCTrader(npcState.TraderName, npcState.ProfileId, 0f,
                     economyManager, contractManager, transportManager, reputationSettings, restorationManager);
+                AttachEnvironment(npc);
 
                 // Before RegisterNPC, which keys everything on the Id this restores.
                 npc.RestoreState(npcState);

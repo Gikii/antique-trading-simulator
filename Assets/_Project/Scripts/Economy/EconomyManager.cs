@@ -60,7 +60,7 @@ namespace AntiqueTradingSimulator.Economy
 
         [Tooltip("Anonymous offers are withdrawn after this many weeks on the market, so it keeps refreshing. 0 = never.")]
         [FormerlySerializedAs("anonymousListingLifetimeDays")]
-        [Min(0)] [SerializeField] private int anonymousListingLifetimeWeeks = 14;
+        [Min(0)][SerializeField] private int anonymousListingLifetimeWeeks = 14;
 
         /// <summary>
         /// Expected new anonymous listings per week, with the current season's effect — the same number
@@ -253,6 +253,23 @@ namespace AntiqueTradingSimulator.Economy
             }
 
             RollCollectorPurchases(newWeek, season.CollectorChance);
+
+            ChargeWeeklyCosts(newWeek);
+        }
+
+        /// <summary>
+        /// Charges warehouse upkeep to every registered trader, so rent is one rule on one curve
+        /// for the player and the NPCs alike. A trader without a warehouse is charged nothing.
+        /// </summary>
+        private void ChargeWeeklyCosts(int week)
+        {
+            float total = 0f;
+
+            for (int i = 0; i < _inventories.Count; i++)
+                total += _inventories[i].ChargeWarehouseUpkeep();
+
+            if (total > 0f)
+                Debug.Log($"EconomyManager: warehouse upkeep {Core.Money.Format(total)} charged on week {week}.");
         }
 
         /// <summary>2.6 → 2 or 3 (3 with a 60% chance), so fractional seasonal counts still average out.</summary>

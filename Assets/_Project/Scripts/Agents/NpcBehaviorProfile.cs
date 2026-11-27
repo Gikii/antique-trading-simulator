@@ -20,7 +20,7 @@ namespace AntiqueTradingSimulator.Agents
     {
         [Header("Identity")]
         [FormerlySerializedAs("Id")]
-        [ReadOnly ,SerializeField] private string id = Guid.NewGuid().ToString("N");
+        [ReadOnly, SerializeField] private string id = Guid.NewGuid().ToString("N");
         public string Id => id;
         public string ProfileName;
 
@@ -73,6 +73,21 @@ namespace AntiqueTradingSimulator.Agents
         [Tooltip("The number of weeks of unspent budget that gets saved between weeeks. 1 means no saving.")]
         [Range(1, 12)] public int BudgetAccrualWeeks = 4;
 
+        [Tooltip("How much of its outlook the trader prices in. 0 = trades on today's value only, 1 = prices it fully.")]
+        [Range(0f, 1f)] public float OutlookWeight = 1f;
+
+        [Tooltip("Share of the week's allowance kept for buying into a believed coming move.")]
+        [Range(0f, 1f)] public float SpeculationBudgetShare = 0.4f;
+
+        [Tooltip("Share of the week's allowance kept for listings that are cheap on their own merits.")]
+        [Range(0f, 1f)] public float BargainBudgetShare = 0.4f;
+
+        [Tooltip("Share of the week's allowance kept for buying pieces to restore.")]
+        [Range(0f, 1f)] public float RestorationBudgetShare = 0.2f;
+
+        [Tooltip("Conviction at which a thesis takes its whole envelope. Smaller = bolder sizing.")]
+        [Min(0.01f)] public float FullConvictionAt = 0.2f;
+
         [Tooltip("Doesn't buy antiques in worse condition than this (contracts set their own minimum).")]
         [Range(0f, 1f)] public float MinConditionToBuy;
 
@@ -102,8 +117,17 @@ namespace AntiqueTradingSimulator.Agents
                  "(and other NPCs and collectors) can buy them.")]
         public bool ListsOnMarket;
 
-        [Tooltip("How often this trader takes the listing market rather than selling instantly, each time a holding becomes sellable.")]
+        [Tooltip("Recorded for the diagnostics only; the disposal reason now decides the channel.")]
         [Range(0f, 1f)] public float ListingChance = 1f;
+
+        [Tooltip("How the asking price answers the rest of the board: hold its own price, undercut the cheapest rival, or settle near the middle.")]
+        public PricingStance Stance = PricingStance.HoldLine;
+
+        [Tooltip("Weeks a holding below its stop stays listed before it is sold to the market instead.")]
+        [Min(0)] public int PanicSellAfterWeeks = 2;
+
+        [Tooltip("Weeks before a believed move fades that the trader starts listing into it.")]
+        [Min(0)] public int ExitLeadWeeks = 1;
 
         [Tooltip("Asking price = current value × this (never below cost × the profit target in use).")]
         [Min(1f)] public float ListingMarkup = 1.15f;
@@ -119,9 +143,7 @@ namespace AntiqueTradingSimulator.Agents
         [Min(1)] public int RelistAfterWeeks = 5;
 
         [Header("Seasons")]
-        [Tooltip("How much of the expected seasonal price change the NPC prices in: 0 = ignores the calendar, " +
-                 "1 = fully. A far-sighted trader pays more for a type whose season is coming, holds it until the " +
-                 "season peaks and sells before it ends.")]
+        [Tooltip("How much of the expected seasonal price change the NPC prices in: 0 = ignores the calendar, 1 = fully.")]
         [Range(0f, 1f)] public float SeasonalForesight;
 
         [Tooltip("How many weeks ahead the NPC looks when judging the season.")]
@@ -129,14 +151,19 @@ namespace AntiqueTradingSimulator.Agents
         [Min(0)] public int SeasonalHorizonWeeks = 8;
 
         [Header("Trend following")]
-        [Tooltip("How much of the recent price trend (seasons removed) the NPC expects to continue: 0 = ignores it " +
-                 "(a fundamentalist), 1 = expects the last weeks' change to repeat. A trend follower pays more and " +
-                 "holds longer while prices rise, and sells sooner (even at a loss) while they fall.")]
+        [Tooltip("How much of the recent price trend the NPC expects to continue: 0 = ignores it, 1 = expects the last weeks' change to repeat.")]
         [Range(0f, 2f)] public float TrendSensitivity;
         [Tooltip("How many weeks back the NPC looks to judge the trend.")]
         [Min(1)] public int TrendWindowWeeks = 8;
         [Tooltip("Largest change in value the trend can make, either way. 0.25 = at most ±25%.")]
         [Range(0f, 1f)] public float MaxTrendBoost = 0.15f;
+
+        [Header("Warehouse")]
+        [Tooltip("Capacity level the trader starts at, on the same WarehouseSettings curve the player pays.")]
+        [Min(0)] public int StartingWarehouseLevel = 1;
+
+        [Tooltip("Cash paid in every week (£). For a collector that never sells and still pays rent. 0 = none.")]
+        [Min(0f)] public float WeeklyEndowment;
 
         [Header("Contracts")]
         [Tooltip("Takes delivery contracts from the board. Contracts already taken are finished either way.")]

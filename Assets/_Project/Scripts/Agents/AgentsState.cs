@@ -22,7 +22,6 @@ namespace AntiqueTradingSimulator.Agents
 
         public List<string> CommittedContractIds = new List<string>();
 
-        /// <summary>Reputation, contract counts and daily history. Null in saves from before NPC records.</summary>
         public TraderRecordState Record;
 
         public int PlanWeek;
@@ -45,6 +44,36 @@ namespace AntiqueTradingSimulator.Agents
         public int RumourClaimWeek;
         public int RumourDumpWeek;
         public List<NewsEventData> RumourExitScope;
+
+        public List<BeliefState> Beliefs = new List<BeliefState>();
+
+        public List<MagnitudeEntryState> MagnitudeMemory = new List<MagnitudeEntryState>();
+    }
+
+    public class BeliefState
+    {
+        public string NewsId;
+        public string OfficialName;
+        public NewsEventData Facet;
+        public int Direction;
+        public float EstimatedMove;
+        public float Spread;
+        public int StartWeek;
+        public int EndWeek;
+        public float Trust;
+        public int HeardWeek;
+        public int Source;
+        public bool Checked;
+        public bool Learned;
+        public float PriceAtStart;
+    }
+
+    public class MagnitudeEntryState
+    {
+        public string OfficialName;
+        public float Mean;
+        public float Spread;
+        public int Observations;
     }
 
     public class AcquisitionState
@@ -67,6 +96,14 @@ namespace AntiqueTradingSimulator.Agents
         public float ExitAskingPrice;
         public int DumpAfterWeek;
         public int OfferedSinceWeek;
+
+        public float EntryOutlook;
+        public int ExpectedPeakWeek;
+        public int ExpectedFadeWeek;
+        public float TargetPrice;
+        public float StopPrice;
+        public string[] BasedOnNewsIds;
+        public int DistressSince;
     }
 
     public class PendingReactionState

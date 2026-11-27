@@ -656,20 +656,20 @@ namespace AntiqueTradingSimulator.Diagnostics
             view.Declined.Add(tier);
         }
 
-        /// <summary>Position in NPCTrader's priority ladder. Lower is higher priority.</summary>
+        /// <summary>Order the week's intentions are attempted in. Lower goes first.</summary>
         public static int TierRank(string tier) => tier switch
         {
-            "TierContractRescue" => 0,
-            "TierExecutePlans" => 1,
-            "TierRumourExit" => 2,
-            "TierDamageControl" => 3,
-            "TierNewsBuy" => 4,
-            "TierContractWork" => 5,
-            "TierReviewHoldings" => 6,
-            "TierTakeContract" => 7,
-            "TierPlantRumour" => 8,
-            "TierRestoreStock" => 9,
-            "TierBrowseMarket" => 10,
+            "FillContract" => 0,
+            "ExecutePlan" => 1,
+            "RaiseCash" => 2,
+            "FreeSpace" => 3,
+            "ExitPosition" => 4,
+            "TakeContract" => 5,
+            "OpenPosition" => 6,
+            "TakeBargain" => 7,
+            "SendToWorkshop" => 8,
+            "Invest" => 9,
+            "PlantRumour" => 10,
             _ => -1
         };
 

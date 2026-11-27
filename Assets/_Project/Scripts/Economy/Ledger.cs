@@ -12,6 +12,7 @@ namespace AntiqueTradingSimulator.Economy
     public enum LedgerCategory
     {
         Sale,         // antique sold on the market (instant sale or own listing, gross price)
+        DistressSale, // antique sold to the market at the instant price, after the spread
         Contract,     // contract reward
         Auction,      // proceeds of selling at auction (winning a lot is a Purchase + Commission)
         Purchase,     // antique bought on the market (price only)
@@ -31,12 +32,14 @@ namespace AntiqueTradingSimulator.Economy
         /// <summary>Counts toward market trading volume (used for market share).</summary>
         public static bool IsTrade(this LedgerCategory category) =>
             category == LedgerCategory.Sale ||
+            category == LedgerCategory.DistressSale ||
             category == LedgerCategory.Purchase ||
             category == LedgerCategory.Auction;
 
         public static string DisplayName(this LedgerCategory category) => category switch
         {
             LedgerCategory.Sale => "Sales (Market)",
+            LedgerCategory.DistressSale => "Sales (to the market)",
             LedgerCategory.Contract => "Contracts",
             LedgerCategory.Auction => "Auctions",
             LedgerCategory.Purchase => "Purchases (Market)",

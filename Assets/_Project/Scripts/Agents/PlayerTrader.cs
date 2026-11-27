@@ -20,6 +20,7 @@ namespace AntiqueTradingSimulator.Agents
 
         [Header("Warehouse")]
         [SerializeField] private WarehouseSettings warehouseSettings;
+        public WarehouseSettings WarehouseSettings => warehouseSettings;
         [SerializeField] private int startingCapacityLevel = 0;
 
         private Core.TimeManager _timeManager;
@@ -46,10 +47,14 @@ namespace AntiqueTradingSimulator.Agents
 
         public int Reputation => Company != null ? Company.Reputation.Reputation : 0;
 
+        public TraderWorldView WorldView { get; private set; }
+
         public override void ReceiveNews(News.NewsItem news, int deliveryWeek)
         {
             if (news == null) return;
             news.PlayerDeliveryWeek = deliveryWeek;
+
+            WorldView?.Add(news, deliveryWeek, 1f, null);
         }
 
         // Contract lifecycle from the player's point of view — CompanyManager turns these
@@ -79,6 +84,10 @@ namespace AntiqueTradingSimulator.Agents
                 warehouseSettings = ScriptableObject.CreateInstance<WarehouseSettings>();
             }
             Inventory.AttachWarehouse(new Warehouse(warehouseSettings, startingCapacityLevel));
+
+            WorldView = new TraderWorldView(Antique.PlayerOwnerId, economyManager,
+                FindFirstObjectByType<Events.EventManager>(),
+                FindFirstObjectByType<Dependency.DependencyManager>());
 
             // After the warehouse is attached: CompanyManager reads it for the upgrades.
             Company = GetComponent<CompanyManager>();
@@ -121,9 +130,11 @@ namespace AntiqueTradingSimulator.Agents
             // Safety net: nothing the player committed to should outlive its contract.
             ReleaseClosedContracts();
 
-            float upkeep = Inventory.ChargeWarehouseUpkeep();
+            /*float upkeep = Inventory.ChargeWarehouseUpkeep();
             if (upkeep > 0f)
-                Debug.Log($"PlayerTrader: warehouse upkeep {Core.Money.Format(upkeep)} charged on week {newWeek}. Cash: {Core.Money.Format(Inventory.Cash)}");
+                Debug.Log($"PlayerTrader: warehouse upkeep {Core.Money.Format(upkeep)} charged on week {newWeek}. Cash: {Core.Money.Format(Inventory.Cash)}")*/
+
+            WorldView?.AdvanceWeek(newWeek);
         }
 
         public bool UpgradeWarehouseCapacity() => Inventory.TryUpgradeWarehouseCapacity();

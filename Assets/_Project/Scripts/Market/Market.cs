@@ -31,6 +31,19 @@ namespace AntiqueTradingSimulator.Market
             Core.Money.RoundToShilling(Mathf.Max(0f, askingPrice) * ListingFeeRate);
         public static float ListingProceeds(float askingPrice) => Mathf.Max(0f, askingPrice) - ListingFee(askingPrice);
 
+        /// <summary>
+        /// What the market keeps when a seller takes the instant price instead of listing. The
+        /// market buys at wholesale, so an instant sale is always worse than a patient listing.
+        /// </summary>
+        public static float InstantSaleSpread = 0.15f;
+
+        /// <summary>
+        /// What a seller receives for an instant sale at this price. The single definition of the
+        /// spread: the preview and the charge both go through it, for every trader alike.
+        /// </summary>
+        public static float InstantSaleProceeds(float postPressurePrice) =>
+            Core.Money.RoundToShilling(Mathf.Max(0f, postPressurePrice) * (1f - Mathf.Clamp01(InstantSaleSpread)));
+
         // Where anonymous sellers of newly generated listings are located, relative to the
         // buyer. Determines transport cost and time (TransportManager). Sum doesn't need to be 1.
         public const float LocalListingWeight = 0.30f;
@@ -94,6 +107,49 @@ namespace AntiqueTradingSimulator.Market
 
             return OwnTrendWeight * typeState.PriceTrend(windowWeeks) +
                    (1f - OwnTrendWeight) * CategoryTrend(definition.Type, windowWeeks);
+        }
+
+        // ---------------------------------------------------------------- rival asking prices
+
+        /// <summary>
+        /// Cheapest asking price on the board for this type, ignoring one listing. 0 when it is
+        /// the only one. Lets a seller price against the rest of the board.
+        /// </summary>
+        public float LowestAskFor(string definitionId, string excludeAntiqueId)
+        {
+            float lowest = 0f;
+
+            for (int i = 0; i < _listings.Count; i++)
+            {
+                var listing = _listings[i];
+                if (listing == null || listing.DefinitionId != definitionId) continue;
+                if (!listing.IsListedForSale || listing.Id == excludeAntiqueId) continue;
+
+                if (lowest <= 0f || listing.AskingPrice < lowest) lowest = listing.AskingPrice;
+            }
+
+            return lowest;
+        }
+
+        /// <summary>Middle asking price on the board for this type, ignoring one listing. 0 when none.</summary>
+        public float MedianAskFor(string definitionId, string excludeAntiqueId)
+        {
+            var asks = new List<float>();
+
+            for (int i = 0; i < _listings.Count; i++)
+            {
+                var listing = _listings[i];
+                if (listing == null || listing.DefinitionId != definitionId) continue;
+                if (!listing.IsListedForSale || listing.Id == excludeAntiqueId) continue;
+
+                asks.Add(listing.AskingPrice);
+            }
+
+            if (asks.Count == 0) return 0f;
+
+            asks.Sort();
+            int middle = asks.Count / 2;
+            return asks.Count % 2 == 1 ? asks[middle] : 0.5f * (asks[middle - 1] + asks[middle]);
         }
 
         /// <summary>Average PriceTrend of every registered antique type in a category.</summary>
@@ -268,7 +324,7 @@ namespace AntiqueTradingSimulator.Market
             return _listings.Select(l => l.Century).Distinct().OrderBy(c => (int)c).ToList();
         }
 
-        public  List<Country> GetAvailableCountries()
+        public List<Country> GetAvailableCountries()
         {
             return _listings.Select(l => l.Country).Distinct().OrderBy(c => c.ToString()).ToList();
         }
@@ -584,8 +640,8 @@ namespace AntiqueTradingSimulator.Market
             ApplySellPressure(listing.DefinitionId);
             AddListing(listing, currentWeek);
 
-            // CurrentPrice after relisting is what the seller is paid (TraderInventory.Sell).
-            Feed.AddSoldToMarket(listing.Name, sellerId, listing.CurrentPrice);
+            // The seller is paid the proceeds, not the gross price, so the feed shows the same.
+            Feed.AddSoldToMarket(listing.Name, sellerId, InstantSaleProceeds(listing.CurrentPrice));
         }
 
         /// <summary>
@@ -604,9 +660,9 @@ namespace AntiqueTradingSimulator.Market
             float demand = typeState.Demand;
             try
             {
-                // Same pressure Sell() applies.
+                // Same pressure and the same spread the charge applies.
                 ApplySellPressure(antique.DefinitionId, false);
-                return PriceEngine.CalculatePrice(antique, typeState);
+                return InstantSaleProceeds(PriceEngine.CalculatePrice(antique, typeState));
             }
             finally
             {

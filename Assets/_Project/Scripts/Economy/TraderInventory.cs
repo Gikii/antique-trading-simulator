@@ -354,9 +354,17 @@ namespace AntiqueTradingSimulator.Economy
             _holdings.Remove(listingId);
             listing.ClearAcquisition();
             market.Sell(listing, currentWeek);
-            SetCash(Cash + listing.CurrentPrice);
+
+            float gross = listing.CurrentPrice;
+            float proceeds = Market.Market.InstantSaleProceeds(gross);
+
+            SetCash(Cash + proceeds);
             RememberWeek(currentWeek);
             Record(LedgerCategory.Sale, listing.CurrentPrice, $"Sold \"{listing.Name}\" (instant sale)");
+
+            float spread = Core.Money.RoundToShilling(Mathf.Max(0f, gross - proceeds));
+            if (spread > 0f)
+                Record(LedgerCategory.Commission, -spread, $"Market spread on \"{listing.Name}\"");
 
             OnCashChanged?.Invoke(Cash);
             OnHoldingChanged?.Invoke(listingId, null);

@@ -45289,7 +45289,7 @@ MonoBehaviour:
   maxDurationWeeks: 10
   pairedRequirementChance: 0.35
   minTypesForPair: 2
-  supplyShareForContract: 0.5
+  supplyShareForContract: 0.8
   maxGenerationAttempts: 8
   maxCostOverValueFloor: 2
   demandPerRequestedPiece: 0.25
@@ -45299,6 +45299,7 @@ MonoBehaviour:
   maxUrgencyBonusMultiplier: 1.5
   deliverySafetyWeeks: 1
   priceRewardFromMarketStock: 1
+  rewardFloorOverMarketCost: 1.1
   standardMinTier: 50
   standardMaxTier: 90
   standardMinValueRank: 0
@@ -45375,6 +45376,9 @@ MonoBehaviour:
   - novice
   defaultStartingCash: 135
   reputationSettings: {fileID: 0}
+  warehouseSettings: {fileID: 0}
+  eventManager: {fileID: 0}
+  dependencyManager: {fileID: 0}
 --- !u!114 &398503190
 MonoBehaviour:
   m_ObjectHideFlags: 0

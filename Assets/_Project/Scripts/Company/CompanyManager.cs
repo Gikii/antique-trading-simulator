@@ -71,13 +71,13 @@ namespace AntiqueTradingSimulator.Company
         [Header("New game")]
         [Tooltip("Information Network level at the start of a new game (1 = Local Press). Handy for testing " +
                  "news access; the level is saved with the other upgrades, so a loaded game overrides this.")]
-        [Range(1, 5)] [SerializeField] private int startingInformationNetworkLevel = 1;
+        [Range(1, 5)][SerializeField] private int startingInformationNetworkLevel = 1;
 
         [Header("History")]
         [Tooltip("Weekly snapshots kept for charts, trends and the end screen. Keep it ≥ the campaign length " +
                  "so the end screen can chart the whole campaign.")]
         [FormerlySerializedAs("maxSnapshotDays")]
-        [Min(8)] [SerializeField] private int maxSnapshotWeeks = 160;
+        [Min(8)][SerializeField] private int maxSnapshotWeeks = 160;
 
         private PlayerTrader _player;
         private TimeManager _timeManager;
@@ -329,6 +329,7 @@ namespace AntiqueTradingSimulator.Company
 
         private void HandleLedgerEntry(LedgerEntry entry)
         {
+            // Only a sale the trader waited for earns reputation; a dump to the market does not.
             if (entry.Category == LedgerCategory.Sale)
                 Record.RecordSale(entry.Amount);
         }
