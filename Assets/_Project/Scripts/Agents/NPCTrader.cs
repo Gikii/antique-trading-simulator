@@ -137,6 +137,7 @@ namespace AntiqueTradingSimulator.Agents
         private float _planReserve;
         private int _contractSlotsUsed;
         private int _lastObligationTick = -1;
+        private int _lastListingRevisionWeek = -1;
         private System.Random _rng;
 
         private readonly List<Contract> _contractScratch = new();
@@ -869,9 +870,18 @@ namespace AntiqueTradingSimulator.Agents
             if (stale != null) Inventory.CancelListing(_economyManager.Market, stale);
         }
 
+        private float MinListingMultiplierFor(NpcBehaviorProfile profile)
+        {
+            float feeRate = Mathf.Clamp01(Inventory.Modifiers.ListingFeeRate);
+            float breakEven = feeRate < 1f ? 1f / (1f - feeRate) : 1f;
+            return Mathf.Max(Mathf.Max(1f, profile.MinListingMultiplier), breakEven);
+        }
+
         private void ReviseStaleListings(int week, NpcBehaviorProfile profile)
         {
             if (!profile.ListsOnMarket) return;
+            if (_lastListingRevisionWeek == week) return;
+            _lastListingRevisionWeek = week;
 
             float cut = Mathf.Clamp01(profile.ListingPriceCutPerWeek);
             int relistAfter = Mathf.Max(1, profile.RelistAfterWeeks);
@@ -886,7 +896,7 @@ namespace AntiqueTradingSimulator.Agents
 
                 if (cut > 0f)
                 {
-                    float floor = holding.CurrentPrice * Mathf.Max(1f, profile.MinListingMultiplier);
+                    float floor = holding.CurrentPrice * MinListingMultiplierFor(profile);
                     float marked = Core.Money.RoundToShilling(Mathf.Max(floor, holding.AskingPrice * (1f - cut)));
 
                     if (marked < holding.AskingPrice - 0.01f)
@@ -2335,6 +2345,7 @@ namespace AntiqueTradingSimulator.Agents
                 CommittedContractIds = new List<string>(Inventory.CommittedContractIds),
                 Record = Record.CaptureState(),
                 PlanWeek = _planWeek,
+                ListingRevisionWeek = _lastListingRevisionWeek,
                 BudgetWeek = _budgetWeek,
                 SlotTicks = new List<int>(_slotTicks),
                 WeekBudget = _weekBudget,
@@ -2438,6 +2449,7 @@ namespace AntiqueTradingSimulator.Agents
             _contractSlotsUsed = state.ContractSlotsUsed;
             _rumourDumpWeek = state.RumourDumpWeek > 0 ? state.RumourDumpWeek : _rumourExitWeek;
             _lastObligationTick = -1;
+            _lastListingRevisionWeek = state.ListingRevisionWeek > 0 ? state.ListingRevisionWeek : -1;
             _rng = new System.Random(SeedFor(Mathf.Max(1, _planWeek)));
 
             _slotTicks.Clear();
