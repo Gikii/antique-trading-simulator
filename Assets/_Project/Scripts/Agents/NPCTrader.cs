@@ -25,7 +25,7 @@ namespace AntiqueTradingSimulator.Agents
     /// serializable for save/load. Plain C# on purpose: NPCs have no scene presence.
     /// </summary>
     [Serializable]
-    public class NPCTrader : IInformationReceiver, IRestorationClient
+    public partial class NPCTrader : IInformationReceiver, IRestorationClient
     {
         public string Id { get; private set; }
         public string ProfileId { get; }
@@ -37,8 +37,9 @@ namespace AntiqueTradingSimulator.Agents
         private readonly TransportManager _transportManager;
         private readonly RestorationManager _restorationManager;
 
-        // NPCs always ship with the standard service.
+        /// <summary>The service a trader falls back to when it cannot quote, and the contract default.</summary>
         private const TransportOption NpcTransportOption = TransportOption.Standard;
+
         private NpcBehaviorProfile _profileCache;
         public NpcBehaviorProfile Profile => _profileCache ??= NpcProfileDatabase.GetById(ProfileId);
 
@@ -48,12 +49,20 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>The decision rules this trader and the telemetry mirrors both read.</summary>
         private static readonly TraderPolicy Policy = TraderPolicy.Default;
 
-        /// <summary>Weeks a believed news item is kept on the record after its reaction week.</summary>
-        private const int NewsActionWindowWeeks = 2;
+        /// <summary>
+        /// Most pieces one buying intention may take in a week, so a cheap type with a strong view
+        /// cannot be cornered in a single slot.
+        /// </summary>
+        private const int MaxPiecesPerPosition = 4;
 
-        private const float ExclusiveMinProfitShare = 0.15f;
-        private const float ContractRiskPremium = 0.35f;
-        private const float ReserveSafetyMargin = 1.25f;
+        /// <summary>Kinds of source a trader keeps a standing opinion of; BeliefSource's member count.</summary>
+        private const int BeliefSourceCount = 4;
+
+        // The six shared decision constants, read off Policy so the agents, the mirrors and the
+        // contract recorder all judge a trade by one set of rules.
+        private static float ExclusiveMinProfitShare => Policy.ExclusiveMinProfitShare;
+        private static float ContractRiskPremium => Policy.ContractRiskPremium;
+        private static float ReserveSafetyMargin => Policy.ReserveSafetyMargin;
 
         private const float ConditionEpsilon = 0.005f;
 
@@ -73,12 +82,6 @@ namespace AntiqueTradingSimulator.Agents
         private const int DefaultBudgetAccrualWeeks = 4;
 
         public float ActivityScale { get; set; } = 1f;
-
-        private struct PendingReaction
-        {
-            public NewsItem News;
-            public int ReactionWeek;
-        }
 
         private readonly struct Offer
         {
@@ -107,13 +110,23 @@ namespace AntiqueTradingSimulator.Agents
             public bool NeedsRestoration => !string.IsNullOrEmpty(RestorationOptionId);
         }
 
-        private readonly List<PendingReaction> _pendingReactions = new();
-
         /// <summary>Everything this trader believes about where prices are going.</summary>
         public TraderWorldView WorldView { get; private set; }
 
         /// <summary>This week's intentions, built by Review and spent by the action slots.</summary>
         private readonly TraderAgenda _agenda = new();
+
+        /// <summary>
+        /// The week's intentions, for the diagnostics. Read on the week change, when the slots are
+        /// spent and the next Review has not yet cleared it.
+        /// </summary>
+        public IReadOnlyList<AgendaItem> Agenda => _agenda.Items;
+
+        /// <summary>The position behind one held antique, or null. Read-only; for the diagnostics.</summary>
+        public Position PositionFor(string antiqueId) => PlanFor(antiqueId);
+
+        /// <summary>Every antique this trader holds a position on, for the one-position invariant check.</summary>
+        public IEnumerable<string> PositionAntiqueIds => _plans.Keys;
 
         /// <summary>What is left of the week's allowance, per reason for spending it.</summary>
         private float _speculationBudget;
@@ -123,17 +136,14 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>Cash the week's committed costs are short of; 0 when there is none.</summary>
         private float _cashShortfall;
 
-        /// <summary>Scope of the rumour this NPC planted, to sell into. Empty when it has none running.</summary>
-        private readonly List<NewsEventData> _rumourExitScope = new();
+        /// <summary>
+        /// Types already given a buying intention this week. A set, because the market's listings
+        /// are in insertion order rather than grouped by type.
+        /// </summary>
+        private readonly HashSet<string> _seenDefinitions = new HashSet<string>(System.StringComparer.Ordinal);
 
-        /// <summary>First week to start selling into its own rumour; -1 = no rumour running.</summary>
-        private int _rumourExitWeek = -1;
-
-        /// <summary>The rumour's claimed week: selling after it is pointless, the hangover has landed.</summary>
-        private int _rumourClaimWeek = -1;
-
-        /// <summary>First week the exit stops asking its price and sells to the market; -1 = no rumour running.</summary>
-        private int _rumourDumpWeek = -1;
+        /// <summary>Scratch list for matching a planted rumour's scopes against the holdings.</summary>
+        private readonly List<NewsEventData> _scopeScratch = new();
 
         /// <summary>Set once a week by the review when the profile's roll comes up; spent by a slot.</summary>
         private bool _mayPlantRumour;
@@ -243,7 +253,7 @@ namespace AntiqueTradingSimulator.Agents
             while (_slotTicks.Count > 0 && _slotTicks[0] <= tick)
             {
                 _slotTicks.RemoveAt(0);
-                RunOneBudgetedAction(week, profile);
+                RunOneBudgetedAction(week, tick, profile);
             }
         }
 
@@ -254,8 +264,9 @@ namespace AntiqueTradingSimulator.Agents
 
             while (_slotTicks.Count > 0)
             {
+                int tick = _slotTicks[0];
                 _slotTicks.RemoveAt(0);
-                RunOneBudgetedAction(_planWeek, profile);
+                RunOneBudgetedAction(_planWeek, tick, profile);
             }
         }
 
@@ -287,8 +298,6 @@ namespace AntiqueTradingSimulator.Agents
             PayEndowment(profile);
 
             DropInactiveContracts();
-            DropExpiredReactions(week);
-            DropFinishedRumourExit(week);
             DropDeadPlans(week);
 
             _mayPlantRumour = profile.RumourPlantChance > 0f && !profile.NeverSells &&
@@ -424,15 +433,27 @@ namespace AntiqueTradingSimulator.Agents
                 if (taken[t]) _slotTicks.Add(t);
         }
 
-        private int SeedFor(int week)
+        private int SeedFor(int week) => Fnv1a(Id ?? TraderName ?? "npc") ^ (week * 397);
+
+        /// <summary>
+        /// The stream for judging one news item, seeded from the trader, the item and the week, so
+        /// the verdict is a pure function of the three whatever order items arrive in.
+        /// </summary>
+        private System.Random ReceptionRng(string newsId, int deliveryWeek) =>
+            new System.Random(Fnv1a(Id ?? TraderName ?? "npc") ^ Fnv1a(newsId) ^ (deliveryWeek * 397));
+
+        /// <summary>FNV-1a, which is stable across runs and platforms where GetHashCode is not.</summary>
+        private static int Fnv1a(string text)
         {
             unchecked
             {
                 int hash = (int)2166136261;
-                string id = Id ?? TraderName ?? "npc";
-                for (int i = 0; i < id.Length; i++)
-                    hash = (hash ^ id[i]) * 16777619;
-                return hash ^ (week * 397);
+                if (text == null) return hash;
+
+                for (int i = 0; i < text.Length; i++)
+                    hash = (hash ^ text[i]) * 16777619;
+
+                return hash;
             }
         }
 
@@ -516,8 +537,8 @@ namespace AntiqueTradingSimulator.Agents
                     if (contract == null || contract.Status != ContractStatus.Active) plan.FallBackToResale();
                 }
 
-                if (plan.Purpose == PlanPurpose.RumourExit && (_rumourExitWeek < 0 || week >= _rumourClaimWeek))
-                    plan.FallBackToResale();
+                // RumourExit is a retired purpose: anything carrying it falls back to plain stock.
+                if (plan.Purpose == PlanPurpose.RumourExit) plan.FallBackToResale();
 
                 if (plan.HasRestorationLeg && week > plan.StartRestoreByWeek && !IsRestoring(pair.Key))
                     plan.ClearRestorationLeg();
@@ -549,208 +570,6 @@ namespace AntiqueTradingSimulator.Agents
             return Core.Money.RoundToShilling(reserve);
         }
 
-        // ---------------------------------------------------------------- restoration bar
-
-        /// <summary>A workshop worth sending one antique to, and what that is worth per week.</summary>
-        private readonly struct RestorationLeg
-        {
-            public readonly RestorationOption Option;
-            public readonly float Fee;
-            public readonly int Weeks;
-            /// <summary>Risk-adjusted value the antique is worth on its return, at today's prices.</summary>
-            public readonly float ExpectedValue;
-            public readonly float WeeklyReturn;
-
-            public RestorationLeg(RestorationOption option, float fee, int weeks, float expectedValue, float weeklyReturn)
-            {
-                Option = option;
-                Fee = fee;
-                Weeks = weeks;
-                ExpectedValue = expectedValue;
-                WeeklyReturn = weeklyReturn;
-            }
-
-            public bool Exists => Option != null;
-        }
-
-        /// <summary>How long this trader usually holds a piece before selling it.</summary>
-        private int HoldWeeks(NpcBehaviorProfile profile) =>
-            profile.PatientSellAfterWeeks > 0 ? profile.PatientSellAfterWeeks : Mathf.Max(1, profile.MinHoldingWeeksBeforeSell);
-
-        /// <summary>
-        /// The return per week this trader expects of its own capital: its profit target over its
-        /// usual hold. A collector that never sells has no such target, so adding value is enough.
-        /// </summary>
-        private float TargetWeeklyReturn(NpcBehaviorProfile profile) =>
-            profile.NeverSells ? 0f : Mathf.Max(0f, profile.ProfitTargetMultiplier - 1f) / HoldWeeks(profile);
-
-        /// <summary>
-        /// What the antique is worth at a condition, with the profile's condition premium and season,
-        /// rounded as the market would price it — so a gain too small to show is read as no gain.
-        /// </summary>
-        private float ValueAtCondition(Antique antique, float perfectValue, float condition, NpcBehaviorProfile profile) =>
-            Core.Money.RoundToShilling(perfectValue * condition
-                * (1f + profile.ConditionPremium * Mathf.Max(0f, condition - 0.5f))
-                * (1f + SeasonalOutlook(antique.DefinitionId, profile)));
-
-        /// <summary>
-        /// What one workshop is worth for one antique: the value it is expected to add, less the fee,
-        /// the downside the profile fears and the upkeep, over the capital and weeks it ties up.
-        /// </summary>
-        private RestorationLeg EvaluateLeg(Antique antique, RestorationQuote quote, NpcBehaviorProfile profile, int delayWeeks)
-        {
-            var option = quote.Option;
-            float perfectValue = quote.StartCondition > 0f ? antique.CurrentPrice / quote.StartCondition : 0f;
-            if (perfectValue <= 0f) return default;
-
-            float averageFailure = Mathf.Max(quote.WorstCondition,
-                quote.StartCondition - (option.FailureLossMin + option.FailureLossMax) * 0.5f);
-
-            float valueNow = ValueAtCondition(antique, perfectValue, quote.StartCondition, profile);
-            float expected =
-                option.SuccessChance * ValueAtCondition(antique, perfectValue, quote.TargetCondition, profile) +
-                option.PartialChance * ValueAtCondition(antique, perfectValue, quote.PartialCondition, profile) +
-                option.FailureChance * ValueAtCondition(antique, perfectValue, averageFailure, profile);
-
-            expected -= (1f - profile.RiskTolerance) * option.FailureChance
-                        * Mathf.Max(0f, valueNow - ValueAtCondition(antique, perfectValue, quote.WorstCondition, profile));
-
-            int weeks = Mathf.Max(1, quote.DurationWeeks + Mathf.Max(0, delayWeeks));
-            float capital = quote.Cost + valueNow;
-            if (capital <= 0f) return default;
-
-            float weekly = (expected - valueNow - quote.Cost - weeks * MarginalUpkeepPerItem()) / (capital * weeks);
-            return new RestorationLeg(option, quote.Cost, quote.DurationWeeks, expected, weekly);
-        }
-
-        /// <summary>
-        /// Best workshop for an antique, by risk-adjusted return per pound per week. The cheap gates
-        /// run first so a quote is only built for workshops that could take the job.
-        /// </summary>
-        private RestorationLeg BestLegFor(Antique antique, NpcBehaviorProfile profile, bool owned, int delayWeeks, float barWeeklyReturn)
-        {
-            if (antique == null || _restorationManager == null || !profile.Restores) return default;
-            if (OpenRestorationCount() >= profile.MaxConcurrentRestorations) return default;
-
-            int reputation = Record.Reputation.Reputation;
-            RestorationLeg best = default;
-
-            foreach (var option in _restorationManager.Options)
-            {
-                if (option == null || option.RequiredReputation > reputation) continue;
-                if (option.TargetCondition <= antique.Condition + ConditionEpsilon) continue;
-
-                var quote = owned
-                    ? _restorationManager.Quote(this, antique, option)
-                    : _restorationManager.QuoteProspective(this, antique, option);
-                if (quote == null) continue;
-                if (owned && !quote.CanStart) continue;
-                if (quote.DurationWeeks > profile.MaxRestorationWeeks) continue;
-                if (!Core.Money.Covers(Inventory.Cash * profile.MaxRestorationShareOfCash, quote.Cost)) continue;
-                if (!PassesCashFloor(quote.Cost)) continue;
-
-                var leg = EvaluateLeg(antique, quote, profile, delayWeeks);
-                if (!leg.Exists || leg.WeeklyReturn <= 0f || leg.WeeklyReturn < barWeeklyReturn) continue;
-
-                if (!best.Exists || leg.WeeklyReturn > best.WeeklyReturn) best = leg;
-            }
-
-            return best;
-        }
-
-        /// <summary>Return per pound per week of buying a listing, restoring it and holding it to sell.</summary>
-        private float BuyAndRestoreWeeklyReturn(float buyCost, RestorationLeg leg, NpcBehaviorProfile profile)
-        {
-            int weeks = Mathf.Max(1, leg.Weeks + HoldWeeks(profile));
-            float capital = buyCost + leg.Fee;
-            if (capital <= 0f) return 0f;
-
-            return (leg.ExpectedValue - capital - weeks * MarginalUpkeepPerItem()) / (capital * weeks);
-        }
-
-        /// <summary>Return per pound per week of buying a listing and selling it on as it stands.</summary>
-        private float BuyAsIsWeeklyReturn(Antique listing, float cost, NpcBehaviorProfile profile) =>
-            cost > 0f ? BargainScore(listing, cost, profile) / HoldWeeks(profile) : 0f;
-
-        /// <summary>Highest condition any workshop this NPC may use can reach.</summary>
-        private float BestAchievableCondition()
-        {
-            if (_restorationManager == null) return 0f;
-
-            float best = 0f;
-            int reputation = Record.Reputation.Reputation;
-            foreach (var option in _restorationManager.Options)
-                if (option != null && option.RequiredReputation <= reputation)
-                    best = Mathf.Max(best, option.TargetCondition);
-
-            return best;
-        }
-
-        /// <summary>
-        /// A listing the NPC would buy in order to restore: below its condition floor is allowed when
-        /// a workshop can bring it back over.
-        /// </summary>
-        private bool CanConsiderForRestoration(Antique listing, NpcBehaviorProfile profile)
-        {
-            if (listing == null || Inventory.Owns(listing.Id)) return false;
-            if (listing.Condition >= profile.MinConditionToBuy) return true;
-            return BestAchievableCondition() >= profile.MinConditionToBuy;
-        }
-
-        /// <summary>Chance a finished restoration leaves the antique meeting a contract's requirement.</summary>
-        private static float RestorationConfidence(ContractRequirement requirement, Antique antique, RestorationQuote quote)
-        {
-            var option = quote.Option;
-            float confidence = 0f;
-
-            if (requirement.IsSatisfiedAt(antique, quote.TargetCondition)) confidence += option.SuccessChance;
-            if (requirement.IsSatisfiedAt(antique, quote.PartialCondition)) confidence += option.PartialChance;
-            if (requirement.IsSatisfiedAt(antique, quote.WorstCondition)) confidence += option.FailureChance;
-
-            return confidence;
-        }
-
-        /// <summary>How sure of the outcome the profile has to be before it restores for a contract.</summary>
-        private static float RequiredConfidence(NpcBehaviorProfile profile) =>
-            Mathf.Lerp(0.95f, 0.60f, profile.RiskTolerance);
-
-        /// <summary>
-        /// Cheapest workshop that would bring an antique up to a contract's requirement, in time from
-        /// <paramref name="fromWeek"/> and with enough confidence for the profile. Null if none would.
-        /// </summary>
-        private RestorationQuote BestContractQuote(Contract contract, Antique antique, int fromWeek, NpcBehaviorProfile profile, bool owned)
-        {
-            if (_restorationManager == null || !profile.Restores || !profile.RestoresForContracts) return null;
-            if (OpenRestorationCount() >= profile.MaxConcurrentRestorations) return null;
-
-            int latestArrival = LatestUsefulArrivalWeek(contract);
-            int reputation = Record.Reputation.Reputation;
-            float required = RequiredConfidence(profile);
-            RestorationQuote best = null;
-
-            foreach (var option in _restorationManager.Options)
-            {
-                if (option == null || option.RequiredReputation > reputation) continue;
-                if (option.TargetCondition <= antique.Condition + ConditionEpsilon) continue;
-
-                var quote = owned
-                    ? _restorationManager.Quote(this, antique, option)
-                    : _restorationManager.QuoteProspective(this, antique, option);
-                if (quote == null) continue;
-                if (owned && !quote.CanStart) continue;
-                if (quote.DurationWeeks > profile.MaxRestorationWeeks) continue;
-
-                // A failure leaves the slot empty, so the work has to finish with time to find a replacement.
-                if (fromWeek + quote.DurationWeeks + profile.ContractPanicWeeks > latestArrival) continue;
-                if (!Core.Money.Covers(Inventory.Cash * profile.MaxRestorationShareOfCash, quote.Cost)) continue;
-                if (RestorationConfidence(contract.Requirement, antique, quote) < required) continue;
-
-                if (best == null || quote.Cost < best.Cost) best = quote;
-            }
-
-            return best;
-        }
-
         // ---------------------------------------------------------------- non-tick actions
 
         private void RunObligations(int week, NpcBehaviorProfile profile)
@@ -780,13 +599,6 @@ namespace AntiqueTradingSimulator.Agents
                 Inventory.ReleaseAllReservationsForContract(contractId);
                 Inventory.ReleaseCommittedContract(contractId);
             }
-        }
-
-        private void DropExpiredReactions(int week)
-        {
-            for (int i = _pendingReactions.Count - 1; i >= 0; i--)
-                if (week > _pendingReactions[i].ReactionWeek + NewsActionWindowWeeks)
-                    _pendingReactions.RemoveAt(i);
         }
 
         /// <summary>
@@ -1021,9 +833,14 @@ namespace AntiqueTradingSimulator.Agents
 
                 var plan = PlanFor(holding.Id);
                 if (plan == null || plan.HasRestorationLeg) continue;
-                if (plan.Purpose == PlanPurpose.Contract || plan.Purpose == PlanPurpose.RumourExit) continue;
+                if (plan.Purpose == PlanPurpose.Contract) continue;
 
                 var reason = ReasonToSell(holding, plan, week, profile);
+
+                // Back above its stop, so the distress clock is cleared and starts again from
+                // scratch if the value falls back under.
+                if (reason != DisposalReason.StopLoss) plan.DistressSince = -1;
+
                 if (reason == DisposalReason.None) continue;
 
                 _agenda.Add(Intent.ExitPosition, holding.Id, 0f, week, ExitWeightOf(reason),
@@ -1046,6 +863,16 @@ namespace AntiqueTradingSimulator.Agents
                 if (plan.StopPrice > 0f && value < plan.StopPrice) return DisposalReason.StopLoss;
 
                 if (plan.TargetPrice > 0f && value >= plan.TargetPrice) return DisposalReason.TargetReached;
+
+                // A fade that is a hard deadline (a planted rumour's debunk) will not wait for a
+                // buyer, so it dumps; an estimated fade only means it is time to be listed.
+                if (plan.DumpAfterWeek > 0 && week >= plan.DumpAfterWeek) return DisposalReason.RumourDump;
+
+                // Past the peak the move is as good as it gets, so the piece goes on offer at what
+                // the thesis says it is worth rather than waiting for the fade.
+                bool mayOffer = plan.DumpAfterWeek > 0 ? profile.ListsIntoOwnRumour : profile.ListsOnMarket;
+                if (mayOffer && plan.ExpectedPeakWeek > 0 && week >= plan.ExpectedPeakWeek)
+                    return DisposalReason.TargetReached;
 
                 int lead = Mathf.Max(0, profile.ExitLeadWeeks);
                 if (week >= plan.ExpectedFadeWeek - lead) return DisposalReason.FadeApproaching;
@@ -1142,13 +969,14 @@ namespace AntiqueTradingSimulator.Agents
             if (market == null) return;
 
             var listings = market.Listings;
-            string lastDefinition = null;
+            _seenDefinitions.Clear();
 
             for (int i = 0; i < listings.Count; i++)
             {
                 var listing = listings[i];
                 if (listing == null || Inventory.Owns(listing.Id)) continue;
-                if (listing.DefinitionId == lastDefinition) continue;
+                if (string.IsNullOrEmpty(listing.DefinitionId)) continue;
+                if (_seenDefinitions.Contains(listing.DefinitionId)) continue;
                 if (!IsInterestedIn(listing.Definition, profile)) continue;
 
                 var outlook = WorldView.OutlookFor(listing.DefinitionId, HoldWeeks(profile), profile);
@@ -1158,7 +986,7 @@ namespace AntiqueTradingSimulator.Agents
                 int arrival = week + TransitWeeksFor(listing, NpcTransportOption);
                 if (outlook.PeakWeek > 0 && arrival > outlook.PeakWeek) continue;
 
-                lastDefinition = listing.DefinitionId;
+                _seenDefinitions.Add(listing.DefinitionId);
 
                 float share = Mathf.Clamp01(outlook.Conviction / Mathf.Max(0.01f, profile.FullConvictionAt));
                 float ceiling = _speculationBudget * share;
@@ -1206,7 +1034,6 @@ namespace AntiqueTradingSimulator.Agents
             {
                 var plan = pair.Value;
                 if (plan.HasRestorationLeg && !IsRestoring(pair.Key)) return true;
-                if (plan.Purpose == PlanPurpose.RumourExit) return true;
             }
 
             return false;
@@ -1222,156 +1049,20 @@ namespace AntiqueTradingSimulator.Agents
             return cost > 0f && Core.Money.Covers(_weekBudget, cost) && PassesCashFloor(cost);
         }
 
-        // ---------------------------------------------------------------- plan tick actions
-
-        /// <summary>
-        /// Carries out the next step of a plan already committed to: starting a restoration costed
-        /// when the antique was acquired, or listing and then dumping stock into a planted rumour.
-        /// </summary>
-        private bool TierExecutePlans(int week, NpcBehaviorProfile profile)
-        {
-            if (_plans.Count == 0) return false;
-
-            _planScratch.Clear();
-            _planScratch.AddRange(_plans.Keys);
-
-            for (int i = 0; i < _planScratch.Count; i++)
-            {
-                string antiqueId = _planScratch[i];
-                var plan = PlanFor(antiqueId);
-                var antique = Inventory.GetHolding(antiqueId);
-                if (plan == null || antique == null) continue;
-
-                if (plan.HasRestorationLeg && StartPlannedRestoration(antique, plan, profile)) return true;
-                if (plan.Purpose == PlanPurpose.RumourExit && RunRumourExitStep(antique, plan, week, profile)) return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Re-quotes a plan's restoration at today's prices and starts it, or clears the leg when it
-        /// no longer pays. The fee joins the antique's cost basis so later sales price it in.
-        /// </summary>
-        private bool StartPlannedRestoration(Antique antique, Position plan, NpcBehaviorProfile profile)
-        {
-            if (_restorationManager == null)
-            {
-                plan.ClearRestorationLeg();
-                return false;
-            }
-
-            if (IsRestoring(antique.Id)) return false;
-            if (!antique.IsAvailable || antique.IsListedForSale || antique.IsReservedForContract) return false;
-
-            var option = _restorationManager.Settings.Get(plan.RestorationOptionId);
-            var quote = option != null ? _restorationManager.Quote(this, antique, option) : null;
-
-            bool viable = quote != null && quote.CanStart && PassesCashFloor(quote.Cost);
-
-            if (viable)
-                viable = plan.Purpose == PlanPurpose.Contract
-                    ? RestorationStillServesContract(antique, plan, quote, profile)
-                    : ClearsResaleBar(EvaluateLeg(antique, quote, profile, 0), profile);
-
-            if (!viable)
-            {
-                plan.ClearRestorationLeg();
-                _planReserve = CalculatePlanReserve();
-                return false;
-            }
-
-            if (!_restorationManager.StartRestoration(this, antique, option.Id))
-            {
-                plan.ClearRestorationLeg();
-                _planReserve = CalculatePlanReserve();
-                return false;
-            }
-
-            plan.CostBasis = Core.Money.RoundToShilling(plan.CostBasis + quote.Cost);
-            _planReserve = CalculatePlanReserve();
-            Debug.Log($"{TraderName} sent {antique.Name} to {option.DisplayName} for {Core.Money.Format(quote.Cost)} ({plan.Purpose}).");
-            return true;
-        }
-
-        /// <summary>Whether a leg is worth paying for on its own merits, with no contract behind it.</summary>
-        private bool ClearsResaleBar(RestorationLeg leg, NpcBehaviorProfile profile) =>
-            leg.Exists && leg.WeeklyReturn > 0f
-            && leg.WeeklyReturn >= TargetWeeklyReturn(profile) * profile.RestorationHurdle;
-
-        /// <summary>True while the plan's contract is still live and the work would still land in time.</summary>
-        private bool RestorationStillServesContract(Antique antique, Position plan, RestorationQuote quote, NpcBehaviorProfile profile)
-        {
-            var contract = _contractManager != null ? _contractManager.GetById(plan.ContractId) : null;
-            if (contract == null || contract.Status != ContractStatus.Active) return false;
-            if (CurrentWeek + quote.DurationWeeks + profile.ContractPanicWeeks > LatestUsefulArrivalWeek(contract)) return false;
-
-            return RestorationConfidence(contract.Requirement, antique, quote) >= RequiredConfidence(profile);
-        }
-
-        /// <summary>
-        /// Lists a rumour-scope holding at the exit price while the pump runs, then cancels and sells
-        /// to the market from the plan's dump week.
-        /// </summary>
-        private bool RunRumourExitStep(Antique antique, Position plan, int week, NpcBehaviorProfile profile)
-        {
-            if (profile.NeverSells) return false;
-            if (antique.IsReservedForContract || antique.IsInTransit || antique.IsInRestoration) return false;
-
-            if (week >= plan.DumpAfterWeek)
-            {
-                if (antique.IsListedForSale)
-                {
-                    // A standing tag that still nets more than the market pays is left to run.
-                    if (Inventory.Modifiers.ListingProceeds(antique.AskingPrice) > antique.CurrentPrice) return false;
-                    Inventory.CancelListing(_economyManager.Market, antique.Id);
-                }
-
-                if (!SellListing(antique.Id)) return false;
-
-                _plans.Remove(antique.Id);
-                Debug.Log($"{TraderName} sold {antique.Name} to the market, into the rumour it planted.");
-                return true;
-            }
-
-            if (!profile.ListsIntoOwnRumour || !profile.ListsOnMarket) return false;
-            if (plan.ExitAskingPrice <= 0f) return false;
-            if (antique.IsListedForSale && antique.AskingPrice >= plan.ExitAskingPrice) return false;
-            if (!antique.IsAvailable) return false;
-
-            if (antique.IsListedForSale) Inventory.CancelListing(_economyManager.Market, antique.Id);
-            if (!Inventory.ListForSale(_economyManager.Market, antique.Id, plan.ExitAskingPrice, week)) return false;
-
-            Debug.Log($"{TraderName} listed {antique.Name} at {Core.Money.Format(plan.ExitAskingPrice)} into its own rumour.");
-            return true;
-        }
-
-        /// <summary>A finished restoration ends the leg; the plan's remaining purpose runs from the next slot.</summary>
-        private void HandleRestorationCompleted(RestorationRecord record)
-        {
-            if (record == null || !Inventory.Owns(record.AntiqueId)) return;
-
-            var plan = PlanFor(record.AntiqueId);
-            if (plan == null) return;
-
-            plan.ClearRestorationLeg();
-            _planReserve = CalculatePlanReserve();
-        }
-
         // ---------------------------------------------------------------- spending a slot
 
-        private void RunOneBudgetedAction(int week, NpcBehaviorProfile profile)
+        private void RunOneBudgetedAction(int week, int tick, NpcBehaviorProfile profile)
         {
             Diagnostics.Telemetry.NpcActionBegin(this);
-            string intent = RunOneBudgetedActionCore(week, profile);
-            Diagnostics.Telemetry.NpcActionEnd(this, week, intent);
+            var item = RunOneBudgetedActionCore(week, tick, profile);
+            Diagnostics.Telemetry.NpcActionEnd(this, week, item);
         }
 
         /// <summary>
         /// Takes the next intention off the week's agenda and carries it out. Items that can no
         /// longer be acted on are retired with the reason, and the slot moves to the next one.
         /// </summary>
-        private string RunOneBudgetedActionCore(int week, NpcBehaviorProfile profile)
+        private AgendaItem RunOneBudgetedActionCore(int week, int tick, NpcBehaviorProfile profile)
         {
             while (true)
             {
@@ -1385,8 +1076,8 @@ namespace AntiqueTradingSimulator.Agents
                     continue;
                 }
 
-                _agenda.Retire(item, true);
-                return item.Intent.ToString();
+                _agenda.Retire(item, true, tick: tick);
+                return item;
             }
         }
 
@@ -1405,7 +1096,7 @@ namespace AntiqueTradingSimulator.Agents
                     return WorkOnContracts(week, profile, urgentOnly: false);
 
                 case Intent.ExecutePlan:
-                    return TierExecutePlans(week, profile) || TierRumourExit(week, profile);
+                    return TierExecutePlans(week, profile);
 
                 case Intent.RaiseCash:
                     return RaiseCash(item, week, profile);
@@ -1465,6 +1156,7 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>Lists the cheapest free holding to get back under the warehouse ceiling.</summary>
         private bool FreeSpace(AgendaItem item, int week, NpcBehaviorProfile profile)
         {
+            if (profile.NeverSells) { item.SkippedReason = "profile never sells"; return false; }
             if (!Inventory.IsOverCapacity) { item.SkippedReason = "back within capacity"; return false; }
 
             string victim = CheapestFreeHolding(out string victimName);
@@ -1488,49 +1180,97 @@ namespace AntiqueTradingSimulator.Agents
         }
 
         /// <summary>
-        /// Buys into a believed move: the best-returning listing of that type, costed against what
-        /// the trader thinks it will be worth once the move has landed.
+        /// Buys into a believed move, taking the best-returning listings of that type while the
+        /// item's ceiling covers another piece, so conviction sets the size of the position.
         /// </summary>
         private bool OpenPosition(AgendaItem item, int week, NpcBehaviorProfile profile)
         {
             var market = _economyManager.Market;
             if (market == null || string.IsNullOrEmpty(item.TargetId)) return false;
 
-            float envelope = Mathf.Min(BudgetFor(Intent.OpenPosition), item.BudgetCeiling);
-            if (envelope <= 0f) { item.SkippedReason = "envelope spent"; return false; }
+            float ceiling = Mathf.Min(BudgetFor(Intent.OpenPosition), item.BudgetCeiling);
+            if (ceiling <= 0f) { item.SkippedReason = "envelope spent"; return false; }
 
             var outlook = WorldView.OutlookFor(item.TargetId, HoldWeeks(profile), profile);
             if (outlook.Conviction <= 0f) { item.SkippedReason = "the view has gone"; return false; }
 
+            int bought = 0;
+            float spent = 0f;
+
+            while (bought < MaxPiecesPerPosition)
+            {
+                float envelope = ceiling - spent;
+                if (envelope <= 0f) break;
+
+                if (!BuyOnePosition(item, week, profile, market, outlook, envelope, out float paid)) break;
+
+                spent += paid;
+                bought++;
+            }
+
+            if (bought == 0)
+            {
+                item.SkippedReason ??= "nothing affordable of that type";
+                return false;
+            }
+
+            if (bought > 1)
+                Debug.Log($"{TraderName} took {bought} pieces into its view of {item.TargetId} " +
+                          $"for {Core.Money.Format(spent)} of a {Core.Money.Format(ceiling)} ceiling.");
+
+            return true;
+        }
+
+        /// <summary>
+        /// Buys the best-returning listing of the item's type that fits the envelope and writes the
+        /// thesis onto it. False when nothing left is worth buying.
+        /// </summary>
+        private bool BuyOnePosition(AgendaItem item, int week, NpcBehaviorProfile profile, Market.Market market,
+            Outlook outlook, float envelope, out float paid)
+        {
+            paid = 0f;
+
             var listings = market.Listings;
+            int holdWeeks = HoldWeeks(profile);
+
             Antique best = null;
             float bestCost = 0f;
             float bestReturn = 0f;
+            TransportOption bestOption = NpcTransportOption;
 
             for (int i = 0; i < listings.Count; i++)
             {
                 var listing = listings[i];
                 if (listing == null || listing.DefinitionId != item.TargetId) continue;
+                if (Inventory.Owns(listing.Id)) continue;
                 if (!CanConsider(listing, profile)) continue;
 
-                float cost = EstimateTotalCost(listing, NpcTransportOption);
+                float worth = TraderValuation.Worth(listing, market, WorldView, profile, holdWeeks);
+
+                var shipping = ChooseTransportFor(listing, worth, holdWeeks);
+                float cost = shipping.TotalCost;
                 if (cost <= 0f || !Core.Money.Covers(envelope, cost) || !PassesCashFloor(cost)) continue;
 
-                float worth = TraderValuation.Worth(listing, market, WorldView, profile, HoldWeeks(profile));
-                float weekly = TraderValuation.WeeklyReturn(cost, worth, HoldWeeks(profile), MarginalUpkeepPerItem());
-                if (weekly < bestReturn || weekly <= 0f) continue;
+                float weekly = TraderValuation.WeeklyReturn(cost, worth, holdWeeks, MarginalUpkeepPerItem());
+                if (weekly <= 0f || weekly < bestReturn) continue;
 
                 best = listing;
                 bestCost = cost;
                 bestReturn = weekly;
+                bestOption = shipping.Option;
             }
 
-            if (best == null) { item.SkippedReason = "nothing affordable of that type"; return false; }
+            if (best == null)
+            {
+                item.SkippedReason ??= "nothing affordable of that type";
+                return false;
+            }
 
             string name = best.Name;
-            if (!TryBuyForStock(best, week, bestCost, Intent.OpenPosition)) return false;
+            if (!TryBuyForStock(best, week, bestCost, Intent.OpenPosition, bestOption)) return false;
 
             RecordThesis(best.Id, outlook, bestCost, week, profile);
+            paid = bestCost;
             Debug.Log($"{TraderName} bought {name} on its view of the market ({item.Rationale}).");
             return true;
         }
@@ -1596,1067 +1336,12 @@ namespace AntiqueTradingSimulator.Agents
             return Mathf.Max(1, Mathf.CeilToInt(full * profile.ContractSlotShare));
         }
 
-        // ---------------------------------------------------------------- contract tick actions
-
-        private bool WorkOnContracts(int week, NpcBehaviorProfile profile, bool urgentOnly)
-        {
-            if (_contractManager == null) return false;
-
-            CollectActiveContracts(week, profile);
-            if (_contractScratch.Count == 0) return false;
-
-            foreach (var contract in _contractScratch)
-            {
-                int missing = MissingFor(contract);
-                if (missing <= 0) continue;
-
-                var urgency = UrgencyOf(contract, week, profile);
-                if (urgentOnly && urgency == ContractUrgency.Normal) continue;
-                if (!urgentOnly && urgency != ContractUrgency.Normal) continue;
-
-                var offer = BestOfferFor(contract, week, profile, urgency);
-
-                // Restoring stock already in the warehouse costs only the fee plus the resale value given up.
-                if (PlanStockRestoration(contract, week, profile, offer))
-                {
-                    if (!urgentOnly) _contractSlotsUsed++;
-                    return true;
-                }
-
-                if (offer.Listing == null) continue;
-
-                float cost = offer.Cost;
-                if (!Core.Money.Covers(Inventory.Cash, cost)) continue;
-
-                if (!BuyListing(offer.Listing.Id, offer.Option)) continue;
-
-                RecordPlan(offer.Listing.Id, offer.Listing.PurchasePrice, week, PlanPurpose.Contract, contract.ContractId);
-
-                if (offer.NeedsRestoration)
-                    AttachRestorationLeg(offer.Listing.Id, offer.RestorationOptionId, offer.RestorationFee,
-                        LatestUsefulArrivalWeek(contract) - offer.RestorationWeeks);
-                else
-                    Inventory.ReserveForContract(offer.Listing.Id, contract.ContractId);
-
-                _contractReserve = CalculateContractReserve();
-                if (!urgentOnly) _contractSlotsUsed++;
-
-                Debug.Log($"{TraderName} bought {offer.Listing.Name} for contract {contract.ContractId} ({urgency}, {offer.Option} transport, ready week {offer.ArrivalWeek}).");
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Pledges the cheapest held antique a workshop could bring up to a contract's requirement in
-        /// time, when that beats buying one. TierExecutePlans starts the work.
-        /// </summary>
-        private bool PlanStockRestoration(Contract contract, int week, NpcBehaviorProfile profile, Offer offer)
-        {
-            if (_restorationManager == null || !profile.Restores || !profile.RestoresForContracts) return false;
-
-            float buyCost = offer.Listing != null ? offer.Cost : float.MaxValue;
-
-            Antique chosen = null;
-            RestorationQuote chosenQuote = null;
-            float chosenCost = buyCost;
-
-            foreach (var pair in Inventory.Holdings)
-            {
-                var holding = pair.Value;
-                if (holding == null || !holding.IsAvailable) continue;
-                if (holding.IsReservedForContract || holding.IsListedForSale) continue;
-
-                var existing = PlanFor(holding.Id);
-                if (existing != null && (existing.HasRestorationLeg || existing.Purpose == PlanPurpose.RumourExit)) continue;
-                if (!contract.Requirement.MatchesAttributes(holding.Type, holding.Country, holding.Century)) continue;
-                if (contract.Requirement.IsSatisfiedBy(holding)) continue;
-
-                var quote = BestContractQuote(contract, holding, week, profile, owned: true);
-                if (quote == null) continue;
-
-                float cost = quote.Cost + holding.CurrentPrice;
-                if (cost >= chosenCost) continue;
-
-                chosen = holding;
-                chosenQuote = quote;
-                chosenCost = cost;
-            }
-
-            if (chosen == null) return false;
-
-            var plan = PlanForOrCreate(chosen, week);
-            plan.Purpose = PlanPurpose.Contract;
-            plan.ContractId = contract.ContractId;
-            AttachRestorationLeg(chosen.Id, chosenQuote.Option.Id, chosenQuote.Cost,
-                LatestUsefulArrivalWeek(contract) - chosenQuote.DurationWeeks);
-
-            Debug.Log($"{TraderName} will restore {chosen.Name} at {chosenQuote.Option.DisplayName} " +
-                      $"for contract {contract.ContractId} ({Core.Money.Format(chosenQuote.Cost)}).");
-            return true;
-        }
-
-        private void CollectActiveContracts(int week, NpcBehaviorProfile profile)
-        {
-            _contractScratch.Clear();
-            if (_contractManager == null) return;
-
-            foreach (var contractId in Inventory.CommittedContractIds)
-            {
-                var contract = _contractManager.GetById(contractId);
-                if (contract == null || contract.Status != ContractStatus.Active) continue;
-                _contractScratch.Add(contract);
-            }
-
-            // Tightest deadline first.
-            _contractScratch.Sort((a, b) => a.DeadlineWeek.CompareTo(b.DeadlineWeek));
-        }
-
-        private bool TierTakeContract(int week, NpcBehaviorProfile profile)
-        {
-            if (!profile.TakesContracts || _contractManager == null) return false;
-            return ConsiderNewContract(week, profile);
-        }
-
-        // ---------------------------------------------------------------- disposing of a holding
-
-        /// <summary>
-        /// Gets rid of one holding by the route its reason deserves: a listing for anything that
-        /// can wait, the market only when the trader is out of money, space or time.
-        /// </summary>
-        private bool DisposeOf(string antiqueId, DisposalReason reason, int week, NpcBehaviorProfile profile)
-        {
-            var antique = Inventory.GetHolding(antiqueId);
-            if (antique == null) return false;
-
-            var market = _economyManager.Market;
-            if (market == null) return false;
-
-            var plan = PlanForOrCreate(antique, week);
-
-            if (MustSellNow(reason, plan, week, profile))
-            {
-                if (antique.IsListedForSale) Inventory.CancelListing(market, antiqueId);
-                if (!SellListing(antiqueId)) return false;
-
-                _plans.Remove(antiqueId);
-                _agenda.DropTarget(antiqueId);
-                return true;
-            }
-
-            if (!profile.ListsOnMarket)
-            {
-                if (!SellListing(antiqueId)) return false;
-
-                _plans.Remove(antiqueId);
-                _agenda.DropTarget(antiqueId);
-                return true;
-            }
-
-            // A holding under its stop starts its clock here, and only dumps if nobody bites.
-            if (reason == DisposalReason.StopLoss && plan.DistressSince < 0) plan.DistressSince = week;
-
-            float worth = TraderValuation.Worth(antique, market, WorldView, profile, PricingHorizonWeeks);
-            int weeksListed = ClearingNow(reason) ? Mathf.Max(1, profile.PatientSellAfterWeeks) : 0;
-            float ask = TraderValuation.AskFor(antique, plan, weeksListed, worth, Inventory, market, profile);
-            if (ask <= 0f) return false;
-
-            if (antique.IsListedForSale)
-                return Inventory.RepriceListing(market, antiqueId, ask);
-
-            if (!Inventory.ListForSale(market, antiqueId, ask, week)) return false;
-
-            plan.OfferedSinceWeek = week;
-            Debug.Log($"{TraderName} listed {antique.Name} for {Core.Money.Format(ask)} (worth {Core.Money.Format(worth)}).");
-            return true;
-        }
-
-        /// <summary>
-        /// The only reasons to take the market's price: cash is needed now, the rumour's deadline
-        /// is real, or a listing priced to clear has sat past the trader's patience with it.
-        /// </summary>
-        private bool MustSellNow(DisposalReason reason, Position plan, int week, NpcBehaviorProfile profile)
-        {
-            if (reason == DisposalReason.CashNeed || reason == DisposalReason.RumourDump) return true;
-
-            if (reason != DisposalReason.StopLoss) return false;
-
-            int wait = Mathf.Max(0, profile.PanicSellAfterWeeks);
-            return plan.DistressSince >= 0 && week - plan.DistressSince >= wait;
-        }
-
-        /// <summary>Reasons that want the piece gone soon, so it opens at the reservation price.</summary>
-        private static bool ClearingNow(DisposalReason reason) =>
-            reason == DisposalReason.StopLoss ||
-            reason == DisposalReason.BadNews ||
-            reason == DisposalReason.ThesisInvalidated ||
-            reason == DisposalReason.FadeApproaching ||
-            reason == DisposalReason.Capacity;
-
-        /// <summary>The cheapest holding that is free to sell, for raising cash or clearing space.</summary>
-        private string CheapestFreeHolding(out string name)
-        {
-            string cheapest = null;
-            name = null;
-            float lowest = 0f;
-
-            foreach (var pair in Inventory.Holdings)
-            {
-                var holding = pair.Value;
-                if (holding.IsReservedForContract || holding.IsInTransit || holding.IsInRestoration) continue;
-
-                var plan = PlanFor(holding.Id);
-                if (plan != null && plan.Purpose == PlanPurpose.Contract) continue;
-
-                if (cheapest != null && holding.CurrentPrice >= lowest) continue;
-
-                cheapest = holding.Id;
-                name = holding.Name;
-                lowest = holding.CurrentPrice;
-            }
-
-            return cheapest;
-        }
-
-        // ---------------------------------------------------------------- rumours
-
-        /// <summary>
-        /// Sells into the rumour this NPC planted, while the price is still carrying the believers'
-        /// purchases. Nothing left to sell leaves the exit open for the next slot.
-        /// </summary>
-        private bool TierRumourExit(int week, NpcBehaviorProfile profile)
-        {
-            if (profile.NeverSells || _rumourExitWeek < 0) return false;
-            if (week < _rumourDumpWeek || week >= _rumourClaimWeek) return false;
-
-            return SellMatching(_rumourExitScope, fallingOnly: false, "into the rumour it planted");
-        }
-
-        /// <summary>
-        /// Plants a fake rumour to pump stock this NPC already holds, when one pays for itself
-        /// (NpcRumourPlanner). The spend comes out of its cash like any other purchase.
-        /// </summary>
-        private bool TierPlantRumour(int week, NpcBehaviorProfile profile)
-        {
-            if (!_mayPlantRumour) return false;
-
-            var mill = RumourMill.Current;
-            if (mill == null || !mill.CanPlant(this, week))
-            {
-                _mayPlantRumour = false;
-                return false;
-            }
-
-            _mayPlantRumour = false;
-
-            if (!NpcRumourPlanner.TryFindPlan(mill, this, week, out var plan)) return false;
-
-            if (plan.Spend > _weekBudget || !PassesCashFloor(plan.Spend)) return false;
-
-            if (!mill.PlantFor(this, plan)) return false;
-
-            _weekBudget = Mathf.Max(0f, _weekBudget - plan.Spend);
-            return true;
-        }
-
-        /// <summary>
-        /// Sells the first free holding matching any of <paramref name="effects"/>. With
-        /// <paramref name="fallingOnly"/> only effects predicting a fall count; without it every
-        /// matching scope counts.
-        /// </summary>
-        private bool SellMatching(IReadOnlyList<NewsEventData> effects, bool fallingOnly, string reason)
-        {
-            if (effects == null) return false;
-
-            foreach (var effect in effects)
-            {
-                if (effect == null || effect.targetScope == TargetScope.Other) continue;
-                if (fallingOnly && effect.affectsPriceUp) continue;
-
-                string victim = null;
-                string victimName = null;
-                bool wasListed = false;
-
-                foreach (var pair in Inventory.Holdings)
-                {
-                    var holding = pair.Value;
-                    if (holding.IsReservedForContract || holding.IsInTransit || holding.IsInRestoration) continue;
-                    if (!MatchesScope(holding, effect)) continue;
-
-                    victim = holding.Id;
-                    victimName = holding.Name;
-                    wasListed = holding.IsListedForSale;
-                    break;
-                }
-
-                if (victim == null) continue;
-
-                if (wasListed) Inventory.CancelListing(_economyManager.Market, victim);
-
-                if (!SellListing(victim)) continue;
-
-                _plans.Remove(victim);
-                _agenda.DropTarget(victim);
-                Debug.Log($"{TraderName} sold {victimName} {reason}.");
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool MatchesScope(Antique antique, NewsEventData effect) => effect.targetScope switch
-        {
-            TargetScope.AntiqueType => antique.Definition != null && antique.Definition.Type == effect.AntiqueType,
-            TargetScope.Country => antique.Definition != null && antique.Definition.Country == effect.Country,
-            TargetScope.Century => antique.Definition != null && antique.Definition.Century == effect.Century,
-            _ => false
-        };
-
-        // ---------------------------------------------------------------- buy from market tick actions
-
-        /// <summary>
-        /// Puts a workshop to stock whose plan has run out: a collector's piece below the condition
-        /// it collects at, or a seller's stock that has sat unsold past its patience.
-        /// </summary>
-        private bool TierRestoreStock(int week, NpcBehaviorProfile profile)
-        {
-            if (_restorationManager == null || !profile.Restores) return false;
-            if (OpenRestorationCount() >= profile.MaxConcurrentRestorations) return false;
-
-            float bar = TargetWeeklyReturn(profile) * profile.RestorationHurdle;
-            Antique chosen = null;
-            RestorationLeg chosenLeg = default;
-
-            foreach (var pair in Inventory.Holdings)
-            {
-                var holding = pair.Value;
-                if (holding == null || !holding.IsAvailable) continue;
-                if (holding.IsReservedForContract || holding.IsListedForSale) continue;
-
-                var plan = PlanFor(holding.Id);
-                if (plan == null || plan.Purpose != PlanPurpose.Resale || plan.HasRestorationLeg) continue;
-
-                bool spent = profile.NeverSells
-                    ? holding.Condition < profile.MinConditionToBuy
-                    : week - plan.AcquiredWeek >= HoldWeeks(profile);
-                if (!spent) continue;
-
-                var leg = BestLegFor(holding, profile, owned: true, delayWeeks: 0, barWeeklyReturn: bar);
-                if (!leg.Exists || leg.WeeklyReturn <= 0f) continue;
-                if (chosenLeg.Exists && leg.WeeklyReturn <= chosenLeg.WeeklyReturn) continue;
-
-                chosen = holding;
-                chosenLeg = leg;
-            }
-
-            if (chosen == null) return false;
-
-            AttachRestorationLeg(chosen.Id, chosenLeg.Option.Id, chosenLeg.Fee, week + RestorationLegGraceWeeks);
-            Debug.Log($"{TraderName} will restore {chosen.Name} at {chosenLeg.Option.DisplayName} ({Core.Money.Format(chosenLeg.Fee)}).");
-            return true;
-        }
-
-        /// <summary>
-        /// Looks over the board for the best return per pound per week, as-is or after a workshop
-        /// stay. Nothing is refused on price alone: the return hurdle is the only bar.
-        /// </summary>
-        private bool TierBrowseMarket(int week, NpcBehaviorProfile profile)
-        {
-            float asIsBudget = BudgetFor(Intent.TakeBargain);
-            float restoreBudget = BudgetFor(Intent.SendToWorkshop);
-            if (asIsBudget <= 0f && restoreBudget <= 0f) return false;
-
-            var market = _economyManager.Market;
-            if (market == null) return false;
-
-            var listings = market.Listings;
-            int holdWeeks = HoldWeeks(profile);
-            float threshold = BargainThreshold(profile) / holdWeeks;
-            float restorationBar = TargetWeeklyReturn(profile) * profile.RestorationHurdle;
-
-            Antique bestAsIs = null;
-            float bestAsIsWeekly = threshold;
-            float bestAsIsCost = 0f;
-
-            Antique bestRestore = null;
-            float bestRestoreWeekly = threshold;
-            float bestRestoreCost = 0f;
-            RestorationLeg bestLeg = default;
-
-            for (int i = 0; i < listings.Count; i++)
-            {
-                var listing = listings[i];
-                if (listing == null || Inventory.Owns(listing.Id)) continue;
-                if (!IsInterestedIn(listing.Definition, profile)) continue;
-
-                float cost = EstimateTotalCost(listing, NpcTransportOption);
-                if (cost <= 0f || !PassesCashFloor(cost)) continue;
-
-                if (Core.Money.Covers(asIsBudget, cost) && CanConsider(listing, profile))
-                {
-                    float weekly = BuyAsIsWeeklyReturn(listing, cost, profile);
-                    if (weekly >= bestAsIsWeekly)
-                    {
-                        bestAsIs = listing;
-                        bestAsIsWeekly = weekly;
-                        bestAsIsCost = cost;
-                    }
-                }
-
-                if (!profile.Restores || !profile.BuysToRestore) continue;
-                if (!CanConsiderForRestoration(listing, profile)) continue;
-
-                var leg = BestLegFor(listing, profile, owned: false, delayWeeks: TransitWeeksFor(listing, NpcTransportOption),
-                    barWeeklyReturn: restorationBar);
-                if (!leg.Exists) continue;
-                if (!Core.Money.Covers(restoreBudget, cost + leg.Fee) || !PassesCashFloor(cost + leg.Fee)) continue;
-
-                float restoreWeekly = BuyAndRestoreWeeklyReturn(cost, leg, profile);
-                if (restoreWeekly < bestRestoreWeekly) continue;
-
-                bestRestore = listing;
-                bestRestoreWeekly = restoreWeekly;
-                bestRestoreCost = cost;
-                bestLeg = leg;
-            }
-
-            bool takeRestore = bestRestore != null &&
-                               (bestAsIs == null || bestRestoreWeekly >= bestAsIsWeekly * profile.RestorationHurdle);
-
-            if (takeRestore)
-            {
-                int arrival = week + TransitWeeksFor(bestRestore, NpcTransportOption);
-                string restoreName = bestRestore.Name;
-                if (!TryBuyForStock(bestRestore, week, bestRestoreCost, Intent.SendToWorkshop)) return false;
-
-                AttachRestorationLeg(bestRestore.Id, bestLeg.Option.Id, bestLeg.Fee, arrival + RestorationLegGraceWeeks);
-                Debug.Log($"{TraderName} bought {restoreName} to restore at {bestLeg.Option.DisplayName} " +
-                          $"(return {bestRestoreWeekly:P1} a week, cost {Core.Money.Format(bestRestoreCost + bestLeg.Fee)}).");
-                return true;
-            }
-
-            if (bestAsIs == null) return false;
-
-            string name = bestAsIs.Name;
-            if (!TryBuyForStock(bestAsIs, week, bestAsIsCost, Intent.TakeBargain)) return false;
-
-            Debug.Log($"{TraderName} bought {name} on the open market (return {bestAsIsWeekly:P1} a week, cost {Core.Money.Format(bestAsIsCost)}).");
-            return true;
-        }
-
-        private int TransitWeeksFor(Antique listing, TransportOption option)
-        {
-            var quote = QuoteFor(listing, option);
-            return quote != null ? quote.DurationWeeks : 0;
-        }
-
-
-        // ---------------------------------------------------------------- valuation
-
-        /// <summary>Return over the whole hold, carrying cost included, as a share of what it costs.</summary>
-        private float BargainScore(Antique listing, float totalCost, NpcBehaviorProfile profile)
-        {
-            if (totalCost <= 0f) return 0f;
-
-            float worth = ExpectedValue(listing, profile);
-            int holdPeriods = profile.PatientSellAfterWeeks > 0
-                ? profile.PatientSellAfterWeeks
-                : Mathf.Max(1, profile.MinHoldingWeeksBeforeSell);
-
-            float carry = holdPeriods * MarginalUpkeepPerItem();
-            return (worth - totalCost - carry) / totalCost;
-        }
-
-        /// <summary>The return a trade must clear. Doubled while a contract is outstanding.</summary>
-        private float BargainThreshold(NpcBehaviorProfile profile)
-        {
-            float bar = profile.MinBargainScore;
-            return HasActiveCommitments() ? bar * Policy.CommittedBargainPenalty : bar;
-        }
-
-        /// <summary>What one more item adds to this week's warehouse upkeep.</summary>
-        private float MarginalUpkeepPerItem()
-        {
-            var warehouse = Inventory.Warehouse;
-            if (warehouse == null) return 0f;
-
-            int used = Inventory.UsedSlots;
-            return Mathf.Max(0f, warehouse.CalculateWeeklyUpkeep(used + 1) - warehouse.CalculateWeeklyUpkeep(used));
-        }
-
-        /// <summary>
-        /// What the antique is worth in its condition today, with the profile's condition premium.
-        /// Used where a coming move must not sway the decision, such as filling a contract.
-        /// </summary>
-        private float FairValue(Antique listing, NpcBehaviorProfile profile) =>
-            TraderValuation.Fundamental(listing, _economyManager?.Market, profile);
-
-        /// <summary>
-        /// The seasonal price change this trader expects for a type over its horizon, weighted by
-        /// its foresight. 0 for traders who ignore the calendar.
-        /// </summary>
-        private float SeasonalOutlook(string definitionId, NpcBehaviorProfile profile)
-        {
-            if (profile.SeasonalForesight <= 0f || profile.SeasonalHorizonWeeks <= 0 || _economyManager == null) return 0f;
-
-            float ratio = _economyManager.SeasonalPriceOutlook(definitionId, profile.SeasonalHorizonWeeks);
-            return profile.SeasonalForesight * (ratio - 1f);
-        }
-
-        /// <summary>The trend this trader extrapolates for a type: 0.1 = expects +10%.</summary>
-        private float TrendOutlook(string definitionId, NpcBehaviorProfile profile) =>
-            TraderHelper.TrendOutlook(_economyManager?.Market, definitionId, profile);
-
-        /// <summary>
-        /// What the trader thinks the antique is worth, its whole view of the market included:
-        /// believed news, the season, the trend and the dependency graph, in one number.
-        /// </summary>
-        private float ExpectedValue(Antique listing, NpcBehaviorProfile profile) =>
-            TraderValuation.Worth(listing, _economyManager?.Market, WorldView, profile, HoldWeeks(profile));
-
-        /// <summary>Price ceiling for stock bought to fill a contract, widened by RiskTolerance.</summary>
-        private bool IsAcceptableContractPrice(Antique listing, NpcBehaviorProfile profile) =>
-            listing.SalePrice <= FairValue(listing, profile)
-                * profile.MaxPriceMultiplierWillingToPay
-                * (1f + Mathf.Clamp01(profile.RiskTolerance) * ContractRiskPremium);
-
-        /// <summary>A regular purchase may never eat into the cash a taken contract needs.</summary>
-        private bool PassesCashFloor(float cost) =>
-            Core.Money.Covers(Inventory.Cash - (_contractReserve + _planReserve) * ReserveSafetyMargin, cost);
-
-        /// <summary> Share of its cash this NPC may tie up in contract purchases at once. Scales with RiskTolerance. /// </summary>
-        private float ContractCashShareFor(NpcBehaviorProfile profile) =>
-            Mathf.Clamp01(Policy.ContractCashShareBase
-                + Policy.ContractCashShareRiskSpan * Mathf.Clamp01(profile.RiskTolerance));
-
-        private bool HasActiveCommitments()
-        {
-            if (_contractManager == null) return false;
-
-            foreach (var contractId in Inventory.CommittedContractIds)
-            {
-                var contract = _contractManager.GetById(contractId);
-                if (contract != null && contract.Status == ContractStatus.Active && MissingFor(contract) > 0)
-                    return true;
-            }
-
-            return false;
-        }
-
-        private bool CanConsider(Antique listing, NpcBehaviorProfile profile)
-        {
-            if (listing == null) return false;
-            if (Inventory.Owns(listing.Id)) return false;              // its own listing
-            if (listing.Condition < profile.MinConditionToBuy) return false;
-            return true;
-        }
-
-        private bool IsInterestedIn(AntiqueDefinition def, NpcBehaviorProfile profile)
-        {
-            if (def == null) return false;
-            bool typeOk = profile.PreferredTypes.Count == 0 || profile.PreferredTypes.Contains(def.Type);
-            bool countryOk = profile.PreferredCountries.Count == 0 || profile.PreferredCountries.Contains(def.Country);
-            bool periodOk = profile.PreferredCenturies.Count == 0 || profile.PreferredCenturies.Contains(def.Century);
-            return typeOk && countryOk && periodOk;
-        }
-
-        // ---------------------------------------------------------------- contracts
-
-        /// <summary>
-        /// Latest day an item may arrive and still be handed in.
-        /// </summary>
-        private static int LatestUsefulArrivalWeek(Contract contract) => contract.DeadlineWeek - 1;
-
-        /// <summary>Items still needed: quantity minus what is reserved and still qualifies.</summary>
-        private int MissingFor(Contract contract) =>
-            Mathf.Max(0, contract.Requirement.Quantity - ReservedCountFor(contract) - RestoringForCount(contract));
-
-        /// <summary>Reserved for this contract and still matching In transit included.</summary>
-        private int ReservedCountFor(Contract contract)
-        {
-            int count = 0;
-            foreach (var pair in Inventory.Holdings)
-            {
-                var holding = pair.Value;
-                if (holding.ReservedForContractId != contract.ContractId) continue;
-                if (!contract.Requirement.IsSatisfiedBy(holding)) continue;
-                count++;
-            }
-            return count;
-        }
-
-        /// <summary>
-        /// Held antiques promised to this contract through a restoration plan. They cannot be reserved
-        /// until they qualify, so they are counted here to stop the NPC buying a replacement as well.
-        /// </summary>
-        private int RestoringForCount(Contract contract)
-        {
-            int count = 0;
-            foreach (var pair in _plans)
-            {
-                var plan = pair.Value;
-                if (plan.Purpose != PlanPurpose.Contract || plan.ContractId != contract.ContractId) continue;
-                if (!plan.HasRestorationLeg) continue;
-
-                var holding = Inventory.GetHolding(pair.Key);
-                if (holding == null || holding.IsReservedForContract) continue;
-                count++;
-            }
-            return count;
-        }
-
-        /// <summary>Reserved, arrived and still matching. Only items that can be currently handed in.</summary>
-        private int ReadyCountFor(Contract contract)
-        {
-            int count = 0;
-            foreach (var pair in Inventory.Holdings)
-            {
-                var holding = pair.Value;
-                if (holding.ReservedForContractId != contract.ContractId) continue;
-                if (!holding.IsAvailable) continue;
-                if (!contract.Requirement.IsSatisfiedBy(holding)) continue;
-                count++;
-            }
-            return count;
-        }
-
-        /// <summary>
-        /// Slack is the deadline minus today minus the worst transit still ahead of this contract —
-        /// both the shipments already flying and the trips the missing items have yet to make.
-        /// </summary>
-        private ContractUrgency UrgencyOf(Contract contract, int week, NpcBehaviorProfile profile)
-        {
-            if (MissingFor(contract) <= 0) return ContractUrgency.Normal;
-
-            int slack = LatestUsefulArrivalWeek(contract) - week - WorstTransitAhead(contract);
-
-            if (slack <= 0) return ContractUrgency.Critical;
-            if (slack <= profile.ContractPanicWeeks) return ContractUrgency.Pressing;
-            return ContractUrgency.Normal;
-        }
-
-        private int WorstTransitAhead(Contract contract)
-        {
-            int worst = 1;
-
-            foreach (var pair in Inventory.Holdings)
-            {
-                var holding = pair.Value;
-                if (holding.ReservedForContractId != contract.ContractId) continue;
-                if (!holding.IsInTransit) continue;
-                worst = Mathf.Max(worst, holding.ArrivalWeek - CurrentWeek);
-            }
-
-            foreach (var pair in _plans)
-            {
-                var plan = pair.Value;
-                if (plan.Purpose != PlanPurpose.Contract || plan.ContractId != contract.ContractId) continue;
-                if (!plan.HasRestorationLeg) continue;
-
-                var holding = Inventory.GetHolding(pair.Key);
-                if (holding == null) continue;
-
-                int ready = holding.IsInRestoration
-                    ? holding.RestorationEndWeek - CurrentWeek
-                    : plan.StartRestoreByWeek - CurrentWeek;
-                worst = Mathf.Max(worst, ready);
-            }
-
-            if (MissingFor(contract) > 0 && _transportManager != null && _transportManager.Settings != null)
-                worst = Mathf.Max(worst, _transportManager.Settings.GetBaseDurationWeeks(ShippingZone.Domestic, NpcTransportOption));
-
-            return Mathf.Max(1, worst);
-        }
-
-        /// <summary>
-        /// Cheapest matching listing that can still land in time, re-quoted now. The transport option
-        /// escalates with urgency and with how little condition margin the item has to lose.
-        /// </summary>
-        private Offer BestOfferFor(Contract contract, int week, NpcBehaviorProfile profile, ContractUrgency urgency)
-        {
-            var market = _economyManager.Market;
-            if (market == null) return default;
-
-            int latestArrival = LatestUsefulArrivalWeek(contract);
-            var listings = market.Listings;
-
-            Offer best = default;
-            float bestCost = float.MaxValue;
-
-            for (int i = 0; i < listings.Count; i++)
-            {
-                var listing = listings[i];
-                if (Inventory.Owns(listing.Id)) continue;
-                if (!IsAcceptableContractPrice(listing, profile)) continue;
-
-                var option = TransportOptionFor(listing, contract, urgency);
-                var quote = QuoteFor(listing, option);
-                int arrival = quote != null ? quote.ArrivalWeek : week;
-                int duration = quote != null ? quote.DurationWeeks : 0;
-                float shipped = listing.SalePrice + (quote != null ? quote.Cost : 0f);
-
-                if (contract.Requirement.IsSatisfiedBy(listing))
-                {
-                    if (arrival > latestArrival) continue;
-                    if (shipped > contract.RewardPerUnit || shipped >= bestCost) continue;
-
-                    best = new Offer(listing, option, shipped, arrival, duration);
-                    bestCost = shipped;
-                    continue;
-                }
-
-                if (!profile.Restores || !profile.RestoresForContracts || !profile.BuysToRestore) continue;
-
-                var restoration = BestContractQuote(contract, listing, arrival, profile, owned: false);
-                if (restoration == null) continue;
-
-                int ready = arrival + restoration.DurationWeeks;
-                if (ready > latestArrival) continue;
-
-                float total = shipped + restoration.Cost;
-                if (total > contract.RewardPerUnit || total >= bestCost) continue;
-
-                best = new Offer(listing, option, total, ready, duration + restoration.DurationWeeks,
-                    restoration.Option.Id, restoration.Cost, restoration.DurationWeeks);
-                bestCost = total;
-            }
-
-            return best;
-        }
-
-        private TransportOption TransportOptionFor(Antique listing, Contract contract, ContractUrgency urgency)
-        {
-            if (contract == null) return NpcTransportOption;
-            if (urgency != ContractUrgency.Normal) return TransportOption.Express;
-
-            var requirement = contract.Requirement;
-            if (!requirement.HasMinCondition && !requirement.HasMinValue) return NpcTransportOption;
-
-            float maxLoss = _transportManager != null && _transportManager.Settings != null
-                ? _transportManager.Settings.MaxConditionLoss
-                : 0f;
-
-            // Damage lowers condition, and the price falls with it (price is linear in condition), so
-            // an item close to either floor may arrive no longer qualifying.
-            bool conditionAtRisk = requirement.HasMinCondition && listing.Condition - requirement.MinCondition < maxLoss;
-            bool valueAtRisk = requirement.HasMinValue && listing.Condition > 0f &&
-                               listing.CurrentPrice * (listing.Condition - maxLoss) / listing.Condition < requirement.MinAcceptedValue;
-
-            return conditionAtRisk || valueAtRisk ? TransportOption.Express : NpcTransportOption;
-        }
-
-        private TransportQuote QuoteFor(Antique listing, TransportOption option) =>
-            _transportManager != null ? _transportManager.Quote(listing, option, buyer: Inventory) : null;
-
-
-        private bool IsStillReachable(Contract contract, int missing, int week, NpcBehaviorProfile profile)
-        {
-            int perPeriod = Mathf.Max(1, ContractSlotsAllowed(profile));
-            int latestArrival = LatestUsefulArrivalWeek(contract);
-
-            BuildOfferPlan(contract, week, profile, missing);
-            if (_offerScratch.Count < missing) return false;
-
-            for (int k = 0; k < missing; k++)
-            {
-                int buyWeek = week + k / perPeriod;
-                if (buyWeek + _offerScratch[k].DurationWeeks > latestArrival) return false;
-            }
-
-            return true;
-        }
-
-        private void BuildOfferPlan(Contract contract, int week, NpcBehaviorProfile profile, int missing)
-        {
-            _offerScratch.Clear();
-
-            var market = _economyManager.Market;
-            if (market == null || missing <= 0) return;
-
-            int latestArrival = LatestUsefulArrivalWeek(contract);
-            var listings = market.Listings;
-            var urgency = ContractUrgency.Normal;
-
-            for (int i = 0; i < listings.Count; i++)
-            {
-                var listing = listings[i];
-                if (Inventory.Owns(listing.Id)) continue;
-                if (!contract.Requirement.IsSatisfiedBy(listing)) continue;
-                if (!IsAcceptableContractPrice(listing, profile)) continue;
-
-                var option = TransportOptionFor(listing, contract, urgency);
-                var quote = QuoteFor(listing, option);
-                int arrival = quote != null ? quote.ArrivalWeek : week;
-                if (arrival > latestArrival) continue;
-
-                float cost = listing.SalePrice + (quote != null ? quote.Cost : 0f);
-                if (cost > contract.RewardPerUnit) continue;
-
-                _offerScratch.Add(new Offer(listing, option, cost, arrival, quote != null ? quote.DurationWeeks : 0));
-            }
-
-            _offerScratch.Sort((a, b) => a.Cost.CompareTo(b.Cost));
-            if (_offerScratch.Count > missing) _offerScratch.RemoveRange(missing, _offerScratch.Count - missing);
-
-            _offerScratch.Sort((a, b) => b.DurationWeeks.CompareTo(a.DurationWeeks));
-        }
-
-        /// <summary>
-        /// Takes the most profitable contract the NPC can actually finish.
-        /// </summary>
-        private bool ConsiderNewContract(int week, NpcBehaviorProfile profile)
-        {
-            int reputation = Record.Reputation.Reputation;
-
-            var candidates = _contractManager.OpenContracts
-                .Where(c => c != null && !Inventory.IsCommittedToContract(c.ContractId))
-                .Concat(_contractManager.ExclusiveContracts.Where(c => c != null && c.CanBeClaimed))
-                .Where(c => c.RequiredReputation <= reputation && c.Status == ContractStatus.Active)
-                .ToList();
-
-            if (candidates.Count == 0) return false;
-
-            float cashLimit = Inventory.Cash * ContractCashShareFor(profile) - _contractReserve;
-            if (cashLimit <= 0f) return false;
-
-            Contract chosen = null;
-            float bestProfit = 0f;
-
-            foreach (var contract in candidates)
-            {
-                int missing = contract.Requirement.Quantity - ReservedCountFor(contract);
-                if (missing <= 0) continue;
-
-                BuildOfferPlan(contract, week, profile, missing);
-                if (_offerScratch.Count < missing) continue;
-
-                float purchaseCost = 0f;
-                for (int k = 0; k < _offerScratch.Count; k++) purchaseCost += _offerScratch[k].Cost;
-                if (purchaseCost > cashLimit) continue;
-
-                if (!IsStillReachable(contract, missing, week, profile)) continue;
-
-                float minProfit = contract.Type == ContractType.Exclusive
-                    ? contract.TotalReward * ExclusiveMinProfitShare
-                    : 0f;
-
-                float profit = contract.TotalReward - purchaseCost;
-                if (profit <= minProfit) continue;
-
-                if (chosen == null || profit > bestProfit)
-                {
-                    chosen = contract;
-                    bestProfit = profit;
-                }
-            }
-
-            if (chosen == null) return false;
-
-            if (chosen.Type == ContractType.Exclusive && !_contractManager.ClaimContract(chosen.ContractId, Id))
-                return false;
-
-            Inventory.CommitToContract(chosen.ContractId);
-            Record.ContractAccepted();
-
-            // Exclusive contracts are recorded by ClaimContract above; open ones are never claimed.
-            if (chosen.Type != ContractType.Exclusive)
-                _contractManager.RecordTakenOn(chosen, Id);
-
-            _contractReserve = CalculateContractReserve();
-            _weekBudget = Mathf.Min(_weekBudget, Mathf.Max(0f, Inventory.Cash - _contractReserve));
-
-            Debug.Log($"{TraderName} picked up {chosen.Type} contract {chosen.ContractId} — needs {chosen.Requirement.Quantity}, due week {chosen.DeadlineWeek}, expected profit {bestProfit:F0}.");
-            return true;
-        }
-
-        // ---------------------------------------------------------------- deliveries 
-
-        private void HandleShipmentDelivered(Shipment shipment, Antique antique, float conditionLost)
-        {
-            if (shipment == null || antique == null) return;
-            if (!ReferenceEquals(shipment.Recipient, Inventory)) return;
-            if (conditionLost <= 0f) return;
-
-            string contractId = antique.ReservedForContractId;
-            if (string.IsNullOrEmpty(contractId) || _contractManager == null) return;
-
-            var contract = _contractManager.GetById(contractId);
-            if (contract == null || contract.Requirement.IsSatisfiedBy(antique)) return;
-
-            Inventory.ReleaseReservation(antique.Id);
-
-            if (PlanRescueRestoration(contract, antique))
-            {
-                Debug.Log($"{TraderName}: {antique.Name} arrived damaged (-{conditionLost:F2}) and goes to a workshop for contract {contractId}.");
-                return;
-            }
-
-
-            Debug.Log($"{TraderName}: {antique.Name} arrived damaged (-{conditionLost:F2}) and no longer meets contract {contractId} — reservation released, looking for a replacement.");
-        }
-        private bool PlanRescueRestoration(Contract contract, Antique antique)
-        {
-            var profile = Profile;
-            if (profile == null) return false;
-
-            var quote = BestContractQuote(contract, antique, CurrentWeek, profile, owned: true);
-            if (quote == null) return false;
-
-            var plan = PlanForOrCreate(antique, CurrentWeek);
-            plan.Purpose = PlanPurpose.Contract;
-            plan.ContractId = contract.ContractId;
-            AttachRestorationLeg(antique.Id, quote.Option.Id, quote.Cost,
-                LatestUsefulArrivalWeek(contract) - quote.DurationWeeks);
-            return true;
-        }
-
-        // ---------------------------------------------------------------- receiving nes
-
-        public void ReceiveNews(NewsItem news, int deliveryWeek)
-        {
-            var profile = Profile;
-            if (profile == null || _economyManager == null || _economyManager.TimeManager == null) return;
-
-            if (news?.NewsData == null || news.NewsData.Count == 0) return;
-
-            float baseTrust = news.Type switch
-            {
-                NewsType.Official => 1f,
-                NewsType.Leak => profile.LeakTrust,
-                NewsType.Rumor or NewsType.Fake => profile.RumorTrust,
-            };
-
-            float trust = news.Type is NewsType.Rumor or NewsType.Fake
-                ? baseTrust * (1f - RumourMill.CurrentSkepticism)
-                : baseTrust;
-
-            float expertChance = float.NaN;
-            if (news.Type == NewsType.Fake && AccessLevel >= InfoAccessLevel.Expert)
-            {
-                expertChance = FakeRumourSettings.Active.ExpertDetection * (1f - news.Credibility);
-                if (UnityEngine.Random.value < expertChance)
-                {
-                    Debug.Log($"Trader {TraderName} spotted the fake rumour '{news.OfficialName}'.");
-                    Diagnostics.Telemetry.NewsReception(this, news, deliveryWeek, "DetectedFake",
-                        baseTrust, trust, float.NaN, float.NaN, expertChance, -1, -1);
-                    return;
-                }
-            }
-
-            // Belief is a probability; how hard the trader acts on it is decided by the outlook.
-            float actionChance = Mathf.Clamp01(trust * news.Credibility);
-            float trustRoll = UnityEngine.Random.value;
-
-            if (trustRoll > actionChance)
-            {
-                Debug.Log($"Trader {TraderName} dismissed the {news.Type} news from Week {news.WeekPublished} based on actionChance");
-                Diagnostics.Telemetry.NewsReception(this, news, deliveryWeek, "DismissedByTrust",
-                    baseTrust, trust, actionChance, trustRoll, expertChance, -1, -1);
-                return;
-            }
-
-            int delay = UnityEngine.Random.Range(profile.MinReactionDelayWeeks, profile.MaxReactionDelayWeeks + 1);
-            int reactionWeek = Mathf.Max(deliveryWeek, _economyManager.TimeManager.CurrentWeek) + delay;
-
-            Diagnostics.Telemetry.NewsReception(this, news, deliveryWeek, "Queued",
-                baseTrust, trust, actionChance, trustRoll, expertChance, delay, reactionWeek);
-
-            // Believed, so it becomes part of what this trader thinks the market is about to do.
-            WorldView?.Add(news, deliveryWeek, trust, profile);
-            _pendingReactions.Add(new PendingReaction { News = news, ReactionWeek = reactionWeek });
-        }
-
-        /// <summary>Drops planned reactions to a news item (a debunked rumour).</summary>
-        public void ForgetNews(string newsId)
-        {
-            if (string.IsNullOrEmpty(newsId)) return;
-
-            int removed = _pendingReactions.RemoveAll(p => p.News != null && p.News.Id == newsId);
-            removed += WorldView != null ? WorldView.Forget(newsId) : 0;
-            if (removed > 0) Debug.Log($"Trader {TraderName} dropped {removed} belief(s) in debunked news.");
-        }
-
-        /// <summary>
-        /// Starts selling into a rumour this NPC planted: from <paramref name="fromWeek"/> (once the
-        /// believers' purchases have moved the price) until <paramref name="claimWeek"/>, when the
-        /// rumour is debunked. Called by RumourMill when the rumour is published.
-        /// </summary>
-        public void BeginRumourExit(IReadOnlyList<NewsEventData> scope, int fromWeek, int claimWeek, float pumpMultiple = 1f)
-        {
-            _rumourExitScope.Clear();
-            if (scope == null) return;
-
-            foreach (var data in scope)
-                if (data != null && data.targetScope != TargetScope.Other)
-                    _rumourExitScope.Add(data);
-
-            if (_rumourExitScope.Count == 0) return;
-
-            var profile = Profile;
-            int dumpLead = profile != null ? Mathf.Max(1, profile.ExitDumpLeadWeeks) : 1;
-
-            _rumourExitWeek = fromWeek;
-            _rumourClaimWeek = claimWeek;
-            _rumourDumpWeek = Mathf.Max(fromWeek + 1, claimWeek - dumpLead);
-
-            MarkRumourExitPlans(pumpMultiple, profile);
-        }
-
-        private void MarkRumourExitPlans(float pumpMultiple, NpcBehaviorProfile profile)
-        {
-            if (profile == null) return;
-
-            int week = CurrentWeek;
-
-            foreach (var pair in Inventory.Holdings)
-            {
-                var holding = pair.Value;
-                if (holding == null || holding.IsReservedForContract) continue;
-                if (!MatchesAnyExitScope(holding)) continue;
-
-                var plan = PlanForOrCreate(holding, week);
-                if (plan.HasRestorationLeg) continue;
-
-                plan.Purpose = PlanPurpose.RumourExit;
-                plan.ContractId = null;
-                plan.DumpAfterWeek = _rumourDumpWeek;
-                plan.ExitAskingPrice = ExitAskingPrice(holding, pumpMultiple, profile);
-            }
-        }
-
-        private float ExitAskingPrice(Antique antique, float pumpMultiple, NpcBehaviorProfile profile)
-        {
-            float believed = 1f + (Mathf.Max(1f, pumpMultiple) - 1f) * Mathf.Clamp01(profile.ExitPumpConfidence);
-            float asking = Core.Money.RoundToNice(antique.CurrentPrice * believed * Mathf.Max(1f, profile.ExitTargetRatio));
-
-            float floor = antique.CurrentPrice / Mathf.Max(0.01f, 1f - Inventory.Modifiers.ListingFeeRate);
-
-            return asking > floor ? asking : 0f;
-        }
-
-        private bool MatchesAnyExitScope(Antique antique)
-        {
-            for (int i = 0; i < _rumourExitScope.Count; i++)
-                if (MatchesScope(antique, _rumourExitScope[i])) return true;
-            return false;
-        }
-
-        private void DropFinishedRumourExit(int week)
-        {
-            if (_rumourExitWeek < 0 || week < _rumourClaimWeek) return;
-
-            _rumourExitScope.Clear();
-            _rumourExitWeek = -1;
-            _rumourClaimWeek = -1;
-            _rumourDumpWeek = -1;
-        }
-
         // ---------------------------------------------------------------- transactions
 
-        private bool TryBuyForStock(Antique listing, int week, float cost, Intent intent = Intent.TakeBargain)
+        private bool TryBuyForStock(Antique listing, int week, float cost, Intent intent = Intent.TakeBargain,
+            TransportOption option = NpcTransportOption)
         {
-            if (!BuyListing(listing.Id, NpcTransportOption)) return false;
+            if (!BuyListing(listing.Id, option)) return false;
 
             RecordPlan(listing.Id, listing.PurchasePrice, week, PlanPurpose.Resale);
             SpendFrom(intent, cost);
@@ -2674,329 +1359,5 @@ namespace AntiqueTradingSimulator.Agents
         public bool SellListing(string listingId) =>
             TraderHelper.SellListing(Inventory, _economyManager.Market, listingId, TraderName, CurrentWeek);
 
-        // ---------------------------------------------------------------- auctions
-
-        /// <summary>
-        /// Most this NPC can bid on one lot (hammer price): its free cash after the contract reserve,
-        /// times the profile's auction budget share, leaving <paramref name="costAllowance"/> for the
-        /// buyer's premium and transport. Recomputed for every lot, so winning one lowers the next.
-        /// </summary>
-        public float AuctionBudget(float costAllowance)
-        {
-            var profile = Profile;
-            if (profile == null) return 0f;
-
-            float free = Mathf.Max(0f, Inventory.Cash - CalculateContractReserve() * ReserveSafetyMargin);
-            return free * profile.AuctionBudgetShare / (1f + Mathf.Max(0f, costAllowance));
-        }
-
-        /// <summary>
-        /// This NPC's paddle for a lot, or null if it doesn't want it (outside its interests, below its
-        /// condition standard, no budget). The limit starts from the same fair value used on the market,
-        /// scaled by the profile's auction multiplier, the lot's extra appeal (<paramref name="valuePremium"/>,
-        /// e.g. provenance) and the news it believes about this kind of antique — capped by its budget.
-        /// </summary>
-        public AuctionBidder CreateAuctionBidder(Antique antique, float valuePremium, float costAllowance, System.Random rng)
-        {
-            var profile = Profile;
-            if (profile == null || antique == null || antique.Definition == null || _economyManager.Market == null) return null;
-            if (!IsInterestedIn(antique.Definition, profile)) return null;
-            if (antique.Condition < profile.MinConditionToBuy) return null;
-
-            float cap = AuctionBudget(costAllowance);
-            if (cap <= 0f) return null;
-
-            float jitter = rng != null ? 0.9f + 0.2f * (float)rng.NextDouble() : 1f;
-            float value = ExpectedValue(antique, profile)
-                          * profile.AuctionValueMultiplier
-                          * (1f + Mathf.Max(0f, valuePremium))
-                          * (1f + AuctionNewsBias(antique, profile))
-                          * jitter;
-
-            float limit = Mathf.Min(value, cap);
-            if (limit <= 0f) return null;
-
-            return new AuctionBidder
-            {
-                Id = Id,
-                Name = TraderName,
-                Kind = BidderKind.Npc,
-                Limit = limit,
-                Cap = cap,
-                FeverChance = profile.AuctionFeverChance,
-                FeverRaise = profile.AuctionFeverRaise,
-                Hesitation = profile.AuctionHesitation
-            };
-        }
-
-        /// <summary>Remembers a won lot like a market purchase, so the usual selling rules apply to it.</summary>
-        public void RecordAuctionPurchase(Antique antique, int week)
-        {
-            if (antique == null) return;
-            RecordPlan(antique.Id, antique.PurchasePrice, week, PlanPurpose.Resale);
-        }
-
-        /// <summary>
-        /// +premium per believed piece of good news matching the antique, −premium per bad one. Only news
-        /// the NPC already reacts to (passed its trust roll, reaction day reached) counts.
-        /// </summary>
-        private float AuctionNewsBias(Antique antique, NpcBehaviorProfile profile)
-        {
-            if (profile.AuctionNewsPremium <= 0f) return 0f;
-
-            if (WorldView == null) return 0f;
-
-            var outlook = WorldView.OutlookFor(antique.DefinitionId, HoldWeeks(profile), profile);
-            int sources = Mathf.Max(outlook.Supporting, outlook.Opposing);
-            if (sources <= 0) return 0f;
-
-            float bias = Mathf.Sign(outlook.Expected) * profile.AuctionNewsPremium * sources * outlook.Confidence;
-            return Mathf.Clamp(bias, -0.5f, 0.5f);
-        }
-
-        // ---------------------------------------------------------------- save / load
-
-        public NPCTraderState CaptureState()
-        {
-            var state = new NPCTraderState
-            {
-                Id = Id,
-                ProfileId = ProfileId,
-                TraderName = TraderName,
-                // Informational only: the inventory saves and restores the commitments (EconomyState).
-                CommittedContractIds = new List<string>(Inventory.CommittedContractIds),
-                Record = Record.CaptureState(),
-                PlanWeek = _planWeek,
-                ListingRevisionWeek = _lastListingRevisionWeek,
-                BudgetWeek = _budgetWeek,
-                SlotTicks = new List<int>(_slotTicks),
-                WeekBudget = _weekBudget,
-                ContractReserve = _contractReserve,
-                PlanReserve = _planReserve,
-                ContractSlotsUsed = _contractSlotsUsed,
-                RumourExitWeek = _rumourExitWeek,
-                RumourClaimWeek = _rumourClaimWeek,
-                RumourExitScope = new List<NewsEventData>(_rumourExitScope)
-            };
-
-            foreach (var pair in _plans)
-            {
-                var plan = pair.Value;
-                state.Acquisitions.Add(new PlanState
-                {
-                    ListingId = pair.Key,
-                    PurchasePrice = plan.CostBasis,
-                    Week = plan.AcquiredWeek,
-                    Purpose = plan.Purpose,
-                    ContractId = plan.ContractId,
-                    RestorationOptionId = plan.RestorationOptionId,
-                    StartRestoreByWeek = plan.StartRestoreByWeek,
-                    AssumedFee = plan.AssumedFee,
-                    ExitAskingPrice = plan.ExitAskingPrice,
-                    DumpAfterWeek = plan.DumpAfterWeek,
-                    OfferedSinceWeek = plan.OfferedSinceWeek,
-                    EntryOutlook = plan.EntryOutlook,
-                    ExpectedPeakWeek = plan.ExpectedPeakWeek,
-                    ExpectedFadeWeek = plan.ExpectedFadeWeek,
-                    TargetPrice = plan.TargetPrice,
-                    StopPrice = plan.StopPrice,
-                    BasedOnNewsIds = plan.BasedOnNewsIds,
-                    DistressSince = plan.DistressSince
-                });
-            }
-
-            foreach (var pending in _pendingReactions)
-            {
-                state.PendingReactions.Add(new PendingReactionState
-                {
-                    ReactionWeek = pending.ReactionWeek,
-                    News = NewsItemState.Capture(pending.News)
-                });
-            }
-
-            CaptureWorldView(state);
-            return state;
-        }
-
-        /// <summary>
-        /// Saves what the trader believes and what it has learned. Both are hidden state: two
-        /// traders differ by what they have heard and lived through, which cannot be recomputed.
-        /// </summary>
-        private void CaptureWorldView(NPCTraderState state)
-        {
-            if (WorldView == null) return;
-
-            var beliefs = WorldView.Beliefs;
-            for (int i = 0; i < beliefs.Count; i++)
-            {
-                var belief = beliefs[i];
-                state.Beliefs.Add(new BeliefState
-                {
-                    NewsId = belief.NewsId,
-                    OfficialName = belief.OfficialName,
-                    Facet = belief.Facet,
-                    Direction = belief.Direction,
-                    EstimatedMove = belief.EstimatedMove,
-                    Spread = belief.Spread,
-                    StartWeek = belief.StartWeek,
-                    EndWeek = belief.EndWeek,
-                    Trust = belief.Trust,
-                    HeardWeek = belief.HeardWeek,
-                    Source = (int)belief.Source,
-                    Checked = belief.Checked,
-                    Learned = belief.Learned,
-                    PriceAtStart = belief.PriceAtStart
-                });
-            }
-
-            foreach (var pair in WorldView.Memory.Entries)
-            {
-                state.MagnitudeMemory.Add(new MagnitudeEntryState
-                {
-                    OfficialName = pair.Key,
-                    Mean = pair.Value.Mean,
-                    Spread = pair.Value.Spread,
-                    Observations = pair.Value.Observations
-                });
-            }
-        }
-
-        public void RestoreState(NPCTraderState state)
-        {
-            if (state == null) return;
-
-            if (!string.IsNullOrEmpty(state.Id))
-                Id = state.Id;
-
-            if (!string.IsNullOrEmpty(state.ProfileId) && state.ProfileId != ProfileId)
-                Debug.LogWarning($"NPCTrader: '{TraderName}' was constructed with profile '{ProfileId}' but the save says '{state.ProfileId}'. Construct the NPC from the saved ProfileId.");
-
-            // Saves from before NPC records start them fresh.
-            Record.RestoreState(state.Record);
-
-            _plans.Clear();
-            if (state.Acquisitions != null)
-            {
-                foreach (var planState in state.Acquisitions)
-                {
-                    if (planState == null || string.IsNullOrEmpty(planState.ListingId)) continue;
-
-                    _plans[planState.ListingId] = new Position
-                    {
-                        CostBasis = planState.PurchasePrice,
-                        AcquiredWeek = planState.Week,
-                        Purpose = planState.Purpose,
-                        ContractId = planState.ContractId,
-                        RestorationOptionId = planState.RestorationOptionId,
-                        StartRestoreByWeek = planState.StartRestoreByWeek,
-                        AssumedFee = planState.AssumedFee,
-                        ExitAskingPrice = planState.ExitAskingPrice,
-                        DumpAfterWeek = planState.DumpAfterWeek,
-                        OfferedSinceWeek = planState.OfferedSinceWeek,
-                        EntryOutlook = planState.EntryOutlook,
-                        ExpectedPeakWeek = planState.ExpectedPeakWeek,
-                        ExpectedFadeWeek = planState.ExpectedFadeWeek,
-                        TargetPrice = planState.TargetPrice,
-                        StopPrice = planState.StopPrice,
-                        BasedOnNewsIds = planState.BasedOnNewsIds,
-                        DistressSince = planState.DistressSince != 0 ? planState.DistressSince : -1
-                    };
-                }
-            }
-
-            _pendingReactions.Clear();
-            if (state.PendingReactions != null)
-            {
-                foreach (var pending in state.PendingReactions)
-                {
-                    var news = pending?.News?.Restore();
-                    if (news == null) continue;
-
-                    _pendingReactions.Add(new PendingReaction { News = news, ReactionWeek = pending.ReactionWeek });
-                }
-            }
-
-            // The period in progress. A save from before intra-period acting carries PlanWeek 0,
-            // which leaves _planWeek at -1 and makes the next tick plan the period from scratch.
-            _rumourExitScope.Clear();
-            if (state.RumourExitScope != null) _rumourExitScope.AddRange(state.RumourExitScope);
-            _rumourExitWeek = _rumourExitScope.Count > 0 ? state.RumourExitWeek : -1;
-            _rumourDumpWeek = state.RumourDumpWeek > 0 ? state.RumourDumpWeek : _rumourExitWeek;
-            _rumourClaimWeek = state.RumourClaimWeek;
-            _planWeek = state.PlanWeek > 0 ? state.PlanWeek : -1;
-            _weekBudget = state.WeekBudget;
-            _budgetWeek = state.BudgetWeek > 0 ? state.BudgetWeek : _planWeek;
-            _contractReserve = state.ContractReserve;
-            _planReserve = state.PlanReserve;
-            _contractSlotsUsed = state.ContractSlotsUsed;
-            _rumourDumpWeek = state.RumourDumpWeek > 0 ? state.RumourDumpWeek : _rumourExitWeek;
-            _lastObligationTick = -1;
-            _lastListingRevisionWeek = state.ListingRevisionWeek > 0 ? state.ListingRevisionWeek : -1;
-            _rng = new System.Random(SeedFor(Mathf.Max(1, _planWeek)));
-
-            _slotTicks.Clear();
-            if (state.SlotTicks != null)
-            {
-                _slotTicks.AddRange(state.SlotTicks);
-                _slotTicks.Sort();
-            }
-
-            RestoreWorldView(state);
-
-            // The agenda is derived, so it is not saved: the first tick of the week reviews again.
-            _agenda.Clear();
-
-            // CommittedContractIds is not restored here: the inventory restores its own commitments
-            // when the economy is loaded (after the NPCs).
-        }
-
-        /// <summary>Rebuilds the beliefs and the learned magnitudes. Older saves simply have none.</summary>
-        private void RestoreWorldView(NPCTraderState state)
-        {
-            if (WorldView == null) return;
-
-            WorldView.Clear();
-
-            if (state.Beliefs != null)
-            {
-                foreach (var belief in state.Beliefs)
-                {
-                    if (belief == null || belief.Facet == null) continue;
-
-                    WorldView.AddRestored(new Belief
-                    {
-                        NewsId = belief.NewsId,
-                        OfficialName = belief.OfficialName,
-                        Facet = belief.Facet,
-                        Direction = belief.Direction,
-                        EstimatedMove = belief.EstimatedMove,
-                        Spread = belief.Spread,
-                        StartWeek = belief.StartWeek,
-                        EndWeek = belief.EndWeek,
-                        Trust = belief.Trust,
-                        HeardWeek = belief.HeardWeek,
-                        Source = (BeliefSource)belief.Source,
-                        Checked = belief.Checked,
-                        Learned = belief.Learned,
-                        PriceAtStart = belief.PriceAtStart
-                    });
-                }
-            }
-
-            if (state.MagnitudeMemory == null) return;
-
-            foreach (var entry in state.MagnitudeMemory)
-                if (entry != null) WorldView.Memory.Set(entry.OfficialName, entry.Mean, entry.Spread, entry.Observations);
-        }
-    }
-
-    public enum ContractUrgency
-    {
-        /// <summary> There are more days left than ContractPanicWeeks.</summary>
-        Normal,
-        /// <summary>Equal or fewer days than ContractPanicWeeks. Handling contracts is done by every slot.</summary>
-        Pressing,
-        /// <summary>The contract may already be unfinishable.</summary>
-        Critical
     }
 }

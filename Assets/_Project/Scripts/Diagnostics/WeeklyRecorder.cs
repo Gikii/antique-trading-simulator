@@ -20,7 +20,8 @@ namespace AntiqueTradingSimulator.Diagnostics
         private readonly TelemetryRun _run;
 
         public BrowseMirror Mirror { get; }
-        public ActionGateMirror Gates { get; }
+        public AgendaMirror Agenda { get; }
+        public NpcMindRecorder Mind { get; }
 
         private readonly Dictionary<LedgerCategory, float> _ledgerWeek = new Dictionary<LedgerCategory, float>();
         private readonly List<float> _wealth = new List<float>();
@@ -37,7 +38,8 @@ namespace AntiqueTradingSimulator.Diagnostics
             _host = host;
             _run = host.Run;
             Mirror = new BrowseMirror(host);
-            Gates = new ActionGateMirror(host);
+            Agenda = new AgendaMirror(host);
+            Mind = new NpcMindRecorder(host);
         }
 
         // ---------------------------------------------------------------- weekly counters
@@ -534,6 +536,31 @@ namespace AntiqueTradingSimulator.Diagnostics
                     if (contract == null || contract.Status != Contracts.ContractStatus.Active) danglingCommitments++;
                 }
                 Check(table, "ContractCommitmentConsistent", "Trader", traderId, 0f, danglingCommitments, null);
+
+                var npc = _host.Traders.NpcOf(traderId);
+                if (npc == null) continue;
+
+                // The standing invariant: exactly one position per NPC-held antique, or none.
+                int positionsWithoutHolding = 0;
+                foreach (string antiqueId in npc.PositionAntiqueIds)
+                    if (!inventory.Owns(antiqueId)) positionsWithoutHolding++;
+
+                Check(table, "PositionPerHolding", "Trader", traderId, 0f, positionsWithoutHolding,
+                    "A position whose antique the trader no longer holds");
+
+                // A belief is dropped the week after its event ends, so anything further behind
+                // than that means AdvanceWeek has stopped running.
+                var view = npc.WorldView;
+                int staleBeliefs = 0;
+                if (view != null)
+                {
+                    var beliefs = view.Beliefs;
+                    for (int i = 0; i < beliefs.Count; i++)
+                        if (beliefs[i].EndWeek > 0 && beliefs[i].EndWeek < _run.Week - 1) staleBeliefs++;
+                }
+
+                Check(table, "BeliefNotExpired", "Trader", traderId, 0f, staleBeliefs,
+                    "A belief whose event ended more than a week ago");
             }
 
             var market = _host.Market;

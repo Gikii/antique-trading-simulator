@@ -29,7 +29,8 @@ namespace AntiqueTradingSimulator.UI
 
         private static readonly LedgerCategory[] IncomeCategories =
         {
-            LedgerCategory.Sale, LedgerCategory.Contract, LedgerCategory.Auction, LedgerCategory.Other
+            LedgerCategory.Sale, LedgerCategory.DistressSale, LedgerCategory.Contract, 
+            LedgerCategory.Auction, LedgerCategory.Other
         };
 
         private static readonly LedgerCategory[] ExpenseCategories =

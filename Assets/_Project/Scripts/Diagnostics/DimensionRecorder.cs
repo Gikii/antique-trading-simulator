@@ -137,14 +137,13 @@ namespace AntiqueTradingSimulator.Diagnostics
 
             if (profile == null)
             {
-                r.N(52).End();
+                r.N(60).End();
                 return;
             }
 
             r.I(profile.ActionsPerPeriod)
                 .F(profile.WeeklyBudgetFraction)
                 .F(profile.MinBargainScore)
-                .F(profile.MaxPriceMultiplierWillingToPay)
                 .F(profile.MinConditionToBuy)
                 .F(profile.ConditionPremium)
                 .F(profile.ProfitTargetMultiplier)
@@ -159,7 +158,6 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .F(profile.RiskTolerance)
                 .B(profile.NeverSells)
                 .B(profile.ListsOnMarket)
-                .F(profile.ListingChance)
                 .B(profile.TakesContracts)
                 .F(profile.ContractSlotShare)
                 .I(profile.ContractPanicWeeks)
@@ -193,6 +191,16 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .F(profile.TrendSensitivity)
                 .I(profile.TrendWindowWeeks)
                 .F(profile.MaxTrendBoost)
+                .F(profile.OutlookWeight)
+                .F(profile.SpeculationBudgetShare)
+                .F(profile.BargainBudgetShare)
+                .F(profile.RestorationBudgetShare)
+                .F(profile.FullConvictionAt)
+                .E(profile.Stance)
+                .I(profile.PanicSellAfterWeeks)
+                .I(profile.ExitLeadWeeks)
+                .I(profile.StartingWarehouseLevel)
+                .F(profile.WeeklyEndowment)
                 .End();
         }
 

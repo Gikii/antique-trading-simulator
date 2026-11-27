@@ -58,7 +58,10 @@ namespace AntiqueTradingSimulator.Agents
             return new Estimate(ColdMean * temperament, ColdSpread, 0);
         }
 
-        /// <summary>Records what an event of that name actually did, narrowing the next estimate.</summary>
+        /// <summary>
+        /// Records what an event of that name did, narrowing the next estimate: the spread falls as
+        /// 1/sqrt(1 + observations), so the first one lived through already counts.
+        /// </summary>
         public void Observe(string officialName, float realisedMove)
         {
             if (string.IsNullOrEmpty(officialName)) return;
@@ -68,7 +71,7 @@ namespace AntiqueTradingSimulator.Agents
 
             int observations = old.Observations + 1;
             float mean = old.Exists ? old.Mean + (size - old.Mean) / observations : size;
-            float spread = Mathf.Max(SpreadFloor, ColdSpread / Mathf.Sqrt(observations));
+            float spread = Mathf.Max(SpreadFloor, ColdSpread / Mathf.Sqrt(1 + observations));
 
             _seen[officialName] = new Estimate(Mathf.Max(0f, mean), spread, observations);
         }

@@ -11,14 +11,14 @@ namespace AntiqueTradingSimulator.Diagnostics
     /// </summary>
     public static class ContractMath
     {
-        /// <summary>NPCTrader.ContractCashShareBase, mirrored.</summary>
-        public const float ContractCashShareBase = 0.40f;
+        /// <summary>The agents' own decision constants, so both sides judge a contract by their rules.</summary>
+        private static Agents.TraderPolicy Policy => Agents.TraderPolicy.Default;
 
-        /// <summary>NPCTrader.ContractCashShareRiskSpan, mirrored.</summary>
-        public const float ContractCashShareRiskSpan = 0.35f;
+        public static float ContractCashShareBase => Policy.ContractCashShareBase;
 
-        /// <summary>NPCTrader.ContractRiskPremium, mirrored.</summary>
-        public const float ContractRiskPremium = 0.35f;
+        public static float ContractCashShareRiskSpan => Policy.ContractCashShareRiskSpan;
+
+        public static float ContractRiskPremium => Policy.ContractRiskPremium;
 
         /// <summary>NPCTrader.ContractCashShareFor, mirrored.</summary>
         public static float ContractCashShareFor(Agents.NpcBehaviorProfile profile)
@@ -66,7 +66,6 @@ namespace AntiqueTradingSimulator.Diagnostics
             if (listing == null || profile == null) return false;
 
             return listing.SalePrice <= FairValue(host, listing, profile)
-                * profile.MaxPriceMultiplierWillingToPay
                 * (1f + Mathf.Clamp01(profile.RiskTolerance) * ContractRiskPremium);
         }
         /// <summary>What a qualifying listing looks like to a buyer right now.</summary>
@@ -98,7 +97,7 @@ namespace AntiqueTradingSimulator.Diagnostics
 
         /// <summary>
         /// Listings that satisfy the requirement now, how many of them could still arrive before
-        /// <paramref name="latestArrival"/> by Express, and the cheapest of those with shipping.
+        /// latestArrival by Express, and the cheapest of those with shipping.
         /// </summary>
         public static Supply Measure(TelemetryRecorder host, ContractRequirement requirement, int latestArrival)
         {

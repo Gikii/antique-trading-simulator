@@ -15,11 +15,12 @@ namespace AntiqueTradingSimulator.Diagnostics
         private readonly TelemetryRecorder _host;
         private readonly TelemetryRun _run;
 
-        /// <summary>Profit an exclusive must leave — NPCTrader.ExclusiveMinProfitShare.</summary>
-        private const float ExclusiveMinProfitShare = 0.15f;
+        /// <summary>The agents' own decision constants, so both sides judge a contract by their rules.</summary>
+        private static TraderPolicy Policy => TraderPolicy.Default;
 
-        /// <summary>Margin a discretionary purchase must leave on the reserves — NPCTrader.ReserveSafetyMargin.</summary>
-        private const float ReserveSafetyMargin = 1.25f;
+        private static float ExclusiveMinProfitShare => Policy.ExclusiveMinProfitShare;
+
+        private static float ReserveSafetyMargin => Policy.ReserveSafetyMargin;
 
         private readonly List<float> _offers = new List<float>();
 

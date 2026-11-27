@@ -65,9 +65,6 @@ namespace AntiqueTradingSimulator.Agents
         [Header("Buying")]
         [FormerlySerializedAs("DailyBudgetFraction")]
         [Range(0f, 1f)] public float WeeklyBudgetFraction = 0.2f;
-        [Tooltip("Most the NPC pays relative to what the antique is worth in its condition " +
-                 "(reference price of its type × condition). 1.3 = up to 30% over that value.")]
-        public float MaxPriceMultiplierWillingToPay = 1.3f;
         [Range(0f, 1f)] public float RiskTolerance = 0.5f;
 
         [Tooltip("The number of weeks of unspent budget that gets saved between weeeks. 1 means no saving.")]
@@ -116,9 +113,6 @@ namespace AntiqueTradingSimulator.Agents
         [Tooltip("Lists antiques on the market at a markup instead of selling them instantly — the player " +
                  "(and other NPCs and collectors) can buy them.")]
         public bool ListsOnMarket;
-
-        [Tooltip("Recorded for the diagnostics only; the disposal reason now decides the channel.")]
-        [Range(0f, 1f)] public float ListingChance = 1f;
 
         [Tooltip("How the asking price answers the rest of the board: hold its own price, undercut the cheapest rival, or settle near the middle.")]
         public PricingStance Stance = PricingStance.HoldLine;

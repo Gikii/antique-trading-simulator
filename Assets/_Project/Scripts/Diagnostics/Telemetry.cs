@@ -55,13 +55,13 @@ namespace AntiqueTradingSimulator.Diagnostics
 
         /// <param name="tier">Name of the ladder rung that acted, or null when none did.</param>
         [Conditional("ATS_DIAGNOSTICS")]
-        public static void NpcActionEnd(NPCTrader npc, int week, string tier)
+        public static void NpcActionEnd(NPCTrader npc, int week, AgendaItem item)
         {
             try
             {
                 var recorder = TelemetryRecorder.Instance;
                 if (recorder == null) return;
-                recorder.Traders.NpcActionEnd(npc, week, tier);
+                recorder.Traders.NpcActionEnd(npc, week, item);
             }
             catch (Exception e)
             {
@@ -69,9 +69,25 @@ namespace AntiqueTradingSimulator.Diagnostics
             }
         }
 
+        /// <summary>Why a trader is parting with a holding, noted before the sale that carries it out.</summary>
+        [Conditional("ATS_DIAGNOSTICS")]
+        public static void Disposal(string antiqueId, DisposalReason reason)
+        {
+            try
+            {
+                var recorder = TelemetryRecorder.Instance;
+                if (recorder == null) return;
+                recorder.MarketLog.NoteDisposal(antiqueId, reason);
+            }
+            catch (Exception e)
+            {
+                Fault(nameof(Disposal), e);
+            }
+        }
+
         /// <summary>
-        /// A ladder rung was reached and declined. This is the only way to know which rungs the
-        /// ladder actually evaluated: short-circuiting means the rest are never touched.
+        /// An agenda item a slot came to and could not carry out, counted for the per-slot record.
+        /// The item's own SkippedReason carries why.
         /// </summary>
         [Conditional("ATS_DIAGNOSTICS")]
         public static void TierDeclined(NPCTrader npc, string tier)
@@ -94,14 +110,16 @@ namespace AntiqueTradingSimulator.Diagnostics
         [Conditional("ATS_DIAGNOSTICS")]
         public static void NewsReception(IInformationReceiver receiver, NewsItem news, int deliveryWeek,
             string outcome, float baseTrust, float effectiveTrust, float actionChance, float trustRoll,
-            float expertChance, int delayWeeks, int reactionWeek)
+            float expertChance, int delayWeeks, int actsFromWeek, float estimatedMove = 0f,
+            float estimateSpread = 0f, float outlookBefore = 0f, float outlookAfter = 0f)
         {
             try
             {
                 var recorder = TelemetryRecorder.Instance;
                 if (recorder == null) return;
                 recorder.WorldLog.NewsReception(receiver, news, deliveryWeek, outcome, baseTrust,
-                    effectiveTrust, actionChance, trustRoll, expertChance, delayWeeks, reactionWeek);
+                    effectiveTrust, actionChance, trustRoll, expertChance, delayWeeks, actsFromWeek,
+                    estimatedMove, estimateSpread, outlookBefore, outlookAfter);
             }
             catch (Exception e)
             {

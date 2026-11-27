@@ -22,11 +22,11 @@ namespace AntiqueTradingSimulator.Diagnostics
         public const string DimTraderName = "dim_trader";
         public const string DimTraderHeader =
             "run_id,trader_id,trader_name,kind,profile_id,profile_name,starting_cash,access_level," +
-            "actions_per_period,weekly_budget_fraction,min_bargain_score,max_price_multiplier_willing_to_pay," +
+            "actions_per_period,weekly_budget_fraction,min_bargain_score," +
             "min_condition_to_buy,condition_premium,profit_target_multiplier,patient_profit_multiplier," +
             "min_holding_weeks_before_sell,patient_sell_after_weeks,relist_after_weeks,listing_markup," +
             "listing_price_cut_per_week,min_listing_multiplier," +
-            "stop_loss_multiplier,risk_tolerance,never_sells,lists_on_market,listing_chance,takes_contracts," +
+            "stop_loss_multiplier,risk_tolerance,never_sells,lists_on_market,takes_contracts," +
             "contract_slot_share,contract_panic_weeks,restores,buys_to_restore,restores_for_contracts," +
             "max_concurrent_restorations,max_restoration_weeks,max_restoration_share_of_cash," +
             "restoration_hurdle,rumour_plant_chance,lists_into_own_rumour,exit_pump_confidence," +
@@ -34,7 +34,10 @@ namespace AntiqueTradingSimulator.Diagnostics
             "auction_budget_share,auction_value_multiplier,auction_fever_chance,auction_fever_raise," +
             "auction_hesitation,auction_news_premium,leak_trust,rumor_trust,min_reaction_delay_weeks," +
             "max_reaction_delay_weeks,preferred_types,preferred_countries,preferred_centuries," +
-            "trend_sensitivity,trend_window_weeks,max_trend_boost";
+            "trend_sensitivity,trend_window_weeks,max_trend_boost," +
+            "outlook_weight,speculation_budget_share,bargain_budget_share,restoration_budget_share," +
+            "full_conviction_at,stance,panic_sell_after_weeks,exit_lead_weeks," +
+            "starting_warehouse_level,weekly_endowment";
 
         public const string DimAntiqueDefinitionName = "dim_antique_definition";
         public const string DimAntiqueDefinitionHeader =
@@ -78,7 +81,8 @@ namespace AntiqueTradingSimulator.Diagnostics
         public const string FactMarketTransactionHeader =
             "run_id,seq,week,tick,day_index,game_date,kind,antique_id,definition_id,buyer_trader_id," +
             "seller_trader_id,price,asking_price,proceeds,listing_fee,market_value,condition,shipping_zone," +
-            "listed_on_week,listing_age_weeks,listings_of_type_before,listings_of_type_after";
+            "listed_on_week,listing_age_weeks,listings_of_type_before,listings_of_type_after," +
+            "disposal_reason,gross_price,spread_paid";
 
         public const string FactTypeStateName = "fact_type_state";
         public const string FactTypeStateHeader =
@@ -124,10 +128,10 @@ namespace AntiqueTradingSimulator.Diagnostics
 
         public const string FactNpcActionName = "fact_npc_action";
         public const string FactNpcActionHeader =
-            "run_id,seq,week,tick,day_index,game_date,trader_id,slot_index,tier,tier_rank,acted," +
+            "run_id,seq,week,tick,day_index,game_date,trader_id,slot_index,intent,intent_rank,acted," +
             "result_antique_id,result_contract_id,cash_before,cash_after,week_budget_before,week_budget_after," +
             "contract_reserve,plan_reserve,contract_slots_used,holdings_count,open_restorations," +
-            "committed_contracts,pending_reactions,activity_scale";
+            "committed_contracts,beliefs_held,activity_scale,target_id,conviction,budget_ceiling,rationale";
 
         public const string FactRestorationName = "fact_restoration";
         public const string FactRestorationHeader =
@@ -194,7 +198,7 @@ namespace AntiqueTradingSimulator.Diagnostics
         public const string FactBrowseFunnelName = "fact_browse_funnel";
         public const string FactBrowseFunnelHeader =
             "run_id,seq,week,tick,day_index,game_date,trader_id,listings_scanned,rejected_owns_it," +
-            "rejected_not_interested,rejected_price_too_high,rejected_condition_floor," +
+            "rejected_not_interested,rejected_not_quoted,rejected_condition_floor," +
             "rejected_over_week_budget,rejected_cash_floor,rejected_below_bargain_bar," +
             "rejected_no_viable_restoration,candidates_as_is,candidates_restore,best_as_is_antique_id," +
             "best_as_is_weekly_return,best_as_is_total_cost,best_restore_antique_id," +
@@ -215,8 +219,9 @@ namespace AntiqueTradingSimulator.Diagnostics
         public const string FactNewsReceptionHeader =
             "run_id,seq,week,tick,day_index,game_date,news_id,trader_id,delivery_week,outcome,news_type," +
             "access_level,credibility,base_trust,market_skepticism,effective_trust,risk_tolerance," +
-            "action_chance,trust_roll,expert_detection_chance,reaction_delay_weeks,reaction_week," +
-            "event_trigger_week,acted_on_week,scope_targets,holdings_in_scope,holdings_in_scope_value";
+            "action_chance,trust_roll,expert_detection_chance,reaction_delay_weeks,acts_from_week," +
+            "event_trigger_week,acted_on_week,scope_targets,holdings_in_scope,holdings_in_scope_value," +
+            "estimated_move,estimate_spread,outlook_before,outlook_after";
 
         public const string FactEconomyWeekName = "fact_economy_week";
         public const string FactEconomyWeekHeader =
@@ -259,11 +264,32 @@ namespace AntiqueTradingSimulator.Diagnostics
             "run_id,seq,week,tick,game_date,event,reason,session_index,timestamp_utc,campaign_length," +
             "campaign_finished,rows_written,real_seconds";
 
-        public const string FactActionGateName = "fact_action_gate";
-        public const string FactActionGateHeader =
-            "run_id,seq,week,tick,day_index,game_date,trader_id,slot_index,rung,rung_rank,reached,fired," +
-            "profile_allows,candidates,outcome,detail";
+        // One row per agenda item the weekly review built, with the reasoning behind it and
+        // whether a slot carried it out.
+        public const string FactAgendaItemName = "fact_agenda_item";
+        public const string FactAgendaItemHeader =
+            "run_id,seq,week,game_date,trader_id,rank,intent,intent_rank,target_id,target_kind," +
+            "conviction,budget_ceiling,valid_until_week,rationale,executed,executed_tick," +
+            "skipped_reason,disposal_reason";
 
-        public const int TableCount = 35;
+        public const string FactOutlookWeekName = "fact_outlook_week";
+        public const string FactOutlookWeekHeader =
+            "run_id,seq,week,game_date,trader_id,definition_id,antique_type,expected,confidence," +
+            "conviction,supporting,opposing,peak_week,fade_week,beliefs_held";
+
+        public const string FactPositionName = "fact_position";
+        public const string FactPositionHeader =
+            "run_id,seq,week,game_date,trader_id,antique_id,definition_id,purpose,cost_basis," +
+            "acquired_week,entry_outlook,target_price,stop_price,expected_peak_week,expected_fade_week," +
+            "based_on_news_ids,source_kinds,distress_since,current_value,unrealised_gain,is_listed," +
+            "asking_price";
+
+        public const string FactBeliefOutcomeName = "fact_belief_outcome";
+        public const string FactBeliefOutcomeHeader =
+            "run_id,seq,week,game_date,trader_id,news_id,official_name,source,direction," +
+            "estimated_move,estimate_spread,realised_move,was_confirmed,start_week,end_week," +
+            "heard_week,observations_before,trust_at_outcome";
+
+        public const int TableCount = 38;
     }
 }

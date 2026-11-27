@@ -17,11 +17,11 @@ namespace AntiqueTradingSimulator.Market
 
         [Tooltip("Weekly chance that a collector buys a listing priced exactly at its market value, at normal demand.")]
         [FormerlySerializedAs("BaseDailyChance")]
-        [Range(0f, 1f)] public float BaseWeeklyChance = 0.2f;
+        [Range(0f, 1f)] public float BaseWeeklyChance = 0.25f;
 
         [Tooltip("How fast the chance falls as the asking price rises above market value (and grows below it). " +
-                 "5 → +10% over value ≈ 0.6× the chance, +20% ≈ 0.37×.")]
-        [Min(0f)] public float PriceSensitivity = 5f;
+                 "3 → +10% over value ≈ 0.74× the chance, +25% ≈ 0.47×, so a 1.25× ask clears in about four weeks.")]
+        [Min(0f)] public float PriceSensitivity = 3f;
 
         [Tooltip("Collectors never pay more than this multiple of the market value.")]
         [Min(1f)] public float MaxPriceRatio = 1.6f;
@@ -44,7 +44,7 @@ namespace AntiqueTradingSimulator.Market
     public static class CollectorDemand
     {
         /// <summary>
-        /// Chance per day that a collector buys this antique at <paramref name="askingPrice"/>.
+        /// Chance per day that a collector buys this antique at askingPrice.
         /// Depends on the price relative to the antique's market value (condition included) and
         /// on the current demand for its type. 0 if collectors are disabled or the price is too high.
         /// </summary>

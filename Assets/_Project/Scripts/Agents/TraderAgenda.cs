@@ -54,6 +54,9 @@ namespace AntiqueTradingSimulator.Agents
 
         public bool Executed;
 
+        /// <summary>Tick the slot that carried it out ran on; -1 until one does.</summary>
+        public int ExecutedTick = -1;
+
         /// <summary>Set when a disposal item names the reason the holding is being sold.</summary>
         public DisposalReason Reason;
     }
@@ -122,12 +125,13 @@ namespace AntiqueTradingSimulator.Agents
         }
 
         /// <summary>Drops an item once it has been carried out or has turned out impossible.</summary>
-        public void Retire(AgendaItem item, bool executed, string skippedReason = null)
+        public void Retire(AgendaItem item, bool executed, string skippedReason = null, int tick = -1)
         {
             if (item == null) return;
 
             item.Executed = true;
-            if (!executed) item.SkippedReason = skippedReason;
+            if (executed) item.ExecutedTick = tick;
+            else item.SkippedReason = skippedReason;
         }
 
         /// <summary>Removes every item about one antique, once it has left the inventory.</summary>

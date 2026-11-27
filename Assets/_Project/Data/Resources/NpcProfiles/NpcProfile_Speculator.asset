@@ -31,7 +31,6 @@ MonoBehaviour:
   MaxReactionDelayWeeks: 1
   RumourPlantChance: 0.15
   WeeklyBudgetFraction: 0.35
-  MaxPriceMultiplierWillingToPay: 0.8
   RiskTolerance: 0.8
   BudgetAccrualWeeks: 3
   MinConditionToBuy: 0
@@ -43,7 +42,6 @@ MonoBehaviour:
   PatientProfitMultiplier: 1.05
   StopLossMultiplier: 0.75
   ListsOnMarket: 1
-  ListingChance: 1
   ListingMarkup: 1.15
   ListingPriceCutPerWeek: 0.08
   MinListingMultiplier: 1.05
@@ -73,3 +71,13 @@ MonoBehaviour:
   AuctionFeverChance: 0.2
   AuctionFeverRaise: 0.1
   AuctionHesitation: 0.3
+  OutlookWeight: 1
+  SpeculationBudgetShare: 0.65
+  BargainBudgetShare: 0.25
+  RestorationBudgetShare: 0.1
+  FullConvictionAt: 0.12
+  Stance: 1
+  PanicSellAfterWeeks: 1
+  ExitLeadWeeks: 1
+  StartingWarehouseLevel: 2
+  WeeklyEndowment: 0

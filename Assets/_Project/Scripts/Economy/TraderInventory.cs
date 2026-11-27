@@ -33,7 +33,7 @@ namespace AntiqueTradingSimulator.Economy
         [JsonIgnore]
         public string OwnerId { get; private set; } = "";
 
-        /// <summary>Called by EconomyManager.RegisterInventory; see <see cref="OwnerId"/>.</summary>
+        /// <summary>Called by EconomyManager.RegisterInventory; see OwnerId.</summary>
         public void SetOwnerId(string ownerId) => OwnerId = ownerId ?? "";
 
         public float Cash { get; private set; }
@@ -355,12 +355,14 @@ namespace AntiqueTradingSimulator.Economy
             listing.ClearAcquisition();
             market.Sell(listing, currentWeek);
 
+            // The market buys at wholesale: the spread is the price of selling in a hurry. The gross
+            // is booked and the spread taken off it, so the two entries net to the cash received.
             float gross = listing.CurrentPrice;
             float proceeds = Market.Market.InstantSaleProceeds(gross);
 
             SetCash(Cash + proceeds);
             RememberWeek(currentWeek);
-            Record(LedgerCategory.Sale, listing.CurrentPrice, $"Sold \"{listing.Name}\" (instant sale)");
+            Record(LedgerCategory.DistressSale, gross, $"Sold \"{listing.Name}\" (instant sale)");
 
             float spread = Core.Money.RoundToShilling(Mathf.Max(0f, gross - proceeds));
             if (spread > 0f)
@@ -441,7 +443,7 @@ namespace AntiqueTradingSimulator.Economy
         /// <summary>
         /// Called by the Market when someone buys an antique this trader listed:
         /// hands the item over and pays the proceeds (price minus the market fee).
-        /// <paramref name="grossPrice"/> is the price the buyer paid; when given, the ledger
+        /// grossPrice is the price the buyer paid; when given, the ledger
         /// records the sale at that price and the market fee as a separate commission.
         /// </summary>
         public void CompleteListingSale(Antique antique, float proceeds, float grossPrice = -1f)

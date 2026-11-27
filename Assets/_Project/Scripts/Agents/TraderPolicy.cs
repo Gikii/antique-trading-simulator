@@ -1,8 +1,8 @@
 namespace AntiqueTradingSimulator.Agents
 {
     /// <summary>
-    /// Shared decision constants read by both the NPC logic and the telemetry mirrors, so the
-    /// two cannot disagree about the rules they are judging a trade by.
+    /// The decision constants the NPC logic and the telemetry mirrors share, so both judge a
+    /// trade by one set of rules.
     /// </summary>
     public readonly struct TraderPolicy
     {
@@ -36,6 +36,9 @@ namespace AntiqueTradingSimulator.Agents
             CommittedBargainPenalty = committedBargainPenalty;
         }
 
-        public static TraderPolicy Default => new TraderPolicy(0.15f, 0.40f, 0.35f, 0.35f, 1.25f, 2f);
+        /// <summary>
+        /// The live rules. Get-only, so a -set: override cannot half-write the struct mid-run.
+        /// </summary>
+        public static TraderPolicy Default { get; } = new TraderPolicy(0.15f, 0.40f, 0.35f, 0.35f, 1.25f, 2f);
     }
 }

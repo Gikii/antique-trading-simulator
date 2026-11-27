@@ -602,13 +602,12 @@ namespace AntiqueTradingSimulator.Diagnostics
                 }
 
                 view.Declined.Clear();
-                _host.WeeklyLog.Gates.Capture(npc, _run.Week);
 
                 if (Telemetry.Mirrors) _host.WeeklyLog.Mirror.CaptureBrowse(npc, view.Id);
             });
         }
 
-        public void NpcActionEnd(NPCTrader npc, int week, string tier)
+        public void NpcActionEnd(NPCTrader npc, int week, AgendaItem item)
         {
             if (npc == null || !_views.TryGetValue(npc.Id, out var view)) return;
 
@@ -618,6 +617,7 @@ namespace AntiqueTradingSimulator.Diagnostics
                 var table = _run.Table(T.FactNpcActionName, T.FactNpcActionHeader);
 
                 int slot = view.SlotIndex++;
+                string tier = item != null ? item.Intent.ToString() : null;
 
                 _run.Stamp(table)
                     .S(view.Id)
@@ -637,11 +637,13 @@ namespace AntiqueTradingSimulator.Diagnostics
                     .I(npc.Inventory.UsedSlots)
                     .I(OpenRestorations(npc.Inventory))
                     .I(npc.Inventory.CommittedContractIds.Count)
-                    .I(state != null && state.PendingReactions != null ? state.PendingReactions.Count : 0)
+                    .I(state != null && state.Beliefs != null ? state.Beliefs.Count : 0)
                     .F(npc.ActivityScale)
+                    .S(item != null ? item.TargetId : null)
+                    .F(item != null ? item.Conviction : (float?)null)
+                    .F(item != null ? item.BudgetCeiling : (float?)null)
+                    .S(item != null ? item.Rationale : null)
                     .End();
-
-                _host.WeeklyLog.Gates.Emit(view.Id, slot, tier, view.Declined);
 
                 if (Telemetry.Mirrors) _host.WeeklyLog.Mirror.EmitBrowse(npc, view.Id, tier);
             });

@@ -11,7 +11,7 @@ namespace AntiqueTradingSimulator.Economy
     /// </summary>
     public enum LedgerCategory
     {
-        Sale,         // antique sold on the market (instant sale or own listing, gross price)
+        Sale,         // own listing sold to a buyer or a collector (gross price)
         DistressSale, // antique sold to the market at the instant price, after the spread
         Contract,     // contract reward
         Auction,      // proceeds of selling at auction (winning a lot is a Purchase + Commission)
@@ -101,7 +101,7 @@ namespace AntiqueTradingSimulator.Economy
             OnEntryAdded?.Invoke(entry);
         }
 
-        /// <summary>Entries from <paramref name="fromDay"/> to <paramref name="toDay"/> inclusive.</summary>
+        /// <summary>Entries from fromDay to toDay inclusive.</summary>
         public IEnumerable<LedgerEntry> Between(int fromWeek, int toWeek)
         {
             foreach (var entry in _entries)
@@ -109,7 +109,7 @@ namespace AntiqueTradingSimulator.Economy
                     yield return entry;
         }
 
-        /// <summary>Newest first, at most <paramref name="count"/> entries.</summary>
+        /// <summary>Newest first, at most count entries.</summary>
         public List<LedgerEntry> Latest(int count)
         {
             var result = new List<LedgerEntry>(Math.Max(0, count));

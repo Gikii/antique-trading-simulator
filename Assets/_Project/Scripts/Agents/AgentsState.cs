@@ -18,8 +18,6 @@ namespace AntiqueTradingSimulator.Agents
 
         public List<PlanState> Acquisitions = new List<PlanState>();
 
-        public List<PendingReactionState> PendingReactions = new List<PendingReactionState>();
-
         public List<string> CommittedContractIds = new List<string>();
 
         public TraderRecordState Record;
@@ -48,6 +46,8 @@ namespace AntiqueTradingSimulator.Agents
         public List<BeliefState> Beliefs = new List<BeliefState>();
 
         public List<MagnitudeEntryState> MagnitudeMemory = new List<MagnitudeEntryState>();
+
+        public List<float> SourceTrust = new List<float>();
     }
 
     public class BeliefState
@@ -62,10 +62,12 @@ namespace AntiqueTradingSimulator.Agents
         public int EndWeek;
         public float Trust;
         public int HeardWeek;
+        public int ActsFromWeek;
         public int Source;
         public bool Checked;
         public bool Learned;
         public float PriceAtStart;
+        public float RealisedMove;
     }
 
     public class MagnitudeEntryState
@@ -104,11 +106,5 @@ namespace AntiqueTradingSimulator.Agents
         public float StopPrice;
         public string[] BasedOnNewsIds;
         public int DistressSince;
-    }
-
-    public class PendingReactionState
-    {
-        public int ReactionWeek;
-        public NewsItemState News;
     }
 }

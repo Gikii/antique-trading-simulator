@@ -244,9 +244,49 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .I(listedOnWeek >= 0 ? _run.Week - listedOnWeek : (int?)null)
                 .I(before)
                 .I(CountListings(definitionId))
+                .E(TakeDisposalReason(kind, antiqueId))
+                .F(float.IsNaN(price) ? (float?)null : price)
+                .F(SpreadPaid(kind, price))
                 .End();
 
             _host.WeeklyLog.CountTransaction(kind, buyerId, sellerId, price, proceeds);
+        }
+
+        /// <summary>
+        /// Why each seller was selling, as the agent noted it before the sale, keyed on the
+        /// antique and consumed when it changes hands.
+        /// </summary>
+        private readonly Dictionary<string, Agents.DisposalReason> _disposalReasons =
+            new Dictionary<string, Agents.DisposalReason>(System.StringComparer.Ordinal);
+
+        /// <summary>Called by the agent before it lists or dumps a holding.</summary>
+        public void NoteDisposal(string antiqueId, Agents.DisposalReason reason)
+        {
+            if (string.IsNullOrEmpty(antiqueId) || reason == Agents.DisposalReason.None) return;
+            _disposalReasons[antiqueId] = reason;
+        }
+
+        /// <summary>The reason, consumed once the antique has actually changed hands.</summary>
+        private System.Enum TakeDisposalReason(string kind, string antiqueId)
+        {
+            if (string.IsNullOrEmpty(antiqueId)) return null;
+            if (!_disposalReasons.TryGetValue(antiqueId, out var reason)) return null;
+
+            bool gone = kind == "SoldToMarket" || kind == "ListingSold" || kind == "CollectorPurchase" ||
+                        kind == "Purchase";
+            if (gone) _disposalReasons.Remove(antiqueId);
+
+            return reason;
+        }
+
+        /// <summary>
+        /// What the market kept on an instant sale, through Market's own definition so the column
+        /// matches the charge.
+        /// </summary>
+        private static float? SpreadPaid(string kind, float gross)
+        {
+            if (kind != "SoldToMarket" || float.IsNaN(gross)) return null;
+            return Core.Money.RoundToShilling(gross - Market.Market.InstantSaleProceeds(gross));
         }
 
         private int CountListings(string definitionId)

@@ -285,6 +285,14 @@ namespace AntiqueTradingSimulator.Diagnostics
 
             Run.Safe(T.FactTraderWeekName, "TraderWeek", () => WeeklyLog.TraderWeek());
 
+            // The week just ended. The next Review clears the agenda and ages the beliefs, and it
+            // runs on the first tick after this.
+            int justEnded = Run.Week;
+            Run.Safe(T.FactAgendaItemName, "AgendaItem", () => WeeklyLog.Agenda.Emit(justEnded));
+            Run.Safe(T.FactOutlookWeekName, "OutlookWeek", () => WeeklyLog.Mind.OutlookWeek());
+            Run.Safe(T.FactPositionName, "Positions", () => WeeklyLog.Mind.Positions());
+            Run.Safe(T.FactBeliefOutcomeName, "BeliefOutcomes", () => WeeklyLog.Mind.BeliefOutcomes());
+
             // Integrity before EconomyWeek: EconomyWeek clears the week's counters, and one of the
             // checks reads the unexplained-ownership count. The other way round it always saw 0.
             Run.Safe(T.FactIntegrityName, "Integrity", () => WeeklyLog.Integrity());

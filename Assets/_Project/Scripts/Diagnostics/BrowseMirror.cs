@@ -15,19 +15,21 @@ namespace AntiqueTradingSimulator.Diagnostics
         private readonly TelemetryRecorder _host;
         private readonly TelemetryRun _run;
 
-        /// <summary>NPCTrader.CommittedBargainPenalty.</summary>
-        private const float CommittedBargainPenalty = 2f;
+        /// <summary>The agents' own decision constants, so the funnel judges a trade by their rules.</summary>
+        private static TraderPolicy Policy => TraderPolicy.Default;
 
-        /// <summary>NPCTrader.ReserveSafetyMargin.</summary>
-        private const float ReserveSafetyMargin = 1.25f;
+        private static float CommittedBargainPenalty => Policy.CommittedBargainPenalty;
+
+        private static float ReserveSafetyMargin => Policy.ReserveSafetyMargin;
 
         private struct Funnel
         {
             public bool Valid;
             public string TraderId;
-            public int Scanned, OwnsIt, NotInterested, PriceTooHigh, ConditionFloor;
+            public int Scanned, OwnsIt, NotInterested, NotQuoted, ConditionFloor;
             public int OverBudget, CashFloor, BelowBar, NoRestoration;
             public int CandidatesAsIs, CandidatesRestore;
+            public float Carry;
             public string BestAsIsId, BestRestoreId;
             public float BestAsIsReturn, BestAsIsCost, BestRestoreReturn, BestRestoreCost;
             public float Threshold, RestorationBar, Budget, Cash, Headroom;
@@ -71,7 +73,7 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .I(funnel.Scanned)
                 .I(funnel.OwnsIt)
                 .I(funnel.NotInterested)
-                .I(funnel.PriceTooHigh)
+                .I(funnel.NotQuoted)
                 .I(funnel.ConditionFloor)
                 .I(funnel.OverBudget)
                 .I(funnel.CashFloor)
@@ -123,6 +125,7 @@ namespace AntiqueTradingSimulator.Diagnostics
             float bar = profile.MinBargainScore * (funnel.Committed ? CommittedBargainPenalty : 1f);
             funnel.Threshold = bar / Mathf.Max(1, funnel.HoldWeeks);
             funnel.RestorationBar = TargetWeeklyReturn(profile) * profile.RestorationHurdle;
+            funnel.Carry = TraderValuation.CarryPerWeek(inventory);
 
             float bestAsIs = funnel.Threshold;
             float bestRestore = funnel.Threshold;
@@ -137,10 +140,10 @@ namespace AntiqueTradingSimulator.Diagnostics
 
                 if (inventory.Owns(listing.Id)) { funnel.OwnsIt++; continue; }
                 if (!IsInterestedIn(listing.Definition, profile)) { funnel.NotInterested++; continue; }
-                if (!IsAcceptablePrice(listing, profile)) { funnel.PriceTooHigh++; continue; }
 
-                float cost = EstimateTotalCost(listing, inventory);
-                if (cost <= 0f || !Core.Money.Covers(funnel.Budget, cost)) { funnel.OverBudget++; continue; }
+                float cost = EstimateTotalCost(npc, listing, profile, inventory, funnel.HoldWeeks, funnel.Carry);
+                if (cost <= 0f) { funnel.NotQuoted++; continue; }
+                if (!Core.Money.Covers(funnel.Budget, cost)) { funnel.OverBudget++; continue; }
                 if (!Core.Money.Covers(funnel.Headroom, cost)) { funnel.CashFloor++; continue; }
 
                 if (listing.Condition < profile.MinConditionToBuy)
@@ -149,7 +152,7 @@ namespace AntiqueTradingSimulator.Diagnostics
                 }
                 else
                 {
-                    float weekly = BargainScore(listing, cost, profile) / Mathf.Max(1, funnel.HoldWeeks);
+                    float weekly = WeeklyReturn(npc, listing, cost, profile, funnel.HoldWeeks, funnel.Carry);
 
                     // Counted, not merely skipped: the bargain bar is the gate most worth tuning,
                     // and leaving it uncounted made the column read zero.
@@ -177,7 +180,7 @@ namespace AntiqueTradingSimulator.Diagnostics
 
                 int weeks = Mathf.Max(1, funnel.HoldWeeks);
                 float capital = cost + fee;
-                float restoreWeekly = capital > 0f ? (expectedValue - capital) / (capital * weeks) : 0f;
+                float restoreWeekly = TraderValuation.WeeklyReturn(capital, expectedValue, weeks, funnel.Carry);
 
                 // A workshop that exists but does not clear the hurdle is a rejection too.
                 if (restoreWeekly < funnel.RestorationBar)
@@ -232,26 +235,28 @@ namespace AntiqueTradingSimulator.Diagnostics
             return typeOk && countryOk && periodOk;
         }
 
-        // Mirrors NPCTrader.FairValue and NPCTrader.SeasonalOutlook. Both live in ContractMath so
-        // this mirror and the eligibility pass cannot drift apart from each other.
-        private float FairValue(Antique listing, NpcBehaviorProfile profile) =>
-            ContractMath.FairValue(_host, listing, profile);
+        // The agents' own valuation, called with the trader's own world view, so the funnel and
+        // the agent agree on what a listing is worth.
+        private float Worth(NPCTrader npc, Antique listing, NpcBehaviorProfile profile, int horizonWeeks) =>
+            TraderValuation.Worth(listing, _host.Market, npc != null ? npc.WorldView : null, profile, horizonWeeks);
 
-        // Mirrors NPCTrader.ExpectedValue: browsing buys stock to resell, so the trend counts.
-        private float ExpectedValue(Antique listing, NpcBehaviorProfile profile) =>
-            FairValue(listing, profile) * (1f + TraderHelper.TrendOutlook(_host.Market, listing.DefinitionId, profile));
+        /// <summary>
+        /// Return per pound per week on buying this listing, through TraderValuation.WeeklyReturn,
+        /// which is the hurdle the agent measures a trade against.
+        /// </summary>
+        private float WeeklyReturn(NPCTrader npc, Antique listing, float totalCost, NpcBehaviorProfile profile,
+            int holdWeeks, float carryPerWeek) =>
+            TraderValuation.WeeklyReturn(totalCost, Worth(npc, listing, profile, holdWeeks), holdWeeks, carryPerWeek);
 
-        private bool IsAcceptablePrice(Antique listing, NpcBehaviorProfile profile) =>
-            listing.SalePrice <= ExpectedValue(listing, profile) * profile.MaxPriceMultiplierWillingToPay;
 
-        private float BargainScore(Antique listing, float totalCost, NpcBehaviorProfile profile)
-        {
-            if (totalCost <= 0f) return 0f;
-            return (ExpectedValue(listing, profile) - totalCost) / totalCost;
-        }
-
-        private float EstimateTotalCost(Antique listing, TraderInventory buyer) =>
-            TraderHelper.EstimateTotalCost(listing, _host.Transport, TransportOption.Standard, buyer);
+        /// <summary>
+        /// What the agent would pay, carriage included, through the same chooser it uses, so the
+        /// over-budget and cash-floor counts are measured against that cost.
+        /// </summary>
+        private float EstimateTotalCost(NPCTrader npc, Antique listing, NpcBehaviorProfile profile,
+            TraderInventory buyer, int holdWeeks, float carry) =>
+            TraderValuation.BestTransport(listing, Worth(npc, listing, profile, holdWeeks), holdWeeks,
+                _host.Transport, buyer, carry).TotalCost;
 
         /// <summary>
         /// Cheapest workshop this trader could use on a listing it does not own, with the

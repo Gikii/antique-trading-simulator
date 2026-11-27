@@ -1,4 +1,5 @@
 using AntiqueTradingSimulator.Economy;
+using AntiqueTradingSimulator.Logistics;
 using AntiqueTradingSimulator.Market;
 using UnityEngine;
 
@@ -15,12 +16,99 @@ namespace AntiqueTradingSimulator.Agents
         Follow
     }
 
+    /// <summary>One carriage service quoted for one antique, and what buying it that way returns.</summary>
+    public readonly struct TransportChoice
+    {
+        public readonly TransportOption Option;
+
+        /// <summary>Asking price plus this service's carriage.</summary>
+        public readonly float TotalCost;
+
+        public readonly int TransitWeeks;
+
+        /// <summary>Return per pound per week over transit plus the hold, damage risk priced in.</summary>
+        public readonly float WeeklyReturn;
+
+        public TransportChoice(TransportOption option, float totalCost, int transitWeeks, float weeklyReturn)
+        {
+            Option = option;
+            TotalCost = totalCost;
+            TransitWeeks = transitWeeks;
+            WeeklyReturn = weeklyReturn;
+        }
+    }
+
     /// <summary>
     /// The one valuation every trading decision reads, and the pricing policy behind every asking
     /// price. Shared by the NPC logic, the player's modals and the telemetry mirrors.
     /// </summary>
     public static class TraderValuation
     {
+        /// <summary>
+        /// The services a discretionary purchase is quoted at, in a fixed order and with no
+        /// allocation on the browse path.
+        /// </summary>
+        private static readonly TransportOption[] Services =
+            { TransportOption.Economy, TransportOption.Standard, TransportOption.Express };
+
+        /// <summary>
+        /// Picks the carriage for a discretionary purchase off the same quotes the player's modal
+        /// shows: the service with the best weekly return over transit plus the hold wins.
+        /// </summary>
+        public static TransportChoice BestTransport(Antique antique, float worth, int holdWeeks,
+            TransportManager transport, TraderInventory buyer, float carryPerWeek,
+            TransportOption fallback = TransportOption.Standard)
+        {
+            var chosen = new TransportChoice(fallback, 0f, 0, float.NegativeInfinity);
+            if (antique == null) return chosen;
+
+            if (transport == null)
+                return new TransportChoice(fallback, antique.SalePrice, 0, 0f);
+
+            float maxLoss = transport.Settings != null ? transport.Settings.MaxConditionLoss : 0f;
+
+            for (int i = 0; i < Services.Length; i++)
+            {
+                var option = Services[i];
+                var quote = transport.Quote(antique, option, buyer: buyer);
+                if (quote == null) continue;
+
+                float cost = antique.SalePrice + quote.Cost;
+                if (cost <= 0f) continue;
+
+                int weeks = Mathf.Max(1, quote.DurationWeeks + Mathf.Max(0, holdWeeks));
+
+                // Price is linear in condition, so damage risk is priced as a share of what the
+                // piece is worth.
+                float risk = Mathf.Clamp01(transport.GetDamageChance(option, quote.ArrivalWeek));
+                float expected = worth * (1f - risk * Mathf.Clamp01(maxLoss));
+
+                float weekly = WeeklyReturn(cost, expected, weeks, carryPerWeek);
+                if (weekly <= chosen.WeeklyReturn) continue;
+
+                chosen = new TransportChoice(option, cost, quote.DurationWeeks, weekly);
+            }
+
+            if (chosen.WeeklyReturn > float.NegativeInfinity) return chosen;
+
+            // Nothing quoted: fall back to the default service's own cost so the caller still has one.
+            var plain = transport.Quote(antique, fallback, buyer: buyer);
+            return new TransportChoice(fallback,
+                antique.SalePrice + (plain != null ? plain.Cost : 0f),
+                plain != null ? plain.DurationWeeks : 0,
+                0f);
+        }
+
+        /// <summary>What one more item adds to a trader's weekly warehouse upkeep. 0 without one.</summary>
+        public static float CarryPerWeek(TraderInventory inventory)
+        {
+            var warehouse = inventory != null ? inventory.Warehouse : null;
+            if (warehouse == null) return 0f;
+
+            int used = inventory.UsedSlots;
+            return Mathf.Max(0f, warehouse.CalculateWeeklyUpkeep(used + 1) - warehouse.CalculateWeeklyUpkeep(used));
+        }
+
         /// <summary>
         /// What this trader thinks the antique is worth: its value in its condition, with the
         /// condition premium, moved by the part of its outlook the trader is confident in.
@@ -73,6 +161,11 @@ namespace AntiqueTradingSimulator.Agents
             float floor = worth * ReservationMultiplierFor(inventory, profile);
             float opening = Mathf.Max(worth * Mathf.Max(1f, profile.ListingMarkup),
                                       position != null ? position.CostBasis * profile.ProfitTargetMultiplier : 0f);
+
+            // A position bought on a view opens at the price that view says it should reach, which
+            // is also what prices a planted rumour's stock at what the believers will pay.
+            if (position != null && position.TargetPrice > opening) opening = position.TargetPrice;
+
             if (opening < floor) opening = floor;
 
             int patienceWeeks = profile.PatientSellAfterWeeks > 0 ? profile.PatientSellAfterWeeks : 1;

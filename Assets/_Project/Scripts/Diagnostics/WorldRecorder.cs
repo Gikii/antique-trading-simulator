@@ -282,7 +282,8 @@ namespace AntiqueTradingSimulator.Diagnostics
 
         public void NewsReception(IInformationReceiver receiver, NewsItem news, int deliveryWeek, string outcome,
             float baseTrust, float effectiveTrust, float actionChance, float trustRoll, float expertChance,
-            int delayWeeks, int reactionWeek)
+            int delayWeeks, int actsFromWeek, float estimatedMove, float estimateSpread,
+            float outlookBefore, float outlookAfter)
         {
             _run.Safe(T.FactNewsReceptionName, "ReceiveNews", () =>
             {
@@ -321,12 +322,16 @@ namespace AntiqueTradingSimulator.Diagnostics
                     .F(float.IsNaN(trustRoll) ? (float?)null : trustRoll)
                     .F(float.IsNaN(expertChance) ? (float?)null : expertChance)
                     .I(delayWeeks >= 0 ? delayWeeks : (int?)null)
-                    .I(reactionWeek >= 0 ? reactionWeek : (int?)null)
+                    .I(actsFromWeek >= 0 ? actsFromWeek : (int?)null)
                     .I(news.EventTriggerWeek)
                     .N()                                        // acted_on_week, by seq adjacency
                     .S(ScopeLabel(news.NewsData))
                     .I(inScope)
                     .F(inScopeValue)
+                    .F(estimatedMove > 0f ? estimatedMove : (float?)null)
+                    .F(estimateSpread > 0f ? estimateSpread : (float?)null)
+                    .F(outlookBefore)
+                    .F(outlookAfter)
                     .End();
             });
         }

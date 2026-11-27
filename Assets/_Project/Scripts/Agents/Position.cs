@@ -5,7 +5,13 @@ namespace AntiqueTradingSimulator.Agents
     {
         Resale,
         Contract,
+
+        /// <summary>
+        /// Retired. Holds its place in the order so saved values keep their numbers; DropDeadPlans
+        /// demotes anything carrying it to plain stock.
+        /// </summary>
         RumourExit,
+
         NewsThesis
     }
 
@@ -57,10 +63,13 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>Fee the decision was costed at; reserved until the job starts.</summary>
         public float AssumedFee;
 
-        /// <summary>Price to ask while the planted rumour runs, when Purpose is RumourExit. 0 = do not list.</summary>
+        /// <summary>Retired. A thesis carries its asking price in TargetPrice.</summary>
         public float ExitAskingPrice;
 
-        /// <summary>Week from which an unsold rumour-exit holding is cancelled and sold to the market.</summary>
+        /// <summary>
+        /// Week a thesis on a hard deadline sells to the market instead of listing: a planted
+        /// rumour's debunk week less the profile's dump lead. 0 for an ordinary thesis.
+        /// </summary>
         public int DumpAfterWeek;
 
         /// <summary>Week this antique was first put up for sale by its owner, or 0 if it never has been.</summary>
@@ -115,6 +124,7 @@ namespace AntiqueTradingSimulator.Agents
             TargetPrice = 0f;
             StopPrice = 0f;
             BasedOnNewsIds = null;
+            DistressSince = -1;
         }
     }
 }
