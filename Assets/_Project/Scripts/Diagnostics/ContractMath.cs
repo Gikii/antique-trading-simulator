@@ -11,6 +11,64 @@ namespace AntiqueTradingSimulator.Diagnostics
     /// </summary>
     public static class ContractMath
     {
+        /// <summary>NPCTrader.ContractCashShareBase, mirrored.</summary>
+        public const float ContractCashShareBase = 0.40f;
+
+        /// <summary>NPCTrader.ContractCashShareRiskSpan, mirrored.</summary>
+        public const float ContractCashShareRiskSpan = 0.35f;
+
+        /// <summary>NPCTrader.ContractRiskPremium, mirrored.</summary>
+        public const float ContractRiskPremium = 0.35f;
+
+        /// <summary>NPCTrader.ContractCashShareFor, mirrored.</summary>
+        public static float ContractCashShareFor(Agents.NpcBehaviorProfile profile)
+        {
+            if (profile == null) return ContractCashShareBase;
+            return Mathf.Clamp01(ContractCashShareBase
+                + ContractCashShareRiskSpan * Mathf.Clamp01(profile.RiskTolerance));
+        }
+
+        /// <summary>NPCTrader.SeasonalOutlook, mirrored.</summary>
+        public static float SeasonalOutlook(TelemetryRecorder host, string definitionId,
+            Agents.NpcBehaviorProfile profile)
+        {
+            if (profile == null || profile.SeasonalForesight <= 0f
+                || profile.SeasonalHorizonWeeks <= 0 || host == null || host.Economy == null) return 0f;
+
+            float ratio = host.Economy.SeasonalPriceOutlook(definitionId, profile.SeasonalHorizonWeeks);
+            return profile.SeasonalForesight * (ratio - 1f);
+        }
+
+        /// <summary>NPCTrader.FairValue, mirrored.</summary>
+        public static float FairValue(TelemetryRecorder host, Market.Antique listing,
+            Agents.NpcBehaviorProfile profile)
+        {
+            if (listing == null || profile == null) return 0f;
+
+            var market = host != null ? host.Market : null;
+            var typeState = market != null ? market.GetTypeState(listing.DefinitionId) : null;
+            float baseValue = Economy.PriceEngine.CalculateReferencePrice(listing.BasePrice, typeState)
+                              * listing.Condition;
+
+            return baseValue
+                   * (1f + profile.ConditionPremium * Mathf.Max(0f, listing.Condition - 0.5f))
+                   * (1f + SeasonalOutlook(host, listing.DefinitionId, profile));
+        }
+
+        /// <summary>
+        /// NPCTrader.IsAcceptableContractPrice, mirrored: the ordinary ceiling widened by
+        /// RiskTolerance. Without this the eligibility pass was profile-blind on price and reported
+        /// identical supply for every profile.
+        /// </summary>
+        public static bool IsAcceptableContractPrice(TelemetryRecorder host, Market.Antique listing,
+            Agents.NpcBehaviorProfile profile)
+        {
+            if (listing == null || profile == null) return false;
+
+            return listing.SalePrice <= FairValue(host, listing, profile)
+                * profile.MaxPriceMultiplierWillingToPay
+                * (1f + Mathf.Clamp01(profile.RiskTolerance) * ContractRiskPremium);
+        }
         /// <summary>What a qualifying listing looks like to a buyer right now.</summary>
         public struct Supply
         {

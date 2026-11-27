@@ -27,6 +27,8 @@ namespace AntiqueTradingSimulator.Agents
 
         public int PlanWeek;
 
+        public int ListingRevisionWeek;
+
         public List<int> SlotTicks = new List<int>();
 
         public float WeekBudget;
@@ -64,6 +66,7 @@ namespace AntiqueTradingSimulator.Agents
         public float AssumedFee;
         public float ExitAskingPrice;
         public int DumpAfterWeek;
+        public int OfferedSinceWeek;
     }
 
     public class PendingReactionState

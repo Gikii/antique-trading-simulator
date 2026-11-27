@@ -25,7 +25,8 @@ namespace AntiqueTradingSimulator.Diagnostics
             "actions_per_period,weekly_budget_fraction,min_bargain_score,max_price_multiplier_willing_to_pay," +
             "min_condition_to_buy,condition_premium,profit_target_multiplier,patient_profit_multiplier," +
             "min_holding_weeks_before_sell,patient_sell_after_weeks,relist_after_weeks,listing_markup," +
-            "stop_loss_multiplier,risk_tolerance,never_sells,lists_on_market,takes_contracts," +
+            "listing_price_cut_per_week,min_listing_multiplier," +
+            "stop_loss_multiplier,risk_tolerance,never_sells,lists_on_market,listing_chance,takes_contracts," +
             "contract_slot_share,contract_panic_weeks,restores,buys_to_restore,restores_for_contracts," +
             "max_concurrent_restorations,max_restoration_weeks,max_restoration_share_of_cash," +
             "restoration_hurdle,rumour_plant_chance,lists_into_own_rumour,exit_pump_confidence," +
@@ -207,7 +208,8 @@ namespace AntiqueTradingSimulator.Diagnostics
             "trader_reputation,required_reputation,can_be_claimed,cash_limit,offers_needed,offers_found," +
             "planned_purchase_cost,affordable,is_still_reachable,expected_profit,min_profit_required," +
             "is_attractive,blocked_at,qualifying_listings_on_market,reachable_qualifying_listings," +
-            "cheapest_qualifying_total_cost,reward_per_unit,competitor_committed_count,weeks_to_deadline";
+            "cheapest_qualifying_total_cost,reward_per_unit,competitor_committed_count,weeks_to_deadline," +
+            "rejected_on_price";
 
         public const string FactNewsReceptionName = "fact_news_reception";
         public const string FactNewsReceptionHeader =

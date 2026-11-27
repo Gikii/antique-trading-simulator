@@ -38,6 +38,10 @@ namespace AntiqueTradingSimulator.Agents
         /// <summary>Week from which an unsold rumour-exit holding is cancelled and sold to the market.</summary>
         public int DumpAfterWeek;
 
+        /// <summary> Week this antique was first put up for sale by its owner, or 0 if it never has been.</summary>
+        public int OfferedSinceWeek;
+        public bool HasBeenOffered => OfferedSinceWeek > 0;
+
         public bool HasRestorationLeg => !string.IsNullOrEmpty(RestorationOptionId);
 
         public void ClearRestorationLeg()

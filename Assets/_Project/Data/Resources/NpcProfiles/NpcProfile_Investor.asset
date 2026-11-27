@@ -33,16 +33,20 @@ MonoBehaviour:
   WeeklyBudgetFraction: 0.15
   MaxPriceMultiplierWillingToPay: 0.95
   RiskTolerance: 0.3
+  BudgetAccrualWeeks: 4
   MinConditionToBuy: 0.5
   ConditionPremium: 0
   NeverSells: 0
   ProfitTargetMultiplier: 1.5
   MinHoldingWeeksBeforeSell: 10
-  PatientSellAfterWeeks: 25
+  PatientSellAfterWeeks: 12
   PatientProfitMultiplier: 1.15
   StopLossMultiplier: 0
   ListsOnMarket: 1
+  ListingChance: 1
   ListingMarkup: 1.25
+  ListingPriceCutPerWeek: 0.08
+  MinListingMultiplier: 1.05
   RelistAfterWeeks: 10
   SeasonalForesight: 0.8
   SeasonalHorizonWeeks: 10
@@ -51,6 +55,17 @@ MonoBehaviour:
   MaxTrendBoost: 0.25
   TakesContracts: 1
   ContractPanicWeeks: 2
+  Restores: 1
+  RestorationHurdle: 1.25
+  MaxRestorationWeeks: 6
+  MaxRestorationShareOfCash: 0.25
+  MaxConcurrentRestorations: 1
+  RestoresForContracts: 1
+  BuysToRestore: 1
+  ListsIntoOwnRumour: 1
+  ExitTargetRatio: 1.2
+  ExitDumpLeadWeeks: 1
+  ExitPumpConfidence: 0.7
   AuctionAttendance: 0.6
   AuctionValueMultiplier: 0.9
   AuctionBudgetShare: 0.4

@@ -390,6 +390,19 @@ namespace AntiqueTradingSimulator.Economy
 
         }
 
+        /// <summary>Marks down a standing listing of this trader's. The listing is not re-made.</summary>
+        public bool RepriceListing(Market.Market market, string listingId, float askingPrice)
+        {
+            if (market == null || askingPrice <= 0f) return false;
+            if (!_holdings.TryGetValue(listingId, out var antique)) return false;
+            if (!antique.IsListedForSale) return false;
+
+            if (!market.RepriceListing(antique, askingPrice)) return false;
+
+            OnHoldingChanged?.Invoke(listingId, antique);
+            return true;
+        }
+
         /// <summary>
         /// Lists an owned antique on the market at the given price. The antique stays in
         /// the holdings until a buyer takes it (see CompleteListingSale).

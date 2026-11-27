@@ -15,9 +15,6 @@ namespace AntiqueTradingSimulator.Diagnostics
         private readonly TelemetryRecorder _host;
         private readonly TelemetryRun _run;
 
-        /// <summary>Share of cash an NPC will tie up in contract purchases — NPCTrader.ContractCashShare.</summary>
-        private const float ContractCashShare = 0.5f;
-
         /// <summary>Profit an exclusive must leave — NPCTrader.ExclusiveMinProfitShare.</summary>
         private const float ExclusiveMinProfitShare = 0.15f;
 
@@ -258,7 +255,7 @@ namespace AntiqueTradingSimulator.Diagnostics
 
             var state = npc.CaptureState();
             float contractReserve = state != null ? state.ContractReserve : 0f;
-            float cashLimit = inventory.Cash * ContractCashShare - contractReserve;
+            float cashLimit = inventory.Cash * ContractMath.ContractCashShareFor(profile) - contractReserve;
 
             int reserved = ContractMath.ReservedMatching(inventory, contract);
             int needed = Mathf.Max(0, requirement.Quantity - reserved);
@@ -266,7 +263,7 @@ namespace AntiqueTradingSimulator.Diagnostics
             int latest = ContractMath.LatestUsefulArrivalWeek(contract);
             var supply = ContractMath.Measure(_host, requirement, latest);
 
-            BuildOfferPlan(contract, needed);
+            BuildOfferPlan(contract, needed, npc, profile, out int rejectedOnPrice);
             int found = _offers.Count;
             float planned = 0f;
             for (int i = 0; i < _offers.Count; i++) planned += _offers[i];
@@ -282,13 +279,14 @@ namespace AntiqueTradingSimulator.Diagnostics
             // A profile that never takes contracts is blocked by that, not unblocked, and an
             // exclusive already claimed by someone else is AlreadyClaimed rather than Committed.
             // Both used to report the wrong reason, which buried the real signal in this column.
+
             string blocked =
                 profile == null || !profile.TakesContracts ? "DoesNotTakeContracts" :
                 committed ? "Committed" :
                 !meetsReputation ? "Reputation" :
                 !claimable ? "AlreadyClaimed" :
                 cashLimit <= 0f ? "Cash" :
-                found < needed ? "Supply" :
+                found < needed ? (rejectedOnPrice > 0 ? "PriceCeiling" : "Supply") :
                 !affordable ? "Cash" :
                 !reachable ? "Timing" :
                 !attractive ? "Profit" : "NotBlocked";
@@ -318,21 +316,26 @@ namespace AntiqueTradingSimulator.Diagnostics
                 .F(contract.RewardPerUnit)
                 .I(ContractMath.CommittedCount(_host, contract.ContractId, npc.Id))
                 .I(contract.DeadlineWeek - _run.Week)
+                .I(rejectedOnPrice)
                 .End();
         }
 
         /// <summary>
-        /// The cheapest qualifying listings that can arrive in time and cost no more than the
-        /// reward per unit — NPCTrader.BuildOfferPlan, using only public API.
+        /// The cheapest qualifying listings that can arrive in time, clear this profile's contract
+        /// price ceiling and cost no more than the reward per unit — NPCTrader.BuildOfferPlan, using
+        /// only public API.
         /// </summary>
-        private void BuildOfferPlan(Contract contract, int needed)
+        private void BuildOfferPlan(Contract contract, int needed, NPCTrader npc,
+            NpcBehaviorProfile profile, out int rejectedOnPrice)
         {
             _offers.Clear();
+            rejectedOnPrice = 0;
 
             var market = _host.Market;
             var requirement = contract.Requirement;
             if (market == null || requirement == null || needed <= 0) return;
 
+            var inventory = npc != null ? npc.Inventory : null;
             int week = _run.Week;
             int latest = ContractMath.LatestUsefulArrivalWeek(contract);
             var settings = _host.Transport != null ? _host.Transport.Settings : null;
@@ -343,7 +346,16 @@ namespace AntiqueTradingSimulator.Diagnostics
             {
                 var listing = listings[i];
                 if (listing == null || !requirement.IsSatisfiedBy(listing)) continue;
+
+                if (inventory != null && inventory.Owns(listing.Id)) continue;
+
                 if (week + express(listing.ShippingZone) > latest) continue;
+
+                if (!ContractMath.IsAcceptableContractPrice(_host, listing, profile))
+                {
+                    rejectedOnPrice++;
+                    continue;
+                }
 
                 float shipping = settings != null
                     ? settings.GetCost(listing.SalePrice, listing.ShippingZone, TransportOption.Express)

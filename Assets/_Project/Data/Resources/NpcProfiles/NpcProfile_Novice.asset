@@ -17,29 +17,54 @@ MonoBehaviour:
   TraderNames:
   - Tom's Curiosities
   StartingCash: 65
-  AccessLevel: 1
   PreferredTypes: 0100000007000000
   PreferredCountries: 
   PreferredCenturies: 
+  ActionsPerPeriod: 5
+  ContractSlotShare: 0.8
+  MinBargainScore: 0.08
+  AccessLevel: 1
   RumorTrust: 0.8
   LeakTrust: 0.7
-  MinReactionDelayDays: 0
-  MaxReactionDelayDays: 2
-  DailyBudgetFraction: 0.25
+  MinReactionDelayWeeks: 0
+  MaxReactionDelayWeeks: 2
+  RumourPlantChance: 0
+  WeeklyBudgetFraction: 0.25
   MaxPriceMultiplierWillingToPay: 1.15
   RiskTolerance: 0.9
+  BudgetAccrualWeeks: 3
   MinConditionToBuy: 0
   ConditionPremium: 0
   NeverSells: 0
   ProfitTargetMultiplier: 1.25
-  MinHoldingDaysBeforeSell: 2
-  PatientSellAfterDays: 8
+  MinHoldingWeeksBeforeSell: 2
+  PatientSellAfterWeeks: 5
   PatientProfitMultiplier: 1
   StopLossMultiplier: 0.75
-  ListsOnMarket: 0
+  ListsOnMarket: 1
+  ListingChance: 0.5
   ListingMarkup: 1.15
-  RelistAfterDays: 5
+  ListingPriceCutPerWeek: 0.08
+  MinListingMultiplier: 1.05
+  RelistAfterWeeks: 5
+  SeasonalForesight: 0
+  SeasonalHorizonWeeks: 8
+  TrendSensitivity: 0.25
+  TrendWindowWeeks: 8
+  MaxTrendBoost: 0.15
   TakesContracts: 0
+  ContractPanicWeeks: 2
+  Restores: 1
+  RestorationHurdle: 1.25
+  MaxRestorationWeeks: 6
+  MaxRestorationShareOfCash: 0.25
+  MaxConcurrentRestorations: 1
+  RestoresForContracts: 1
+  BuysToRestore: 1
+  ListsIntoOwnRumour: 1
+  ExitTargetRatio: 1.2
+  ExitDumpLeadWeeks: 1
+  ExitPumpConfidence: 0.7
   AuctionAttendance: 0.8
   AuctionValueMultiplier: 1.1
   AuctionBudgetShare: 0.5
@@ -47,8 +72,3 @@ MonoBehaviour:
   AuctionFeverChance: 0.5
   AuctionFeverRaise: 0.15
   AuctionHesitation: 0.4
-  SeasonalForesight: 0
-  SeasonalHorizonDays: 8
-  TrendSensitivity: 0.25
-  TrendWindowWeeks: 8
-  MaxTrendBoost: 0.15

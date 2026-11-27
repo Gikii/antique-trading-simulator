@@ -71,7 +71,7 @@ namespace AntiqueTradingSimulator.Contracts
         [Min(0f)] public float Weight = 1f;
 
         [Min(0f)] public float MinRewardMultiplier = 1.1f;
-        [Min(0f)] public float MaxRewardMultiplier = 1.6f;
+        [Min(0f)] public float MaxRewardMultiplier = 1.35f;
 
         [Min(1)] public int MinQuantity = 1;
         [Min(1)] public int MaxQuantity = 5;
@@ -117,8 +117,8 @@ namespace AntiqueTradingSimulator.Contracts
 
         [Header("Generation")]
         [FormerlySerializedAs("contractsGeneratedPerDay")]
-        [SerializeField] private int contractsGeneratedPerWeek = 1;
-        [SerializeField] private int maxActiveContracts = 15;
+        [SerializeField] private int contractsGeneratedPerWeek = 2;
+        [SerializeField] private int maxActiveContracts = 10;
         [SerializeField] private int initialContractCount = 5;
 
         [SerializeField] private int minQuantity = 1;
@@ -138,7 +138,7 @@ namespace AntiqueTradingSimulator.Contracts
 
         [Tooltip("Share of the market's expected qualifying supply before the deadline that a contract may ask for. " +
                  "The estimate assumes nobody else buys and everything ships by Express, so keep it well below 1.")]
-        [Range(0.1f, 1f)] [SerializeField] private float supplyShareForContract = 0.5f;
+        [Range(0.1f, 1f)] [SerializeField] private float supplyShareForContract = 0.7f;
 
         [Tooltip("Rolls tried before giving up on generating a contract this time (e.g. when the market is nearly empty).")]
         [Min(1)] [SerializeField] private int maxGenerationAttempts = 8;
@@ -165,7 +165,11 @@ namespace AntiqueTradingSimulator.Contracts
         [Min(0)][SerializeField] private int deliverySafetyWeeks = 1;
 
         [Tooltip("Price the reward from the cheapest qualifying listing rather than the requirement's value floor.")]
-        [SerializeField] private bool priceRewardFromMarketStock = true;
+        [SerializeField] private bool priceRewardFromMarketStock = false;
+
+        [Tooltip("Least a reward may pay per piece as a multiple of what assembling the set out of today's listings costs, delivery included.")]
+        [Min(0f)][SerializeField] private float rewardFloorOverMarketCost = 1.1f;
+
 
         [Header("Condition required")]
         [Tooltip("Range the minimum condition of a standard contract is rolled from. Rewards are based on the value of an antique in exactly that condition.")]
@@ -180,7 +184,7 @@ namespace AntiqueTradingSimulator.Contracts
 
         [Header("Exclusive contracts")]
         [Range(0f, 1f)]
-        [SerializeField] private float exclusiveContractChance = 0.35f;
+        [SerializeField] private float exclusiveContractChance = 0.45f;
         [SerializeField] private float exclusivePenaltyFraction = 0.5f;
 
         [Header("Reputation-gated contract classes")]
@@ -525,7 +529,9 @@ namespace AntiqueTradingSimulator.Contracts
             float urgencyFactor = UrgencyFactor(duration);
             float rewardPerUnit = overrides?.RewardPerUnit is float fixedReward
                 ? Mathf.Max(0f, fixedReward)
-                : (itemCost + deliveryCost) * baseMultiplier * urgencyFactor;
+                : Mathf.Max(
+                    (itemCost + deliveryCost) * baseMultiplier * urgencyFactor,
+                    RewardFloor(requirement, market, currentWeek, duration));
 
             ContractType type = overrides?.Type
                 ?? (UnityEngine.Random.value < exclusiveContractChance ? ContractType.Exclusive : ContractType.Open);
@@ -807,6 +813,26 @@ namespace AntiqueTradingSimulator.Contracts
                 requirement, market, currentWeek, currentWeek + duration - 1, ExpressWeeks);
 
             return Mathf.Max(floor, cheapest);
+        }
+
+        /// <summary>
+        /// Least a reward may pay per piece: what the dearest piece of the cheapest qualifying set costs
+        /// today, delivery included, times rewardFloorOverMarketCost. 0 when the floor is switched off or
+        /// nothing in the market qualifies.
+        /// </summary>
+        private float RewardFloor(ContractRequirement requirement, Market.Market market, int currentWeek, int duration)
+        {
+            if (rewardFloorOverMarketCost <= 0f || requirement == null || market == null) return 0f;
+
+            float marginal = ContractFeasibility.MarginalQualifyingSalePrice(
+                requirement, market, currentWeek, currentWeek + duration - 1, ExpressWeeks, requirement.Quantity);
+
+            if (marginal <= 0f) return 0f;
+
+            float delivery = ContractFeasibility.ExpectedShippingCost(
+                TransportSettingsOrNull, marginal, duration, deliverySafetyWeeks);
+
+            return (marginal + delivery) * rewardFloorOverMarketCost;
         }
 
         /// <summary>Whether the cheapest qualifying listing is within maxCostOverValueFloor of the value floor.</summary>
